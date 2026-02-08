@@ -200,8 +200,10 @@ ssh root@<server_ip> "cd /opt/roc/quota-proxy \
 # 进入项目目录
 cd /home/kai/.openclaw/workspace/roc-ai-republic
 
-# 基本健康检查
-./scripts/verify-quota-proxy.sh http://127.0.0.1:8787
+# 基本健康检查（探活 + 可选签发 key）
+# 等价两种写法，二选一：
+BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh
+# 或：bash scripts/verify-quota-proxy.sh --base-url http://127.0.0.1:8787
 
 # 服务状态检查（推荐日常使用）
 ./scripts/check-quota-status.sh --url http://127.0.0.1:8787
