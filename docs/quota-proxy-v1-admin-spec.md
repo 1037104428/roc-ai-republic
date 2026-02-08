@@ -105,7 +105,7 @@
     - `file`：已开启 `SQLITE_PATH`（JSON 文件持久化）
     - `memory`：纯内存（不推荐生产）
   - `items[]`：用量条目列表（默认按 `updated_at` 倒序）
-    - `key`：trial key（外部展示建议脱敏）
+    - `key`：trial key（外部展示建议脱敏，例如 `trial_abcd…wxyz`）
     - `req_count`：当天累计请求次数（见“计数语义”）
     - `updated_at`：最后一次更新用量的时间戳（毫秒）
 
