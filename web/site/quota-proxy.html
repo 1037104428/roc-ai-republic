@@ -50,6 +50,29 @@
   <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
 
+  <h2>Python 最小示例（OpenAI SDK）</h2>
+  <p>如果你更习惯用代码验证，可以用官方 <code>openai</code> SDK（v1.x）：</p>
+  <pre><code>python -m pip install -U openai
+
+export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
+
+python - <<'PY'
+from openai import OpenAI
+import os
+
+client = OpenAI(
+  api_key=os.environ["OPENAI_API_KEY"],
+  base_url=os.environ["OPENAI_BASE_URL"],
+)
+
+resp = client.chat.completions.create(
+  model="deepseek-chat",
+  messages=[{"role":"user","content":"用一句话介绍 Clawd 国度"}],
+)
+print(resp.choices[0].message.content)
+PY</code></pre>
+
   <h2>用 OpenClaw（推荐）</h2>
   <p>如果你是为了跑通 OpenClaw，一般只需要把 <code>CLAWD_TRIAL_KEY</code> 放到环境变量，然后按小白一条龙写入配置即可：</p>
   <ul>
