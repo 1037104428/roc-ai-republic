@@ -70,6 +70,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -d '{"label":"forum-user:alice"}'</code></pre>
   <p>返回示例：</p>
   <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
+  <p><strong>当前发放流程（人工）：</strong>把返回的 <code>key</code> 通过论坛私信/工单发给用户即可。<strong>不要</strong>在公开帖子里粘贴完整 key（如必须展示，请先脱敏）。</p>
 
   <h3>2) 查询用量（按天聚合，推荐）</h3>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
