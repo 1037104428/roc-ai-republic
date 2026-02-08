@@ -207,3 +207,23 @@ curl -fsS https://api.<your-domain>/healthz
 # landing page（200 即可；内容可能随版本变化）
 curl -fsSI https://<your-domain>/ | head
 ```
+
+---
+
+## 进度日志追加（给 cron/推进循环用）
+
+推进循环需要把“本轮落地/阻塞/下一步”追加到进度日志（通常在你的桌面 weekly 目录）。
+
+为避免 `printf` 遇到以 `-` 开头的文本时报 `invalid option`，仓库内提供了一个轻量安全封装：
+
+```bash
+# 默认会加时间戳（Asia/Shanghai）
+./scripts/append-progress-log.sh "小落地：... commit=abcd123"
+
+# 指定文件路径
+./scripts/append-progress-log.sh --file '/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md' \
+  "blocker: 本轮仅探活无 commit；next: ..."
+
+# 不加时间戳（原样追加）
+./scripts/append-progress-log.sh --no-ts "- raw line starting with dash"
+```
