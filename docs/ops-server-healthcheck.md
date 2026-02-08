@@ -83,6 +83,13 @@ PASSWORD='YOUR_PASSWORD' ./scripts/check-server-quota-proxy-password.py
 
 > 备注：本脚本依赖 Python 的 `pexpect`（Ubuntu 通常自带/可通过 python3-pexpect 安装）。
 
+## 安全提示（端口暴露）
+
+当前 compose 可能会把 8787 端口映射到公网（`0.0.0.0:8787->8787`）。
+
+- 如果你只需要本机自检：建议只绑定到 `127.0.0.1`，并在前面加反向代理（Caddy/Nginx）做 HTTPS 与访问控制。
+- 如果要对外提供试用网关：务必在应用层加鉴权（例如后续的 `ADMIN_TOKEN`）并配合防火墙/限流。
+
 ## 手工巡检命令（在服务器上执行）
 
 ```bash
