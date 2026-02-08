@@ -38,13 +38,20 @@ ssh -o BatchMode=yes root@<server-ip> 'echo ok'
 
 推进循环默认从本机的 `/tmp/server.txt` 读取服务器信息。
 
-目前约定格式示例：
+目前约定格式示例（最小）：
 
 ```text
 ip:8.8.8.8
 ```
 
-（注意：密码不应以明文方式长期保存；自动化建议使用 key。）
+如果需要“密码模式（临时）”，可写成：
+
+```text
+ip:8.8.8.8
+password:YOUR_PASSWORD
+```
+
+（注意：密码不应以明文方式长期保存；长期自动化建议使用 key。）
 
 ## 自动巡检脚本
 
