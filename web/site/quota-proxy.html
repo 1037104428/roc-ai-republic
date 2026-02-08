@@ -66,6 +66,10 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
 
+  <p>（可选）只看某一个 key：</p>
+  <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+
   <p>典型返回：</p>
   <pre><code>{
   "day": "2026-02-08",
@@ -81,6 +85,8 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
+  <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是“网关收到的请求次数”，而不是“上游成功次数”。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
+  <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
   <hr />
   <p>仓库文档：<a href="https://github.com/1037104428/roc-ai-republic">roc-ai-republic</a>（docs/quota-proxy*）</p>
