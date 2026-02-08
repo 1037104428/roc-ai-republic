@@ -24,7 +24,13 @@ curl -fsS -m 8 https://clawdrepublic.cn/ >/dev/null && echo 'site: OK'
 curl -fsS -m 8 https://clawdrepublic.cn/downloads.html >/dev/null && echo 'downloads: OK'
 ```
 
-### 1.2) 官网（quota-proxy 说明页）
+### 1.2) 官网（论坛入口）
+
+```bash
+curl -fsS -m 8 https://clawdrepublic.cn/forum/ | grep -q 'Clawd 国度论坛' && echo 'forum: OK'
+```
+
+### 1.3) 官网（quota-proxy 说明页）
 
 ```bash
 curl -fsS -m 8 https://clawdrepublic.cn/quota-proxy.html | grep -q 'CLAWD_TRIAL_KEY' && echo 'quota-proxy page: OK'
