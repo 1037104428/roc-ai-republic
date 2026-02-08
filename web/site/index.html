@@ -99,6 +99,18 @@
         <li>健康检查：<a href="https://api.clawdrepublic.cn/healthz">/healthz</a></li>
         <li>文档：<a href="/quota-proxy.html">TRIAL_KEY 获取与使用说明（含 curl 示例）</a></li>
       </ul>
+      <div class="muted">一键验证（复制粘贴即可）：</div>
+      <pre><code># 1) 站点与网关是否在线
+curl -fsS -m 5 https://clawdrepublic.cn/ >/dev/null && echo site_ok
+curl -fsS -m 5 https://api.clawdrepublic.cn/healthz && echo
+
+# 2) （可选）拿到 TRIAL_KEY 后，走 OpenAI 兼容接口打一枪
+# export OPENAI_API_KEY="TRIAL_KEY_..."
+# export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
+# curl -fsS "$OPENAI_BASE_URL/chat/completions" \
+#   -H "Authorization: Bearer $OPENAI_API_KEY" -H 'Content-Type: application/json' \
+#   -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"ping"}]}' | head
+</code></pre>
       <div class="small">提示：不要把真实厂商 Key 发到论坛；只讨论 TRIAL_KEY。</div>
     </div>
 
