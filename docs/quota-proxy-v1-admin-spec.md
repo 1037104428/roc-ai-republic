@@ -161,7 +161,19 @@ export ADMIN_TOKEN="your_admin_token_here"
 
 ### 测试脚本说明
 
-#### 1. `test-quota-proxy-admin.sh` - 基础测试
+#### 1. `check-current-persistence.sh` - 持久化模式检查
+检查当前 quota-proxy 的实际持久化模式（JSON/SQLite/内存）：
+```bash
+./scripts/check-current-persistence.sh http://127.0.0.1:8787
+```
+输出包括：
+- 服务健康状态
+- 持久化配置提示
+- 本地数据文件检查
+- 环境变量分析
+- 当前实现说明（JSON v0.1）
+
+#### 2. `test-quota-proxy-admin.sh` - 基础测试
 检查：
 1. 健康状态 (`/healthz`)
 2. 未授权访问保护 (`/admin/usage` 返回 401)
