@@ -90,10 +90,18 @@ PASSWORD='YOUR_PASSWORD' ./scripts/check-server-quota-proxy-password.py
 - 如果你只需要本机自检：建议只绑定到 `127.0.0.1`，并在前面加反向代理（Caddy/Nginx）做 HTTPS 与访问控制。
 - 如果要对外提供试用网关：务必在应用层加鉴权（例如后续的 `ADMIN_TOKEN`）并配合防火墙/限流。
 
-## 手工巡检命令（在服务器上执行）
+## 手工巡检命令
+
+### 在服务器上执行
 
 ```bash
 cd /opt/roc/quota-proxy
 docker compose ps
 curl -fsS http://127.0.0.1:8787/healthz
+```
+
+### 从本机一条命令执行（需要 SSH Key）
+
+```bash
+ssh root@<server-ip> 'cd /opt/roc/quota-proxy && docker compose ps && echo ---HEALTHZ--- && curl -fsS http://127.0.0.1:8787/healthz'
 ```
