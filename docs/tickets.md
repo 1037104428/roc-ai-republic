@@ -50,6 +50,9 @@
 
 ## T6 — 下载分发：install-cn.sh“国内可达源优先 + 回退 + 自检”完善
 - 背景：需要让小白在国内网络环境下尽量“一条命令装好”，失败时也能给出明确提示/自动回退。
+- 状态：✅ 已完成（脚本已上线；仓库脚本与站点脚本已做同步，避免漂移）
+  - 相关 commit：`19b0b96`
+  - 线上脚本：`curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash`
 - 交付物：
   - 脚本：`scripts/install-cn.sh` 支持
     - 国内可达源优先（例如 npm mirror / GitHub/Gitee 多入口）
