@@ -330,12 +330,13 @@ export CLAWD_TRIAL_KEY="trial_abc123def456..."
 提示:
   - 此 key 有效期为 7 天
   - 查看使用情况（两种方式二选一）：
-    1) 直接 curl：
-       curl -sS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
-         -H "Authorization: Bearer your_admin_token_here" | jq .
-    2) 使用仓库脚本（减少参数出错）：
+    1) 直接 curl（可选 pretty）：
+       curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
+         -H "Authorization: Bearer your_admin_token_here" \
+         | python3 -m json.tool
+    2) 使用仓库脚本（减少参数出错；推荐分享日志时加 --mask）：
        ADMIN_TOKEN=your_admin_token_here BASE_URL=http://127.0.0.1:8787 \
-         bash scripts/curl-admin-usage.sh --day "$(date +%F)" | jq .
+         bash scripts/curl-admin-usage.sh --day "$(date +%F)" --pretty --mask
 ```
 
 ### 5. `verify-sqlite-persistence.sh` - SQLite持久化验证

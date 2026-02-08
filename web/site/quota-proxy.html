@@ -173,7 +173,8 @@ curl -fsS "${OPENAI_BASE_URL}/models" \
   <p>或直接用仓库脚本（更不容易打错参数）：</p>
   <pre><code>cd /home/kai/.openclaw/workspace/roc-ai-republic
 ADMIN_TOKEN='***' BASE_URL=http://127.0.0.1:8787 \
-  bash scripts/curl-admin-usage.sh --day $(date +%F)</code></pre>
+  bash scripts/curl-admin-usage.sh --day $(date +%F) --pretty --mask</code></pre>
+  <p>提示：<code>--mask</code> 会对输出里的 trial key 做脱敏，更适合把日志贴到论坛/工单。</p>
 
   <p>（排查用）如果你只是想看“最近的若干条记录”（可能跨天），可以用：</p>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?limit=50" \
