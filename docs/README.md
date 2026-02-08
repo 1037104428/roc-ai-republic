@@ -8,6 +8,19 @@
 - （置顶草案）TRIAL_KEY 获取与使用：`docs/posts/置顶_TRIAL_KEY_获取与使用_模板.md`
 - （置顶草案）OpenClaw 小白版（一条龙）：`docs/posts/置顶_OpenClaw_小白版_一条龙_安装到调用.md`
 
+### 国内一键安装脚本（OpenClaw）
+
+> 适合在网络不稳定/需要国内可达源时使用：优先 `npmmirror`，失败自动回退 `npmjs`；不会修改你本机的 npm registry 配置。
+
+- 直接安装（latest）：
+  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash`
+- 指定版本安装：
+  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12`
+- 仅打印命令（不执行）：
+  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --dry-run`
+
+脚本位置：`scripts/install-cn.sh`（自检：`openclaw --version`；要求 Node.js >= 20）
+
 ## quota-proxy（试用网关）
 
 - 管理端规格：`docs/quota-proxy-v1-admin-spec.md`
