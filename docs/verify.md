@@ -18,6 +18,12 @@ git log -n 5 --oneline
 curl -fsS -m 8 https://clawdrepublic.cn/ >/dev/null && echo 'site: OK'
 ```
 
+### 1.1) 官网（Downloads 页面）
+
+```bash
+curl -fsS -m 8 https://clawdrepublic.cn/downloads.html >/dev/null && echo 'downloads: OK'
+```
+
 ## 2) API 网关（/healthz）
 
 ```bash
