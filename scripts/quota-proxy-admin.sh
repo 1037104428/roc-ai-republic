@@ -25,6 +25,9 @@ Examples:
   ./scripts/quota-proxy-admin.sh keys-create --label 'forum-user:alice'
   ./scripts/quota-proxy-admin.sh usage --day "$(date +%F)"
 
+  # Remote admin (public gateway):
+  ./scripts/quota-proxy-admin.sh --host https://api.clawdrepublic.cn usage --day "$(date +%F)"
+
 Notes:
   - quota-proxy must be started with SQLITE_PATH + ADMIN_TOKEN enabled.
   - This script does not require jq; it will pretty-print if jq is installed.
@@ -117,7 +120,9 @@ case "$CMD" in
       echo "keys-create requires --label" >&2
       exit 2
     fi
-    curl_json POST "${HOST%/}/admin/keys" "{\"label\":\"${LABEL//"/\\\"}\"}" | pretty
+    # escape label for JSON without jq dependency
+    esc_label="${LABEL//\"/\\\"}"
+    curl_json POST "${HOST%/}/admin/keys" "{\"label\":\"${esc_label}\"}" | pretty
     ;;
 
   keys-list)
