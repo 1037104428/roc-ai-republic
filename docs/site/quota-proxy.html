@@ -66,6 +66,10 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
 
+  <p>（可选）只看某一个 key：</p>
+  <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+
   <p>典型返回：</p>
   <pre><code>{
   "day": "2026-02-08",
