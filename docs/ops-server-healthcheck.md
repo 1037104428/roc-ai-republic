@@ -104,6 +104,9 @@ password:YOUR_PASSWORD
 # 需要能够无交互 ssh 登录
 ./scripts/check-server-quota-proxy.sh
 
+# 可选：覆盖 server 文件路径/远端目录/用户
+# SERVER_FILE=/tmp/server.txt REMOTE_DIR=/opt/roc/quota-proxy REMOTE_USER=root ./scripts/check-server-quota-proxy.sh
+
 # 只想“用 /tmp/server.txt 跑一条远端命令”（key 模式）
 ./scripts/ssh-run-roc-key.sh "cd /opt/roc/quota-proxy && docker compose ps"
 ./scripts/ssh-run-roc-key.sh "curl -fsS http://127.0.0.1:8787/healthz"
