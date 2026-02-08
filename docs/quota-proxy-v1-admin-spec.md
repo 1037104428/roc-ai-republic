@@ -14,6 +14,16 @@
 
 （官网版说明页：`docs/site/quota-proxy.html`）
 
+### label 推荐格式（便于运营统计）
+
+建议把 `label` 当作“发放备注”，采用可 grep 的半结构化格式，例如：
+
+- `forum:<username>`（来源用户）
+- `purpose:<short>`（用途）
+- `expires:<YYYY-MM-DD>`（到期日，可选）
+
+示例：`forum:alice purpose:demo expires:2026-03-01`
+
 ## 配置约定（环境变量）
 
 - `DEEPSEEK_API_KEY`：上游 DeepSeek key（必填）。
