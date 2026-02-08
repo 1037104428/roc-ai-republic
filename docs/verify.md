@@ -49,6 +49,13 @@ bash -n /tmp/install-cn.sh && echo 'install-cn.sh: syntax OK'
 bash /tmp/install-cn.sh -- --dry-run
 ```
 
+可选：仓库内对安装脚本做一次自测（包含语法/自检段落等）
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-install-cn.sh --dry-run
+```
+
 ## 4) quota-proxy（服务器本机 /healthz）
 
 > 需要你能 SSH 到服务器 root（或具备等价权限）。
