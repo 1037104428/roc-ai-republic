@@ -72,3 +72,33 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ```bash
 ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'
 ```
+
+### 4.1) quota-proxy 管理接口（发放试用 Key / 用量查询）
+
+> 前提：你已在 quota-proxy 配置了 `ADMIN_TOKEN`（见《quota-proxy 管理接口规范》）。
+
+（A）发放一个 TRIAL Key（返回 JSON；建议顺手带上 label 方便后续统计）
+
+```bash
+ADMIN_TOKEN='<ADMIN_TOKEN>'
+
+curl -fsS -X POST \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' \
+  https://api.clawdrepublic.cn/admin/keys \
+  -d '{"days":7,"quota":100000,"label":"trial:manual"}'
+
+echo
+```
+
+（B）查看用量汇总（用于运营对账/排障）
+
+```bash
+ADMIN_TOKEN='<ADMIN_TOKEN>'
+
+curl -fsS \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  'https://api.clawdrepublic.cn/admin/usage?limit=20'
+
+echo
+```
