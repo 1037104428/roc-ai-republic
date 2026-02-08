@@ -61,9 +61,36 @@
 4. 支持管理员审核机制
 5. 支持私信功能（用于 KEY 发放）
 
+## 自动化脚本
+
+### 置顶帖初始化脚本
+项目提供了 `scripts/init-forum-sticky-posts.sh` 脚本，用于快速生成和部署标准化的置顶帖：
+
+```bash
+# 查看脚本帮助
+./scripts/init-forum-sticky-posts.sh --help
+
+# 生成模板文件供手动使用（默认）
+./scripts/init-forum-sticky-posts.sh
+
+# 自动创建置顶帖（需要API密钥）
+FORUM_API_KEY="your-api-key-here" ./scripts/init-forum-sticky-posts.sh --auto
+```
+
+脚本功能：
+1. 生成三个标准置顶帖的完整 Markdown 内容
+2. 支持手动和自动两种部署方式
+3. 提供论坛 API 集成（需要管理员权限）
+4. 保存模板文件到 `./forum-templates/` 目录
+
+### 其他相关脚本
+- `scripts/check-forum-service.sh` - 检查论坛服务状态
+- `scripts/quick-verify-forum.sh` - 快速验证论坛功能
+- `scripts/check-forum-init.sh` - 检查论坛初始化状态
+
 ## 下一步行动
 1. 部署论坛引擎到 forum.clawdrepublic.cn
 2. 导入上述板块结构
-3. 创建置顶帖内容
+3. 使用初始化脚本创建置顶帖内容
 4. 配置用户权限与审核流程
 5. 集成到主站导航
