@@ -36,6 +36,8 @@
   <h2>最小验证：用 curl 调一次模型</h2>
   <p>把 key 放到环境变量（本站文档统一用 <code>CLAWD_TRIAL_KEY</code>）：</p>
   <pre><code>export CLAWD_TRIAL_KEY="trial_xxx"</code></pre>
+  <p>（Windows PowerShell）</p>
+  <pre><code>$env:CLAWD_TRIAL_KEY = "trial_xxx"</code></pre>
   <p>发送一次最小对话请求（看到返回 JSON 含 <code>choices</code> 即可）：</p>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
