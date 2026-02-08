@@ -87,8 +87,16 @@
 
   <h2>第 4 步：先用 curl 做一次“最小验证”（强烈推荐）</h2>
   <p>这一步可以帮你快速确认：key 是对的、API 可用、网络通。</p>
-  <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz
+  <pre><code># 不需要 key
+curl -fsS https://api.clawdrepublic.cn/healthz
 
+# 需要 key：验证你的 TRIAL_KEY 是否可用
+# 期望：返回 JSON（包含 deepseek-chat / deepseek-reasoner 等模型 id）
+# 若返回 401/403：通常是 key 没设置成功，或 key 不可用
+curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"
+
+# 需要 key：最小对话测试
 curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
   -H 'content-type: application/json' \

@@ -120,8 +120,16 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
 ## 5) 最小验证：先用 curl 跑通一次
 
 ```bash
+# 不需要 key
 curl -fsS https://api.clawdrepublic.cn/healthz
 
+# 需要 key：验证你的 TRIAL_KEY 是否可用
+# 期望：返回一段 JSON（包含 deepseek-chat / deepseek-reasoner 等模型 id）
+# 若返回 401/403：通常是 key 没设置成功，或 key 不可用
+curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"
+
+# 需要 key：最小对话测试
 curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
   -H 'content-type: application/json' \
