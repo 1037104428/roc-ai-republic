@@ -183,3 +183,24 @@ export ADMIN_TOKEN="your_admin_token_here"
 - 定期巡检：结合 cron 任务定期运行验证脚本
 
 对于生产环境，建议定期运行验证脚本确保服务正常。
+
+### 3. `check-quota-persistence.sh` - 持久化状态快速检查
+新增功能：
+1. 服务健康检查
+2. 持久化模式检测（JSON文件/SQLite/内存模式）
+3. 环境变量提示
+4. 验证脚本可用性检查
+
+```bash
+# 快速检查持久化状态
+./scripts/check-quota-persistence.sh http://127.0.0.1:8787
+
+# 带 ADMIN_TOKEN 的详细检查（可选）
+export ADMIN_TOKEN="your_admin_token_here"
+./scripts/check-quota-persistence.sh http://127.0.0.1:8787
+```
+
+#### 使用场景
+- 部署后快速验证：确认服务状态和持久化模式
+- 故障排查：快速检查基础配置
+- 新人上手：了解当前环境配置
