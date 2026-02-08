@@ -10,8 +10,8 @@
 
 ## 安全边界
 - 不做任何隐蔽/绕行/“翻墙入口”；就是普通 HTTP(S) 服务。
-- 不收集多余隐私：v0 仅做 **按日请求次数** 计数（内存 Map）。
-- 生产版（v1）再引入：SQLite 持久化 + admin 管理 API + 更细用量统计。
+- 不收集多余隐私：v0 仅做 **按日请求次数** 计数（内存/文件 JSON）。
+- 生产版（v1）再引入：SQLite 持久化 + 更细用量统计（若需要）。
 
 ## 暴露端口 / HTTPS 建议
 `compose.yaml` 默认将服务端口绑定到本机回环：`127.0.0.1:8787:8787`。
@@ -31,8 +31,18 @@
 
 环境变量：
 - 必填：`DEEPSEEK_API_KEY`
-- 可选（v0）：`PORT`（默认 8787）、`DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com/v1`）、`DAILY_REQ_LIMIT`
-- 预留（v1）：`ADMIN_TOKEN`（管理口鉴权）、`SQLITE_PATH`（默认 `/data/quota-proxy.sqlite`）
+- 可选：
+  - `PORT`（默认 8787）
+  - `DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com/v1`）
+  - `DAILY_REQ_LIMIT`（默认 200）
+- 发放/用量（推荐开启）：
+  - `SQLITE_PATH`：**v0 里实际是 JSON 文件路径**（为了兼容先沿用 env 名），例如：`/data/quota-proxy.json`
+    - 只要设置了该变量：
+      - `TRIAL_KEY` 必须是管理员签发过的（未知 key 会 401）
+      - 用量会写入该文件（JSON）
+  - `ADMIN_TOKEN`：管理口鉴权 token（不要写进仓库）
+
+> 计数口径：每次请求进入 `/v1/chat/completions` 时会先 `incrUsage()`，所以**上游失败/超时也会计入当日次数**（更符合“试用配额=请求机会”）。
 
 ## 本地运行（开发）
 ```bash
@@ -52,6 +62,9 @@ cat > .env <<'EOF'
 DEEPSEEK_API_KEY=***
 PORT=8787
 DAILY_REQ_LIMIT=200
+# 推荐开启：发放/用量持久化
+SQLITE_PATH=/data/quota-proxy.json
+ADMIN_TOKEN=***
 EOF
 
 # 2) 启动
@@ -62,7 +75,47 @@ docker compose ps
 curl -fsS http://127.0.0.1:8787/healthz
 ```
 
+## TRIAL_KEY 发放（管理员 / 当前可用）
+
+前提：
+- `SQLITE_PATH` 已设置（否则 persistence disabled）
+- `ADMIN_TOKEN` 已设置
+- 管理口仅在内网/本机可访问（建议只监听 127.0.0.1）
+
+### 1) 生成一个 TRIAL_KEY
+```bash
+export ADMIN_TOKEN='***'
+curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H 'content-type: application/json' \
+  -d '{"label":"forum-user:alice"}'
+```
+返回示例：
+```json
+{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}
+```
+
+### 2) 查询用量（按天聚合）
+```bash
+curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+也可以查询某个 key：
+```bash
+curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+输出字段说明：
+- `day`: 查询日期（`YYYY-MM-DD`）
+- `mode`: `file`=开启了 `SQLITE_PATH`（JSON 文件持久化）；`memory`=纯内存（不推荐生产）
+- `items[]`:
+  - `key`: trial key（建议在外部展示时做脱敏）
+  - `req_count`: 当天累计请求次数
+  - `updated_at`: 最后一次写入/更新的时间戳（毫秒）
+
 ## 下一步（v1 / 中等落地）
-- SQLite 持久化（trial key、按日用量、审计日志最小字段）
-- `POST /admin/keys`：生成 trial key（`ADMIN_TOKEN` 保护）
-- `GET /admin/usage`：查询用量（`ADMIN_TOKEN` 保护）
+- 真正的 SQLite 持久化（替换 JSON 文件）
+- key 维度策略：有效期 / 日限额（每 key 覆盖）/ 禁用
+- 可选：脱敏审计日志（只保留 request_id / 时间 / key hash / 状态码）

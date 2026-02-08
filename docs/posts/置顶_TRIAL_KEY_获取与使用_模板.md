@@ -10,7 +10,7 @@
 
 ## TRIAL_KEY 是什么？
 
-- `TRIAL_KEY` 是一枚试用密钥，用于访问我们的 **quota-proxy 试用网关**。
+- `TRIAL_KEY` 是一枚试用密钥，用于访问我们的 **quota-proxy 试用网关**：`https://api.clawdrepublic.cn`
 - 目标：让你在**不自己购买/配置上游 key** 的情况下，也能完成一次端到端验证（安装 → 配置 → 调用）。
 
 ## 如何获取 TRIAL_KEY（当前：手动发放）
@@ -40,13 +40,13 @@ export OPENAI_API_KEY="<你的 TRIAL_KEY>"
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn"
 ```
 
-2) 验证 healthz：
+2) 验证 healthz（不产生调用成本）：
 
 ```bash
 curl -fsS https://api.clawdrepublic.cn/healthz
 ```
 
-3) 跑一个最小调用（curl 直连网关，最小可验证）：
+3) 跑一个最小调用（curl 直连网关，最小可验证；会计入试用额度）：
 
 ```bash
 # 把 xxx 换成你拿到的 TRIAL_KEY
@@ -61,16 +61,11 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   }'
 ```
 
-如果你想先只验证鉴权/通路，不要产生调用成本：
-
-```bash
-curl -fsS https://api.clawdrepublic.cn/healthz
-```
-
 ## 使用规范（避免滥用）
 
 - 不提供用于批量爬取/刷量/攻击的用途。
 - 不承诺永久免费；试用是为了让你验证可用性。
+- 不要把 key 贴到公开地方：被别人用光额度，你自己就用不了了。
 - 若遇到报错：请附上时间、请求 id（如有）、以及最小复现步骤。
 
 ## 常见问题
@@ -83,6 +78,31 @@ curl -fsS https://api.clawdrepublic.cn/healthz
 ### Q: 我能把 key 分享给朋友吗？
 
 - 不建议。每个 key 会绑定额度与策略；分享会导致你自己的额度不够用。
+
+## （管理员）当前如何签发 TRIAL_KEY？
+
+> 这段是给运维/管理员的：用户不需要看。
+
+1) quota-proxy 服务需要开启持久化（设置 `SQLITE_PATH`，当前实现为 JSON 文件路径）并设置 `ADMIN_TOKEN`。
+
+2) 在服务器本机（或内网）执行：
+
+```bash
+export ADMIN_TOKEN='***'
+
+# 生成 key
+curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H 'content-type: application/json' \
+  -d '{"label":"forum-user:alice"}'
+
+# 查当日用量
+curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+安全提醒：
+- `/admin/*` 接口不要直出公网；保持仅本机 127.0.0.1 可访问，再通过 SSH/反代做额外保护。
 
 ---
 
