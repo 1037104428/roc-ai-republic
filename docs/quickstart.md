@@ -120,6 +120,14 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   }'
 ```
 
+### 4.1)（可选）一键自检脚本
+
+如果你不想手工逐条跑，也可以直接运行一键探活脚本（会依次检查站点/接口/常见链接）：
+
+```bash
+curl -fsSL https://clawdrepublic.cn/probe-roc-all.sh | bash
+```
+
 ## 5) 启动 OpenClaw 并验证
 
 ```bash
