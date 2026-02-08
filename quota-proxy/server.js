@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import Database from 'better-sqlite3';
+import fs from 'fs';
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -15,7 +15,8 @@ if (!DEEPSEEK_API_KEY) {
 
 const DAILY_REQ_LIMIT = Number(process.env.DAILY_REQ_LIMIT || 200);
 
-const SQLITE_PATH = process.env.SQLITE_PATH || null;
+// Persistence file (we keep the env name SQLITE_PATH for compatibility, but v0 stores JSON)
+const STORE_PATH = process.env.SQLITE_PATH || null;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 function dayKey(d = new Date()) {
@@ -26,12 +27,10 @@ function dayKey(d = new Date()) {
 }
 
 function getTrialKey(req) {
-  // Prefer Authorization: Bearer <trialKey>
   const auth = req.headers['authorization'];
   if (auth && typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) {
     return auth.slice(7).trim();
   }
-  // Or x-trial-key
   const xk = req.headers['x-trial-key'];
   if (typeof xk === 'string' && xk.trim()) return xk.trim();
   return null;
@@ -49,76 +48,62 @@ function isAdmin(req) {
 }
 
 // -------------------------
-// Persistence (SQLite) v1
+// JSON persistence (v0.1)
 // -------------------------
-let db = null;
-let stmts = null;
 
-function initDb() {
-  if (!SQLITE_PATH) return;
-  db = new Database(SQLITE_PATH);
-  db.pragma('journal_mode = WAL');
+const state = {
+  keys: {}, // trialKey -> {label, created_at}
+  usage: {}, // day -> { trialKey -> {requests, updated_at} }
+};
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS keys (
-      key TEXT PRIMARY KEY,
-      label TEXT,
-      created_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS usage (
-      day TEXT NOT NULL,
-      key TEXT NOT NULL,
-      requests INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY(day, key)
-    );
-  `);
-
-  stmts = {
-    key_insert: db.prepare('INSERT INTO keys(key,label,created_at) VALUES(?,?,?)'),
-    key_exists: db.prepare('SELECT 1 FROM keys WHERE key=?'),
-    key_list: db.prepare('SELECT key,label,created_at FROM keys ORDER BY created_at DESC LIMIT ?'),
-
-    usage_get: db.prepare('SELECT requests FROM usage WHERE day=? AND key=?'),
-    usage_upsert: db.prepare(
-      'INSERT INTO usage(day,key,requests,updated_at) VALUES(?,?,?,?) '
-      + 'ON CONFLICT(day,key) DO UPDATE SET requests=excluded.requests, updated_at=excluded.updated_at'
-    ),
-    usage_recent: db.prepare('SELECT day,key,requests,updated_at FROM usage ORDER BY updated_at DESC LIMIT ?'),
-  };
-
-  console.log(`[quota-proxy] sqlite enabled: ${SQLITE_PATH}`);
+function loadStore() {
+  if (!STORE_PATH) return;
+  try {
+    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    const j = JSON.parse(raw);
+    if (j && typeof j === 'object') {
+      state.keys = j.keys || {};
+      state.usage = j.usage || {};
+    }
+    console.log(`[quota-proxy] store loaded: ${STORE_PATH}`);
+  } catch (e) {
+    // ok if missing or invalid
+    console.log(`[quota-proxy] store init: ${STORE_PATH}`);
+  }
 }
 
-initDb();
+let saveTimer = null;
+function saveStoreSoon() {
+  if (!STORE_PATH) return;
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    try {
+      fs.mkdirSync(require('path').dirname(STORE_PATH), { recursive: true });
+    } catch {}
+    fs.writeFileSync(STORE_PATH, JSON.stringify({ keys: state.keys, usage: state.usage }, null, 0));
+  }, 250);
+}
+
+loadStore();
 
 function ensureKeyKnown(trialKey) {
-  // If sqlite enabled, require key exists (issued by admin). If sqlite disabled, allow any key.
-  if (!db) return true;
-  return !!stmts.key_exists.get(trialKey);
+  // If persistence enabled, require key exists (issued by admin). If disabled, allow any key.
+  if (!STORE_PATH) return true;
+  return !!state.keys[trialKey];
 }
 
 function incrUsage(trialKey) {
   const day = dayKey();
   const now = Date.now();
-
-  if (!db) {
-    // in-memory fallback
-    const k = `${day}:${trialKey}`;
-    const c = (inMemoryUsage.get(k) || 0) + 1;
-    inMemoryUsage.set(k, c);
-    return { day, requests: c };
-  }
-
-  const row = stmts.usage_get.get(day, trialKey);
-  const next = (row?.requests || 0) + 1;
-  stmts.usage_upsert.run(day, trialKey, next, now);
-  return { day, requests: next };
+  state.usage[day] ||= {};
+  const row = state.usage[day][trialKey] || { requests: 0, updated_at: now };
+  row.requests += 1;
+  row.updated_at = now;
+  state.usage[day][trialKey] = row;
+  saveStoreSoon();
+  return { day, requests: row.requests };
 }
-
-// In-memory usage (fallback if sqlite disabled)
-const inMemoryUsage = new Map();
 
 // -------------------------
 // Public endpoints
@@ -127,7 +112,6 @@ const inMemoryUsage = new Map();
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 app.get('/v1/models', async (req, res) => {
-  // minimal model list for OpenAI-compatible clients
   return res.json({
     object: 'list',
     data: [
@@ -140,9 +124,7 @@ app.get('/v1/models', async (req, res) => {
 app.post('/v1/chat/completions', async (req, res) => {
   const trialKey = getTrialKey(req);
   if (!trialKey) {
-    return res.status(401).json({
-      error: { message: 'Missing trial key (use Authorization: Bearer <TRIAL_KEY>)' },
-    });
+    return res.status(401).json({ error: { message: 'Missing trial key (use Authorization: Bearer <TRIAL_KEY>)' } });
   }
 
   if (!ensureKeyKnown(trialKey)) {
@@ -175,42 +157,37 @@ app.post('/v1/chat/completions', async (req, res) => {
 });
 
 // -------------------------
-// Admin endpoints (v1)
+// Admin endpoints
 // -------------------------
 
 app.post('/admin/keys', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
-  if (!db) return res.status(400).json({ error: { message: 'sqlite not enabled (set SQLITE_PATH)' } });
+  if (!STORE_PATH) return res.status(400).json({ error: { message: 'persistence disabled (set SQLITE_PATH)' } });
 
   const label = (req.body?.label && String(req.body.label)) || null;
   const trialKey = `trial_${crypto.randomBytes(18).toString('hex')}`;
   const now = Date.now();
-  stmts.key_insert.run(trialKey, label, now);
+  state.keys[trialKey] = { label, created_at: now };
+  saveStoreSoon();
   return res.json({ key: trialKey, label, created_at: now });
 });
 
 app.get('/admin/usage', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
-
   const limit = Math.min(500, Math.max(1, Number(req.query?.limit || 50)));
 
-  if (!db) {
-    // return in-memory snapshot
-    const day = dayKey();
-    const out = [];
-    for (const [k, v] of inMemoryUsage.entries()) {
-      const [d, key] = k.split(':');
-      if (d !== day) continue;
-      out.push({ day: d, key, requests: v });
+  const items = [];
+  for (const [day, byKey] of Object.entries(state.usage)) {
+    for (const [key, row] of Object.entries(byKey)) {
+      items.push({ day, key, requests: row.requests, updated_at: row.updated_at });
     }
-    return res.json({ mode: 'memory', items: out.slice(0, limit) });
   }
-
-  const items = stmts.usage_recent.all(limit);
-  return res.json({ mode: 'sqlite', items });
+  items.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+  return res.json({ mode: STORE_PATH ? 'file' : 'memory', items: items.slice(0, limit) });
 });
 
 const port = Number(process.env.PORT || 8787);
 app.listen(port, () => {
   console.log(`[quota-proxy] listening on :${port} -> ${DEEPSEEK_BASE} (limit=${DAILY_REQ_LIMIT}/day)`);
+  if (STORE_PATH) console.log(`[quota-proxy] persistence=on (file): ${STORE_PATH}`);
 });
