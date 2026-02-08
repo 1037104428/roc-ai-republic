@@ -151,6 +151,13 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <p>返回示例：</p>
   <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
   <p><strong>当前发放流程（人工）：</strong>把返回的 <code>key</code> 通过论坛私信/工单发给用户即可。<strong>不要</strong>在公开帖子里粘贴完整 key（如必须展示，请先脱敏）。</p>
+  <p><strong>管理员发放 checklist（建议按顺序做）：</strong></p>
+  <ol>
+    <li>签发：<code>POST /admin/keys</code>（带 <code>label</code>，便于后续排查/统计）</li>
+    <li>本机快速验证：用新 key 调一次 <code>/v1/models</code>（确认 key 可用 + 网关正常）</li>
+    <li>发给用户：论坛私信发送<strong>完整</strong> key，并提醒不要公开粘贴</li>
+    <li>让用户自检：引导其跑「一键自检脚本」并把输出脱敏后贴回帖子</li>
+  </ol>
   <p>给用户的最小自检命令（不调用上游模型；通常不消耗额度；但<strong>可能</strong>仍会计入网关 <code>req_count</code> 作为“请求次数”统计）：</p>
   <pre><code>export CLAWD_TRIAL_KEY='trial_xxx'
 export OPENAI_BASE_URL='https://api.clawdrepublic.cn/v1'
