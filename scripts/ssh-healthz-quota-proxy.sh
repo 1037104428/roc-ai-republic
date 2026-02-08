@@ -68,5 +68,5 @@ if [[ "${HOST}" != *"@"* ]]; then
   HOST="root@${HOST}"
 fi
 
-ssh -o StrictHostKeyChecking=no -o ConnectTimeout=8 "${HOST}" \
+ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 "${HOST}" \
   "cd '${REMOTE_PATH}' && docker compose ps && echo && curl -fsS http://127.0.0.1:8787/healthz"
