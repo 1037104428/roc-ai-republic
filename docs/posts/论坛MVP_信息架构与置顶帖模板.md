@@ -85,6 +85,22 @@
 - 论坛是否有置顶帖（如果已初始化）
 - 论坛API状态
 
+### 快速验证命令
+
+```bash
+# 检查论坛初始化状态（生产环境）
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/check-forum-init.sh --url http://forum.clawdrepublic.cn --timeout 15
+
+# 预期输出应包含：
+# - HTTP 200 OK
+# - 论坛标题正确
+# - 登录/注册链接可见
+# - 置顶帖检查通过（如果已初始化）
+```
+
+如果论坛未运行或配置不正确，脚本会给出明确的错误提示。
+
 ## 6) 后续步骤
 
 1. 部署论坛（Flarum / Discourse / NodeBB）
