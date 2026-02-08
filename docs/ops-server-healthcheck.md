@@ -77,11 +77,17 @@ password:YOUR_PASSWORD
 
 ```bash
 ./scripts/check-server-quota-proxy-password.py
-# 或显式传密码（不会写文件）：
+
+# 推荐：用环境变量显式传密码（不会写文件）
 PASSWORD='YOUR_PASSWORD' ./scripts/check-server-quota-proxy-password.py
+
+# 可选：覆盖 server 文件路径/远端目录
+# SERVER_FILE=/tmp/server.txt REMOTE_DIR=/opt/roc/quota-proxy ./scripts/check-server-quota-proxy-password.py
 ```
 
-> 备注：本脚本依赖 Python 的 `pexpect`（Ubuntu 通常自带/可通过 python3-pexpect 安装）。
+> 备注：本脚本依赖 Python 的 `pexpect`。
+> - Debian/Ubuntu：`sudo apt-get update && sudo apt-get install -y python3-pexpect`
+> - 或 pip：`python3 -m pip install --user pexpect`
 
 ## 安全提示（端口暴露）
 
