@@ -63,8 +63,9 @@ openclaw models status</code></pre>
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
 
   <h2>可选：列出可用模型（OpenAI-compatible）</h2>
-  <p>如果你想先确认网关端暴露了哪些模型：</p>
-  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models</code></pre>
+  <p>如果你想先确认网关端暴露了哪些模型（通常需要带 key，否则会 401/403）：</p>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
 
   <h2>健康检查（不调用模型，不消耗额度）</h2>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
