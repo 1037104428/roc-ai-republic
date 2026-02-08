@@ -15,4 +15,8 @@
 - /quota-proxy.html（TRIAL_KEY / quota-proxy）：`docs/site/quota-proxy.html`（同时参考：`docs/quota-proxy-v1-admin-spec.md`）
 - /status.html（服务状态页）：`docs/site/status.html`
 
-原则：当线上修改后，必须同步回仓库（便于审计与回滚）。
+## 发布/同步约定
+
+- 站点**源文件以 `docs/site/` 为准**（便于审计与回滚）。
+- 任何线上页面的改动都必须回写到仓库对应文件。
+- 推荐用脚本发布：`./scripts/deploy-web-site.sh`（如有调整请同步更新脚本/文档）。
