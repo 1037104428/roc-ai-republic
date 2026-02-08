@@ -115,6 +115,10 @@ PASSWORD='YOUR_PASSWORD' ./scripts/check-server-quota-proxy-password.py
 > 备注：本脚本依赖 Python 的 `pexpect`。
 > - Debian/Ubuntu：`sudo apt-get update && sudo apt-get install -y python3-pexpect`
 > - 或 pip：`python3 -m pip install --user pexpect`
+>
+> 首次连接某台新服务器时，ssh 可能会输出：
+> `Warning: Permanently added 'x.x.x.x' (ED25519) to the list of known hosts.`
+> 这通常是正常现象（写入 `~/.ssh/known_hosts`），但如果你对主机指纹有要求，应当提前校验指纹再接入。
 
 ## 安全提示（端口暴露）
 
