@@ -92,6 +92,14 @@ curl -fsS http://127.0.0.1:8787/healthz
 - 管理口仅在内网/本机可访问（建议只监听 127.0.0.1）
 
 ### 1) 生成一个 TRIAL_KEY
+
+推荐使用仓库脚本（更不容易写错参数）：
+```bash
+export ADMIN_TOKEN='***'
+./scripts/quota-proxy-admin.sh keys-create --label 'forum-user:alice'
+```
+
+等价的 curl：
 ```bash
 export ADMIN_TOKEN='***'
 curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
@@ -105,6 +113,13 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 ```
 
 ### 2) 查询用量（按天聚合）
+推荐脚本：
+```bash
+export ADMIN_TOKEN='***'
+./scripts/quota-proxy-admin.sh usage --day "$(date +%F)"
+```
+
+等价的 curl：
 ```bash
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
