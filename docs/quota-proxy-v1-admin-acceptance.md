@@ -1,10 +1,10 @@
-# quota-proxy v1 admin：验收清单（可复制粘贴）
+# quota-proxy admin：验收清单（可复制粘贴）
 
-> 目的：把 “SQLite 持久化 + /admin/keys + /admin/usage（ADMIN_TOKEN）” 做成**可验证的最小闭环**。
+> 目的：把 “开启持久化 + /admin/keys + /admin/usage（ADMIN_TOKEN）” 做成**可验证的最小闭环**。
 
 关联：
-- 任务票：`docs/tickets.md` → **T5**
-- 规格草案：`docs/quota-proxy-v1-admin-spec.md`
+- 规格：`docs/quota-proxy-v1-admin-spec.md`
+- 需求/工单：`docs/tickets.md`
 
 ---
 
@@ -13,10 +13,12 @@
 - 端口只绑定本机：`127.0.0.1:8787:8787`
 - 数据目录挂载：`./data:/data`
 - 环境变量：
+  - `DEEPSEEK_API_KEY`（必填）
   - `ADMIN_TOKEN`（必填）
-  - `SQLITE_PATH=/data/quota-proxy.sqlite`（建议）
+  - `SQLITE_PATH=/data/quota-proxy.json`（建议；当前实现为 JSON 文件）
+  - `DAILY_REQ_LIMIT=200`（可选）
 
-> 注意：`ADMIN_TOKEN` 不要写进仓库；只在服务器上以 `.env`/环境变量保存。
+> 注意：`ADMIN_TOKEN` / `DEEPSEEK_API_KEY` 不要写进仓库；只在服务器上以 `.env`/环境变量保存。
 
 ---
 
@@ -43,21 +45,26 @@ curl -fsS http://127.0.0.1:8787/healthz
 curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H 'content-type: application/json' \
-  -d '{"note":"trial","daily_req_limit":200}'
+  -d '{"label":"forum-user:alice"}'
 ```
 
-期望：返回 JSON，包含 `key` 与 `created_at`。
+期望：返回 JSON，包含：
+- `key`（形如 `trial_<hex>`）
+- `created_at`（毫秒时间戳）
 
 ---
 
-## 3) 查询今日用量（按天汇总）
+## 3) 查询今日用量（按天汇总，推荐）
 
 ```bash
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-期望：返回 JSON，包含 `day` 与 `items`。
+期望：返回 JSON，包含 `day` 与 `items`；`items[]` 每条包含：
+- `key`
+- `req_count`
+- `updated_at`
 
 ---
 
@@ -90,7 +97,7 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
 ```
 
 期望：
-- `./data/quota-proxy.sqlite`（或你实现的 sqlite 文件）存在且体积非 0
+- `./data/quota-proxy.json`（或你实际设置的 `SQLITE_PATH` 文件）存在且体积非 0
 - 重启后 `GET /admin/usage` 仍可读到之前记录（或至少结构/列表正常）
 
 ---
@@ -101,7 +108,7 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
 # 端口不应对公网直出（只绑定 localhost）
 docker compose ps | sed -n '1,120p'
 
-# 未带 token 访问 admin 应失败（401/403）
+# 未带 token 访问 admin 应失败（401）
 set +e
 curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8787/admin/usage
 set -e
@@ -109,4 +116,4 @@ set -e
 
 期望：
 - `PORTS` 形如 `127.0.0.1:8787->8787/tcp`
-- 未鉴权请求返回 `401` 或 `403`
+- 未鉴权请求返回 `401`
