@@ -7,6 +7,8 @@ set -euo pipefail
 # Usage:
 #   ./scripts/probe-roc-all.sh
 #   ./scripts/probe-roc-all.sh --json
+#   ./scripts/probe-roc-all.sh --timeout 15
+#   ./scripts/probe-roc-all.sh --json --timeout 15
 #
 # Optional env:
 #   SERVER_TXT=/tmp/server.txt
@@ -23,13 +25,24 @@ log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$*"; }
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 MODE="pretty"
-if [[ "${1:-}" == "--json" ]]; then
-  MODE="json"
-  shift
-fi
-if [[ "$#" -ne 0 ]]; then
-  die "unknown args: $*"
-fi
+TIMEOUT=10
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --json)
+      MODE="json"
+      shift
+      ;;
+    --timeout)
+      TIMEOUT="${2:-}"
+      [[ -n "$TIMEOUT" ]] || die "--timeout requires a value"
+      shift 2
+      ;;
+    *)
+      die "unknown arg: $1"
+      ;;
+  esac
+done
 
 cd "$ROOT_DIR"
 
@@ -40,15 +53,15 @@ if [[ "$MODE" == "json" ]]; then
   api_ok=0
   server_ok=0
 
-  if curl -fsS -m 10 "$HOME_URL" >/dev/null; then home_ok=1; fi
+  if curl -fsS -m "$TIMEOUT" "$HOME_URL" >/dev/null; then home_ok=1; fi
 
-  if curl -fsS -m 10 "$API_HEALTHZ_URL" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then api_ok=1; fi
+  if curl -fsS -m "$TIMEOUT" "$API_HEALTHZ_URL" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then api_ok=1; fi
 
   if [[ -f "$SERVER_TXT" ]]; then
     if [[ ! -x ./scripts/ssh-run-server-txt.sh ]]; then
       server_ok=0
     else
-      if ./scripts/ssh-run-server-txt.sh "curl -fsS -m 5 http://127.0.0.1:8787/healthz" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then
+      if ./scripts/ssh-run-server-txt.sh "curl -fsS -m $TIMEOUT http://127.0.0.1:8787/healthz" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then
         server_ok=1
       fi
     fi
@@ -87,6 +100,6 @@ log "probe: quota-proxy compose ps (server from $SERVER_TXT)"
 ./scripts/ssh-run-server-txt.sh "cd /opt/roc/quota-proxy && docker compose ps"
 
 log "probe: quota-proxy healthz (localhost on server)"
-./scripts/ssh-run-server-txt.sh "curl -fsS -m 5 http://127.0.0.1:8787/healthz"
+./scripts/ssh-run-server-txt.sh "curl -fsS -m $TIMEOUT http://127.0.0.1:8787/healthz"
 
 log "OK"
