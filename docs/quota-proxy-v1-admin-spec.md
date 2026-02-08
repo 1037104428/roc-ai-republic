@@ -4,6 +4,16 @@
 >
 > 说明：历史文件名里写的是 v1/SQLite，但**当前线上实现为 v0.1：用 JSON 文件持久化**（环境变量仍沿用 `SQLITE_PATH` 这个名字，后续再切真正 SQLite 不破坏配置）。
 
+## 运营发放流程（当前：人工发放）
+
+- 用户在论坛发帖申请（说明用途/频率）。
+- 管理员在服务器本机用 `POST /admin/keys` 生成一个 `trial_...` key。
+- 将该 key 私信/回复给用户，并提示：
+  - 用 `Authorization: Bearer trial_...` 调用 `https://api.clawdrepublic.cn/v1/chat/completions`
+  - 可用 `https://api.clawdrepublic.cn/healthz` 做非消耗型健康检查
+
+（官网版说明页：`docs/site/quota-proxy.html`）
+
 ## 配置约定（环境变量）
 
 - `DEEPSEEK_API_KEY`：上游 DeepSeek key（必填）。

@@ -50,8 +50,23 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
   <h2>健康检查（不调用模型，不消耗额度）</h2>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
 
-  <h2>（运维/管理员）/admin/usage 输出字段说明</h2>
-  <p>管理接口不应暴露公网；一般在服务器本机执行 curl。典型返回：</p>
+  <h2>（运维/管理员）发放 TRIAL_KEY 与 /admin/usage 说明</h2>
+  <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
+
+  <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
+  <pre><code>export ADMIN_TOKEN='***'
+curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H 'content-type: application/json' \
+  -d '{"label":"forum-user:alice"}'</code></pre>
+  <p>返回示例：</p>
+  <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
+
+  <h3>2) 查询用量（按天聚合，推荐）</h3>
+  <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+
+  <p>典型返回：</p>
   <pre><code>{
   "day": "2026-02-08",
   "mode": "file",
@@ -63,7 +78,7 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
     <li><code>day</code>：查询日期（YYYY-MM-DD）</li>
     <li><code>mode</code>：<code>file</code> 表示已开启持久化；<code>memory</code> 表示仅内存（不建议生产）</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
-    <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入，具体语义以仓库文档为准）</li>
+    <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
 
