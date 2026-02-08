@@ -77,6 +77,22 @@ openclaw --version
 export CLAWD_TRIAL_KEY="trial_xxx"
 ```
 
+自检（建议做一次，避免环境变量没生效）：
+
+```bash
+# 应该输出 trial_ 开头（不要把 key 发到公开场合）
+echo "${CLAWD_TRIAL_KEY}" | sed -E "s/(trial_[A-Za-z0-9]{4}).*/\1.../"
+
+# API 探活（不需要 key）
+curl -fsS https://api.clawdrepublic.cn/healthz
+```
+
+如果你在 Windows PowerShell：
+
+```powershell
+$env:CLAWD_TRIAL_KEY = "trial_xxx"
+```
+
 ## 4) 最小验证：先用 curl 跑通一次
 
 ```bash
