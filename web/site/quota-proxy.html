@@ -128,21 +128,19 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   </ul>
   <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是"网关收到的请求次数"，而不是"上游成功次数"。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
 
-  <h3>3) 删除/禁用某个 TRIAL_KEY</h3>
-  <pre><code>curl -fsS -X DELETE "http://127.0.0.1:8787/admin/keys/trial_xxx" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
-  <p>返回示例：</p>
-  <pre><code>{"deleted":true,"key":"trial_xxx"}</code></pre>
-  <p><strong>注意：</strong>删除后该 key 将立即失效，所有使用该 key 的请求会返回 401。已记录的用量数据不会被删除。</p>
-
-  <h3>4) 重置某个 key 的当日用量（清零）</h3>
-  <pre><code>curl -fsS -X POST "http://127.0.0.1:8787/admin/usage/reset?key=trial_xxx" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
-  <p>返回示例：</p>
-  <pre><code>{"reset":true,"key":"trial_xxx","day":"2026-02-09"}</code></pre>
-  <p><strong>注意：</strong>重置的是当天的用量计数，不会影响历史数据。</p>
-
-  <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
+  <h3>3)（规划中）禁用/吊销 key、重置当日用量</h3>
+  <p>为避免误操作导致不可恢复的影响（以及保持实现简单），当前线上 v0.1 仅提供：</p>
+  <ul>
+    <li><code>POST /admin/keys</code>：签发 key</li>
+    <li><code>GET /admin/usage</code>：查询用量</li>
+  </ul>
+  <p>后续会在完成 <strong>SQLite 持久化</strong> 与审计字段后，再补齐：</p>
+  <ul>
+    <li>禁用/吊销某个 <code>TRIAL_KEY</code></li>
+    <li>重置某个 key 的当日用量（清零）</li>
+  </ul>
+  <p>在此之前，如需紧急止损，建议通过<strong>轮换 ADMIN_TOKEN</strong>、或下线/重启服务并人工处理数据文件。</p>
+<p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
   <h2>论坛使用指南</h2>
   <p>Clawd 国度论坛是社区交流、问题求助和 TRIAL_KEY 申请的主要平台：</p>
