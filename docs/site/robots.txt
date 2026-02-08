@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+Disallow: /forum/admin
+Disallow: /forum/api
+Disallow: /forum/assets
+
 Sitemap: https://clawdrepublic.cn/sitemap.xml
