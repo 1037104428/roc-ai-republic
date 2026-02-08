@@ -13,6 +13,14 @@
   - 可用 `https://api.clawdrepublic.cn/healthz` 做非消耗型健康检查
 
 （官网版说明页：`docs/site/quota-proxy.html`）
+
+管理员在**服务器本机**执行示例（推荐用 SSH 登录后 curl 本机 127.0.0.1）：
+
+```bash
+ssh -o BatchMode=yes -o ConnectTimeout=8 root@<server_ip> \
+  'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'
+```
+
 ## 给新人的官网入口（TRIAL_KEY + 最小 curl 验证）
 
 - 官网页面：`https://clawdrepublic.cn/quota-proxy.html`（源文件：`docs/site/quota-proxy.html`）
