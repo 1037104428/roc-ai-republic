@@ -76,6 +76,11 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
 
+  <p>（排查用）如果你只是想看“最近的若干条记录”（可能跨天），可以用：</p>
+  <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?limit=50" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+  <p>说明：该模式仅用于快速排查，不建议作为正式运营统计口径（建议固定按 <code>day</code> 查询）。</p>
+
   <p>（可选）只看某一个 key：</p>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
