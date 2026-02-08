@@ -53,6 +53,13 @@ password:YOUR_PASSWORD
 
 （注意：密码不应以明文方式长期保存；长期自动化建议使用 key。）
 
+### 关于 /tmp/server.txt 的安全建议
+
+- **不要把包含密码的 server.txt 加进仓库**（避免误 commit / 误 push）。
+- 如必须用密码模式：优先用环境变量 `PASSWORD=...` 传入（不落盘）。
+- 建议把 server 文件权限收紧：`chmod 600 /tmp/server.txt`。
+- 如果你只需要 key 模式，`/tmp/server.txt` 里只保留 `ip:` 一行即可。
+
 ## 自动巡检脚本
 
 ### 方式 0：一键探活（官网 + API + 服务器 quota-proxy）
