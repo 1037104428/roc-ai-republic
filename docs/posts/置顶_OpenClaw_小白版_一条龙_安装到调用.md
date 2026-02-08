@@ -29,6 +29,25 @@ openclaw --version
 openclaw --help
 ```
 
+### 安装常见问题（1 分钟自检）
+
+- Node.js 版本：
+
+```bash
+node -v
+```
+
+建议 `v20+`。
+
+- `openclaw: command not found`：通常是 shell 没刷新 PATH，先重新打开一个终端；或执行：
+
+```bash
+source ~/.bashrc 2>/dev/null || true
+source ~/.zshrc 2>/dev/null || true
+```
+
+- 脚本行为说明：`install-cn.sh` 会**优先尝试国内可达 npm 源**，失败会回退到 npmjs；同时不会修改你本机的全局 npm registry 配置。
+
 ---
 
 ## 2) 获取 TRIAL_KEY（试用额度｜当前：手动发放）
