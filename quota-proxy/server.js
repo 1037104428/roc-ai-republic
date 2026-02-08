@@ -174,12 +174,29 @@ app.post('/admin/keys', (req, res) => {
 
 app.get('/admin/usage', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
-  const limit = Math.min(500, Math.max(1, Number(req.query?.limit || 50)));
 
+  const qDay = (req.query?.day && String(req.query.day)) || null; // YYYY-MM-DD
+  const qKey = (req.query?.key && String(req.query.key)) || null;
+
+  // Preferred mode: query by day (optionally by key) → stable, predictable output
+  if (qDay) {
+    const byKey = state.usage[qDay] || {};
+    let items = Object.entries(byKey).map(([key, row]) => ({
+      key,
+      req_count: row?.requests || 0,
+      updated_at: row?.updated_at || null,
+    }));
+    if (qKey) items = items.filter((x) => x.key === qKey);
+    items.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+    return res.json({ day: qDay, mode: STORE_PATH ? 'file' : 'memory', items });
+  }
+
+  // Back-compat mode: recent usage rows across all days
+  const limit = Math.min(500, Math.max(1, Number(req.query?.limit || 50)));
   const items = [];
   for (const [day, byKey] of Object.entries(state.usage)) {
     for (const [key, row] of Object.entries(byKey)) {
-      items.push({ day, key, requests: row.requests, updated_at: row.updated_at });
+      items.push({ day, key, req_count: row.requests, updated_at: row.updated_at });
     }
   }
   items.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));

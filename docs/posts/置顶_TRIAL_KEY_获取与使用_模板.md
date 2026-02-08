@@ -13,16 +13,22 @@
 - `TRIAL_KEY` 是一枚试用密钥，用于访问我们的 **quota-proxy 试用网关**。
 - 目标：让你在**不自己购买/配置上游 key** 的情况下，也能完成一次端到端验证（安装 → 配置 → 调用）。
 
-## 如何获取 TRIAL_KEY（两种方式，任选其一）
+## 如何获取 TRIAL_KEY（当前：手动发放）
 
-1) **论坛私信领取**（推荐）
-   - 在本论坛注册后，私信管理员并附上：用途 + 预计试用时长。
+当前阶段我们**先手动发放**（后续再做自助申请/自动签发）。
 
-2) **表单申请**（兜底）
-   - 入口：官网首页「Moltbook 招募/试用申请」链接（待补充具体 URL）。
+1) 在论坛注册后，给管理员发**私信**，按下面格式提交（复制粘贴即可）：
 
-> 发放策略：
+- 用途：________（例如：跑通 OpenClaw 一条龙/验证公司网络可用）
+- 预计试用时长：__ 天
+- 你准备调用的模型：deepseek-chat / deepseek-reasoner / 不确定
+- 预计每天请求量：__（不确定就写「少量」）
+
+2) 管理端签发 `TRIAL_KEY` 后，会用私信发给你。
+
+> 发放策略（可能随时调整）：
 > - 每个 key 有独立额度/有效期；
+> - 滥用会被回收；
 > - 试用结束可申请续期或升级。
 
 ## 如何使用（最小可复制粘贴）
@@ -40,11 +46,25 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn"
 curl -fsS https://api.clawdrepublic.cn/healthz
 ```
 
-3) 跑一个最小调用（示例，以 OpenAI-compatible 客户端为准）：
+3) 跑一个最小调用（curl 直连网关，最小可验证）：
 
 ```bash
-# 这里用你本地的 SDK/CLI 做一次 chat/completions 调用
-# 文档会在“小白版一条龙”里给出完整命令
+# 把 xxx 换成你拿到的 TRIAL_KEY
+export TRIAL_KEY="xxx"
+
+curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer ${TRIAL_KEY}" \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
+  }'
+```
+
+如果你想先只验证鉴权/通路，不要产生调用成本：
+
+```bash
+curl -fsS https://api.clawdrepublic.cn/healthz
 ```
 
 ## 使用规范（避免滥用）

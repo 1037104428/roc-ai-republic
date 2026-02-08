@@ -54,11 +54,22 @@
 `GET /admin/usage?day=YYYY-MM-DD&key=<optional>`
 
 - 鉴权：必须携带 `ADMIN_TOKEN`
+- 说明：
+  - `day` 必填（推荐的稳定查询方式）。
+  - `key` 可选：只看某一个 key。
 - response：
 
 ```json
-{ "day": "2026-02-08", "items": [ { "key": "rk_live_xxx", "req_count": 12 } ] }
+{
+  "day": "2026-02-08",
+  "mode": "file",
+  "items": [
+    { "key": "trial_xxx", "req_count": 12, "updated_at": 1700000000000 }
+  ]
+}
 ```
+
+> 兼容模式（用于快速排查最近用量）：不带 `day` 时，可用 `?limit=50` 返回跨天的最近记录（字段含 `day`）。
 
 ## 验收/验证命令（实现后）
 

@@ -45,29 +45,40 @@ $env:TRIAL_KEY = "xxx"
 
 ## 3) 获取 TRIAL_KEY（试用额度）
 
-目前获取方式：
+目前获取方式（MVP 阶段：**手动发放**）：
 
-- 入口：官网首页（https://clawdrepublic.cn/）的「Moltbook 招募 / 申请试用」
-- 或论坛置顶帖（待上线）：填写表单 / 发帖申请
+- 在论坛注册后，给管理员发私信领取（推荐）。
 
-你需要提供：
+私信内容建议按下面格式（复制粘贴即可）：
 
-- 你的用途（1 句话即可）
-- 预计日用量（粗略即可）
-- 你的联系方式（用于把 key 发给你）
+- 用途：________（例如：跑通 OpenClaw 一条龙/验证公司网络可用）
+- 预计试用时长：__ 天
+- 预计每天请求量：__（不确定就写「少量」）
 
-> 管理端会发放 `TRIAL_KEY`，并可在后台看到 usage。
+> 管理端签发 `TRIAL_KEY` 后，会用私信发给你；管理员也能在后台看到 usage。
 
 ---
 
 ## 4) 验证调用（最小成功标准）
 
-当你拿到 `TRIAL_KEY` 后，用下面命令验证：
+当你拿到 `TRIAL_KEY` 后，按顺序做两步验证：
+
+1) 先验通路（不产生模型调用成本）：
 
 ```bash
-curl -fsS \
+curl -fsS https://api.clawdrepublic.cn/healthz
+```
+
+2) 再验“确实能调用模型”（会计入试用额度）：
+
+```bash
+curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Authorization: Bearer ${TRIAL_KEY}" \
-  https://api.clawdrepublic.cn/healthz
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"你好！请用一句话自我介绍"}]
+  }'
 ```
 
 预期输出类似：
