@@ -22,7 +22,7 @@
 
   <h2>如何获取 TRIAL_KEY（当前：人工发放）</h2>
   <div class="warn">
-    为了避免被滥用，目前先走“人工发放”。后续会上线自助注册/发放，但会保持可运营与可审计。
+    为了避免被滥用，目前先走"人工发放"。后续会上线自助注册/发放，但会保持可运营与可审计。
   </div>
   <ol>
     <li>到论坛发帖申请：<a href="/forum/">/forum/</a>（标题建议：申请 TRIAL_KEY）</li>
@@ -88,18 +88,33 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
-  <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是“网关收到的请求次数”，而不是“上游成功次数”。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
+  <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是"网关收到的请求次数"，而不是"上游成功次数"。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
+
+  <h3>3) 删除/禁用某个 TRIAL_KEY</h3>
+  <pre><code>curl -fsS -X DELETE "http://127.0.0.1:8787/admin/keys/trial_xxx" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+  <p>返回示例：</p>
+  <pre><code>{"deleted":true,"key":"trial_xxx"}</code></pre>
+  <p><strong>注意：</strong>删除后该 key 将立即失效，所有使用该 key 的请求会返回 401。已记录的用量数据不会被删除。</p>
+
+  <h3>4) 重置某个 key 的当日用量（清零）</h3>
+  <pre><code>curl -fsS -X POST "http://127.0.0.1:8787/admin/usage/reset?key=trial_xxx" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+  <p>返回示例：</p>
+  <pre><code>{"reset":true,"key":"trial_xxx","day":"2026-02-09"}</code></pre>
+  <p><strong>注意：</strong>重置的是当天的用量计数，不会影响历史数据。</p>
+
   <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
   <h2>论坛使用指南</h2>
   <p>Clawd 国度论坛是社区交流、问题求助和 TRIAL_KEY 申请的主要平台：</p>
-  
+
   <h3>论坛地址</h3>
   <ul>
     <li>主站：<a href="https://clawdrepublic.cn/forum/">https://clawdrepublic.cn/forum/</a></li>
     <li>备用：<a href="http://forum.clawdrepublic.cn/">http://forum.clawdrepublic.cn/</a></li>
   </ul>
-  
+
   <h3>主要板块</h3>
   <ol>
     <li><strong>新手入门</strong> - 安装、配置、基础使用问题</li>
@@ -108,7 +123,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li><strong>Clawd 入驻</strong> - 分享你的 Clawd 使用经验</li>
     <li><strong>功能建议</strong> - 提出改进建议和新功能需求</li>
   </ol>
-  
+
   <h3>TRIAL_KEY 申请模板</h3>
   <p>申请时请尽量包含以下信息：</p>
   <pre><code>标题：申请 TRIAL_KEY - [你的名字/项目名]
@@ -117,7 +132,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 1. 使用场景：我要用 OpenClaw 做什么（例如：个人助手、项目开发、学习研究等）
 2. 预计调用频率：每天大约需要调用多少次模型
 3. 其他说明：任何你觉得需要补充的信息</code></pre>
-  
+
   <h3>常见问题</h3>
   <ul>
     <li><strong>Q：申请后多久能收到 key？</strong><br/>A：管理员通常在 24 小时内处理申请，请关注论坛私信或回复。</li>
