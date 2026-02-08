@@ -23,6 +23,14 @@
 
 脚本位置：`scripts/install-cn.sh`（自检：`openclaw --version`；要求 Node.js >= 20）
 
+常见问题 / 选项：
+- 想换国内源（例如腾讯云 npm 镜像）：
+  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-cn https://mirrors.cloud.tencent.com/npm/`
+- 想显式设置回退源：
+  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-fallback https://registry.npmjs.org`
+- 脚本自测（不改系统，不安装）：
+  - `cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/verify-install-cn.sh --dry-run`
+
 ## quota-proxy（试用网关）
 
 - 管理端规格：`docs/quota-proxy-v1-admin-spec.md`
