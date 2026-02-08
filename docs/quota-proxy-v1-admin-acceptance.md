@@ -118,3 +118,23 @@ set -e
 期望：
 - `PORTS` 形如 `127.0.0.1:8787->8787/tcp`
 - 未鉴权请求返回 `401`
+
+---
+
+## 6) SQLite 持久化（下一步：验收口径先写清）
+
+> 当前实现为 JSON 文件也可以跑通闭环；但为了 **并发安全 / 可扩展查询 / 未来报表**，建议尽快切到 SQLite。
+
+建议约定（落地实现时按此验收）：
+- `SQLITE_PATH=/data/quota-proxy.sqlite`
+- 容器内确保 `sqlite3`（或应用提供 `--migrate`）可用于快速自检
+
+自检命令（实现后应当可用）：
+
+```bash
+# 文件存在且非 0
+ls -la /opt/roc/quota-proxy/data/quota-proxy.sqlite
+
+# 可读表结构（示例；具体表名以实现为准）
+sqlite3 /opt/roc/quota-proxy/data/quota-proxy.sqlite ".tables"
+```
