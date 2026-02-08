@@ -38,10 +38,21 @@ done
 
 if [[ -z "${HOST}" ]]; then
   if [[ -f /tmp/server.txt ]]; then
-    # expecting: ip:8.210.185.194
-    ip_line="$(cat /tmp/server.txt | tr -d '\r' | tail -n 1)"
-    ip="${ip_line#ip:}"
-    if [[ -n "${ip}" && "${ip}" != "${ip_line}" ]]; then
+    # Accept:
+    #   ip:8.210.185.194 | ip: 8.210.185.194 | ip=8.210.185.194
+    # Even if /tmp/server.txt contains extra lines.
+    ip=$(awk '
+      BEGIN{ip=""}
+      /^[[:space:]]*ip[[:space:]]*[:=]/{
+        line=$0
+        sub(/^[[:space:]]*ip[[:space:]]*[:=][[:space:]]*/,"",line)
+        gsub(/[[:space:]]+/,"",line)
+        ip=line
+      }
+      END{print ip}
+    ' /tmp/server.txt | tr -d '\r')
+
+    if [[ -n "${ip}" ]]; then
       HOST="root@${ip}"
     fi
   fi
