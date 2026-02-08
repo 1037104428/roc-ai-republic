@@ -47,10 +47,24 @@
     "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
   }'</code></pre>
 
+  <h2>用 OpenClaw（推荐）</h2>
+  <p>如果你是为了跑通 OpenClaw，一般只需要把 <code>CLAWD_TRIAL_KEY</code> 放到环境变量，然后按小白一条龙写入配置即可：</p>
+  <ul>
+    <li>小白一条龙：<a href="/quickstart.html">/quickstart.html</a></li>
+  </ul>
+  <p>最小启动与验证：</p>
+  <pre><code>export CLAWD_TRIAL_KEY="trial_xxx"
+openclaw gateway start
+openclaw models status</code></pre>
+
   <h2>通用工具兼容：设置 OpenAI 环境变量</h2>
   <p>很多客户端默认读 <code>OPENAI_API_KEY</code> / <code>OPENAI_BASE_URL</code>：</p>
   <pre><code>export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
+
+  <h2>可选：列出可用模型（OpenAI-compatible）</h2>
+  <p>如果你想先确认网关端暴露了哪些模型：</p>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models</code></pre>
 
   <h2>健康检查（不调用模型，不消耗额度）</h2>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
@@ -66,10 +80,23 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -d '{"label":"forum-user:alice"}'</code></pre>
   <p>返回示例：</p>
   <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
+  <p><strong>当前发放流程（人工）：</strong>把返回的 <code>key</code> 通过论坛私信/工单发给用户即可。<strong>不要</strong>在公开帖子里粘贴完整 key（如必须展示，请先脱敏）。</p>
 
   <h3>2) 查询用量（按天聚合，推荐）</h3>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+
+  <p>（排查用）如果你只是想看“最近的若干条记录”（可能跨天），可以用：</p>
+  <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?limit=50" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+  <p>说明：该模式仅用于快速排查，不建议作为正式运营统计口径（建议固定按 <code>day</code> 查询）。</p>
+  <p>该模式返回的 <code>items</code> 里通常会带上每条记录所属的 <code>day</code>（因为是“跨天最近记录”）：</p>
+  <pre><code>{
+  "mode": "file",
+  "items": [
+    { "day": "2026-02-08", "key": "trial_xxx", "label": "forum:alice", "req_count": 12, "updated_at": 1700000000000 }
+  ]
+}</code></pre>
 
   <p>（可选）只看某一个 key：</p>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
@@ -85,7 +112,13 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 }</code></pre>
   <ul>
     <li><code>day</code>：查询日期（YYYY-MM-DD）。也可通过 query 参数 <code>?day=YYYY-MM-DD</code> 指定（默认当天）。</li>
-    <li><code>mode</code>：<code>file</code> 表示已开启持久化；<code>memory</code> 表示仅内存（不建议生产）</li>
+    <li><code>mode</code>：
+      <ul>
+        <li><code>file</code>：已开启持久化（当前默认实现为 JSON 文件；环境变量名仍沿用 <code>SQLITE_PATH</code>）</li>
+        <li><code>sqlite</code>：SQLite 持久化（当服务端运行 SQLite 版本时）</li>
+        <li><code>memory</code>：仅内存（不建议生产）</li>
+      </ul>
+    </li>
     <li><code>?key=trial_xxx</code>：可选过滤，只返回某一个 key 的用量</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
     <li><code>items[].label</code>：签发时写入的备注/归属（可选；持久化模式下通常会返回）</li>

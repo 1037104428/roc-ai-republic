@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://clawdrepublic.cn/</loc>
+    <changefreq>hourly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/quickstart.html</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/quota-proxy.html</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/status.html</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/downloads.html</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Forum entrypoints -->
+  <url>
+    <loc>https://clawdrepublic.cn/forum/</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/t/getting-started</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/t/trial-key</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/t/help</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/t/announcements</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Pinned threads (stable URLs) -->
+  <url>
+    <loc>https://clawdrepublic.cn/forum/d/1-bi-du-xin-shou-ru-men-cong-0-dao-1zhu-ce-an-zhuang-jie-ru</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/d/2-bi-du-trial-key-shen-qing-yu-shi-yong-fu-zhi-nian-tie-ban</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/d/3-bi-du-she-qu-gui-ze-yu-he-gui-bian-jie-qing-xian-kan</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/d/4-fa-tie-mo-ban-yu-dao-wen-ti-zen-yao-wen-cai-neng-zui-kuai-jie-jue-fu-zhi-tian-xie</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://clawdrepublic.cn/forum/d/5-bi-du-fa-tie-shen-he-shuo-ming-xin-yong-hu-bi-kan</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- API -->
+  <url>
+    <loc>https://api.clawdrepublic.cn/healthz</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>
