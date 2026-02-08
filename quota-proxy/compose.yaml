@@ -8,4 +8,6 @@ services:
       - DAILY_REQ_LIMIT=200
     restart: unless-stopped
     ports:
-      - "8787:8787"
+      # Safer default: bind to localhost only; use a reverse proxy (Caddy/Nginx)
+      # to expose HTTPS publicly.
+      - "127.0.0.1:8787:8787"
