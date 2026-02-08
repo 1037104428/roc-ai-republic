@@ -138,6 +138,12 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <p>返回示例：</p>
   <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
   <p><strong>当前发放流程（人工）：</strong>把返回的 <code>key</code> 通过论坛私信/工单发给用户即可。<strong>不要</strong>在公开帖子里粘贴完整 key（如必须展示，请先脱敏）。</p>
+  <p>给用户的最小自检命令（不调用模型、零风险）：</p>
+  <pre><code>export CLAWD_TRIAL_KEY='trial_xxx'
+export OPENAI_BASE_URL='https://api.clawdrepublic.cn/v1'
+curl -fsS "${OPENAI_BASE_URL}/models" \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
+  <p>如需在论坛里贴日志，建议把 key 脱敏成类似 <code>trial_abcd...wxyz</code> 再发送。</p>
 
   <h3>2) 查询用量（按天聚合，推荐）</h3>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
