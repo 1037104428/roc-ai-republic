@@ -29,9 +29,11 @@
     <li>正文写 1-2 句话：你要做什么、预计每天大概多少次调用</li>
     <li>管理员私信/回复发放 <code>trial_...</code> 格式的 key</li>
   </ol>
+  <p><strong>有效期/额度说明：</strong>TRIAL_KEY 一般会绑定一个「试用额度」与运营规则；额度用完后会出现 429（见下方排查）。如需加额度/延长，请在论坛跟帖说明近期使用情况与需求。</p>
   <p>如果你不知道怎么写申请帖，可以直接照着模板写：
     <a href="https://clawdrepublic.cn/forum/">论坛置顶贴里有模板</a>（标题/用途/预估调用频率三件事写清楚就行）。
   </p>
+  <p><strong>拿到 key 后建议先自检：</strong>跑一遍下面的 curl 或“一键自检脚本”，把输出（脱敏后）贴回帖子里，管理员/社区更容易帮你定位问题。</p>
 
   <h2>最小验证：用 curl 调一次模型</h2>
   <p>把 key 放到环境变量（本站文档统一用 <code>CLAWD_TRIAL_KEY</code>）：</p>
@@ -46,6 +48,43 @@
     "model": "deepseek-chat",
     "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
   }'</code></pre>
+  <p>如果你想再做一个更轻量的验证（不跑对话，只看网关是否识别 key），可以列模型：</p>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
+
+  <h3>可选：一键自检脚本（推荐给小白）</h3>
+  <p>仓库提供了一个脚本，把 <code>/healthz</code>、<code>/v1/models</code>、（可选）最小对话三步串起来，方便你确认“网络通 + key 有效 + 模型可用”。</p>
+  <pre><code># 前置：已安装 bash + curl
+cd /tmp
+git clone https://github.com/openclaw/roc-ai-republic.git
+cd roc-ai-republic
+
+export CLAWD_TRIAL_KEY='trial_xxx'
+./scripts/verify-trial-key.sh --base-url https://api.clawdrepublic.cn</code></pre>
+  <p>注意：脚本会打印诊断信息；请不要把完整 key 贴到公开帖子里（可用 <code>trial_xxx...yyy</code> 方式脱敏）。</p>
+
+  <h2>Python 最小示例（OpenAI SDK）</h2>
+  <p>如果你更习惯用代码验证，可以用官方 <code>openai</code> SDK（v1.x）：</p>
+  <pre><code>python -m pip install -U openai
+
+export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
+
+python - <<'PY'
+from openai import OpenAI
+import os
+
+client = OpenAI(
+  api_key=os.environ["OPENAI_API_KEY"],
+  base_url=os.environ["OPENAI_BASE_URL"],
+)
+
+resp = client.chat.completions.create(
+  model="deepseek-chat",
+  messages=[{"role":"user","content":"用一句话介绍 Clawd 国度"}],
+)
+print(resp.choices[0].message.content)
+PY</code></pre>
 
   <h2>用 OpenClaw（推荐）</h2>
   <p>如果你是为了跑通 OpenClaw，一般只需要把 <code>CLAWD_TRIAL_KEY</code> 放到环境变量，然后按小白一条龙写入配置即可：</p>
@@ -63,17 +102,46 @@ openclaw models status</code></pre>
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
 
   <h2>可选：列出可用模型（OpenAI-compatible）</h2>
-  <p>如果你想先确认网关端暴露了哪些模型（需要你的 <code>TRIAL_KEY</code>）：</p>
+  <p>如果你想先确认网关端暴露了哪些模型（通常需要带 key，否则会 401/403）：</p>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
 
   <h2>健康检查（不调用模型，不消耗额度）</h2>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
 
+  <h2>常见错误排查</h2>
+  <ul>
+    <li><strong>401/403</strong>：通常是没有带 <code>Authorization: Bearer ...</code>，或 key 贴错/含空格。先用 <code>/v1/models</code> 做最小验证。</li>
+    <li><strong>curl: (6) Could not resolve host</strong>：DNS 问题；换网络/开热点，或改用国内可用 DNS。</li>
+    <li><strong>429</strong>：通常表示试用额度已用尽（或触发限流）。请去论坛申请加额度，或等管理员确认/调整。</li>
+    <li><strong>timeout / 5xx</strong>：可能是上游波动；稍后重试。如持续发生，请在论坛贴上 <code>curl -v</code> 的关键输出（注意脱敏，不要贴完整 key）。</li>
+  </ul>
+
   <h2>（运维/管理员）发放 TRIAL_KEY 与 /admin/usage 说明</h2>
   <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
 
+  <h3>0) 一键探活 / 验收脚本（推荐）</h3>
+  <p>仓库提供了一个验收脚本，帮助你在服务器上一条命令完成：healthz、（可选）签发 key、以及用 key 验证 <code>/v1/models</code>。</p>
+  <pre><code>cd /home/kai/.openclaw/workspace/roc-ai-republic
+# 仅探活（不签发 key）：
+BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh
+
+# 需要签发 key（会调用 /admin/keys）：
+ADMIN_TOKEN='***' ISSUE_KEY=1 TRIAL_LABEL='forum-user:alice' \
+  BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh</code></pre>
+  <p>提示：脚本会把 key 输出到终端；请注意不要把完整 key 贴到公开场合。</p>
+
   <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
+  <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向 JSON 数据文件，例如 <code>/data/quota.json</code>），否则会返回 400。</p>
+  <p>服务端（docker compose）常见配置示例：</p>
+  <pre><code># /opt/roc/quota-proxy/docker-compose.yml 里（示意）
+services:
+  quota-proxy:
+    environment:
+      - ADMIN_TOKEN=***
+      - SQLITE_PATH=/data/quota.json
+    volumes:
+      - ./data:/data</code></pre>
   <pre><code>export ADMIN_TOKEN='***'
 curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
@@ -82,6 +150,12 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <p>返回示例：</p>
   <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
   <p><strong>当前发放流程（人工）：</strong>把返回的 <code>key</code> 通过论坛私信/工单发给用户即可。<strong>不要</strong>在公开帖子里粘贴完整 key（如必须展示，请先脱敏）。</p>
+  <p>给用户的最小自检命令（不调用上游模型；通常不消耗额度；但<strong>可能</strong>仍会计入网关 <code>req_count</code> 作为“请求次数”统计）：</p>
+  <pre><code>export CLAWD_TRIAL_KEY='trial_xxx'
+export OPENAI_BASE_URL='https://api.clawdrepublic.cn/v1'
+curl -fsS "${OPENAI_BASE_URL}/models" \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
+  <p>如需在论坛里贴日志，建议把 key 脱敏成类似 <code>trial_abcd...wxyz</code> 再发送。</p>
 
   <h3>2) 查询用量（按天聚合，推荐）</h3>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
@@ -115,33 +189,39 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li><code>day</code>：查询日期（YYYY-MM-DD）。也可通过 query 参数 <code>?day=YYYY-MM-DD</code> 指定（默认当天）。</li>
     <li><code>mode</code>：
       <ul>
-        <li><code>file</code>：已开启持久化（当前默认实现为 JSON 文件；环境变量名仍沿用 <code>SQLITE_PATH</code>）</li>
-        <li><code>sqlite</code>：SQLite 持久化（当服务端运行 SQLite 版本时）</li>
+        <li><code>file</code>：已开启持久化（当前实现为 <strong>JSON 文件</strong>；环境变量名仍沿用 <code>SQLITE_PATH</code>，后续切 SQLite 不破坏配置）</li>
         <li><code>memory</code>：仅内存（不建议生产）</li>
       </ul>
     </li>
     <li><code>?key=trial_xxx</code>：可选过滤，只返回某一个 key 的用量</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
-    <li><code>items[].label</code>：签发时写入的备注/归属（可选；持久化模式下通常会返回）</li>
+    <li><code>items[].label</code>：签发时写入的备注/归属（可选）。如果你升级过旧数据文件或手工编辑过 JSON，可能会出现 <code>null</code>/<code>""</code>，不影响用量统计。</li>
     <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
   <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是"网关收到的请求次数"，而不是"上游成功次数"。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
 
-  <h3>3) 删除/禁用某个 TRIAL_KEY</h3>
-  <pre><code>curl -fsS -X DELETE "http://127.0.0.1:8787/admin/keys/trial_xxx" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
-  <p>返回示例：</p>
-  <pre><code>{"deleted":true,"key":"trial_xxx"}</code></pre>
-  <p><strong>注意：</strong>删除后该 key 将立即失效，所有使用该 key 的请求会返回 401。已记录的用量数据不会被删除。</p>
-
-  <h3>4) 重置某个 key 的当日用量（清零）</h3>
-  <pre><code>curl -fsS -X POST "http://127.0.0.1:8787/admin/usage/reset?key=trial_xxx" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
-  <p>返回示例：</p>
-  <pre><code>{"reset":true,"key":"trial_xxx","day":"2026-02-09"}</code></pre>
-  <p><strong>注意：</strong>重置的是当天的用量计数，不会影响历史数据。</p>
-
+  <h3>3)（规划中）禁用/吊销 key、重置当日用量</h3>
+  <p>为避免误操作导致不可恢复的影响（以及保持实现简单），当前线上 v0.1 仅提供：</p>
+  <ul>
+    <li><code>POST /admin/keys</code>：签发 key</li>
+    <li><code>GET /admin/usage</code>：查询用量</li>
+  </ul>
+  <p>后续会在完成 <strong>SQLite 持久化</strong> 与审计字段后，再补齐：</p>
+  <ul>
+    <li>禁用/吊销某个 <code>TRIAL_KEY</code></li>
+    <li>重置某个 key 的当日用量（清零）</li>
+  </ul>
+  <p>在此之前，如需紧急止损，优先建议通过<strong>轮换 ADMIN_TOKEN</strong>（避免管理接口继续被滥用）。</p>
+  <p>如果必须临时禁用某个 <code>TRIAL_KEY</code>（例如明显被泄露），可采用<strong>可回滚</strong>的“人工处理数据文件”方案：</p>
+  <ol>
+    <li>在服务器上找到数据文件（由 <code>SQLITE_PATH</code> 指定，当前实现为 JSON 文件）</li>
+    <li>先备份：<code>cp -a /opt/roc/quota-proxy/data/quota.json /opt/roc/quota-proxy/data/quota.json.bak.$(date +%s)</code></li>
+    <li>编辑 JSON：删除/标记对应 key（按你的数据结构；建议只做最小改动）</li>
+    <li>重启服务：<code>cd /opt/roc/quota-proxy && docker compose restart</code></li>
+    <li>验证：<code>curl -fsS http://127.0.0.1:8787/healthz</code></li>
+  </ol>
+  <p>注意：这是 v0.1 的运维兜底手段，不建议常态化依赖；后续会用更安全的管理接口替代。</p>
   <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
   <h2>论坛使用指南</h2>
