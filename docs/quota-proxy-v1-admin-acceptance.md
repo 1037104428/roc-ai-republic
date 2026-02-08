@@ -63,6 +63,7 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
 
 期望：返回 JSON，包含 `day` 与 `items`；`items[]` 每条包含：
 - `key`
+- `label`（如果该 key 是通过 `POST /admin/keys` 生成并带 label）
 - `req_count`
 - `updated_at`
 
