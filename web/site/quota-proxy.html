@@ -70,6 +70,13 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
   <h2>健康检查（不调用模型，不消耗额度）</h2>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
 
+  <h2>常见错误排查</h2>
+  <ul>
+    <li><strong>401/403</strong>：通常是没有带 <code>Authorization: Bearer ...</code>，或 key 贴错/含空格。先用 <code>/v1/models</code> 做最小验证。</li>
+    <li><strong>curl: (6) Could not resolve host</strong>：DNS 问题；换网络/开热点，或改用国内可用 DNS。</li>
+    <li><strong>timeout / 5xx</strong>：可能是上游波动；稍后重试。如持续发生，请在论坛贴上 <code>curl -v</code> 的关键输出（注意脱敏，不要贴完整 key）。</li>
+  </ul>
+
   <h2>（运维/管理员）发放 TRIAL_KEY 与 /admin/usage 说明</h2>
   <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
 
