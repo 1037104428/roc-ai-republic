@@ -58,10 +58,15 @@ if [[ "$MODE" == "json" ]]; then
   if curl -fsS -m "$TIMEOUT" "$API_HEALTHZ_URL" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then api_ok=1; fi
 
   if [[ -f "$SERVER_TXT" ]]; then
-    if [[ ! -x ./scripts/ssh-run-server-txt.sh ]]; then
+    # Normalize /tmp/server.txt (drop password lines, unify ip format)
+    if [[ -x ./scripts/sanitize-server-txt.sh ]]; then
+      ./scripts/sanitize-server-txt.sh "$SERVER_TXT" >/dev/null || true
+    fi
+
+    if [[ ! -x ./scripts/ssh-run-roc-key.sh ]]; then
       server_ok=0
     else
-      if ./scripts/ssh-run-server-txt.sh "curl -fsS -m $TIMEOUT http://127.0.0.1:8787/healthz" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then
+      if ./scripts/ssh-run-roc-key.sh "curl -fsS -m $TIMEOUT http://127.0.0.1:8787/healthz" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then
         server_ok=1
       fi
     fi
@@ -92,14 +97,19 @@ if [[ ! -f "$SERVER_TXT" ]]; then
   exit 0
 fi
 
-if [[ ! -x ./scripts/ssh-run-server-txt.sh ]]; then
-  die "missing ./scripts/ssh-run-server-txt.sh"
+# Normalize /tmp/server.txt (drop password lines, unify ip format)
+if [[ -x ./scripts/sanitize-server-txt.sh ]]; then
+  ./scripts/sanitize-server-txt.sh "$SERVER_TXT" >/dev/null || true
+fi
+
+if [[ ! -x ./scripts/ssh-run-roc-key.sh ]]; then
+  die "missing ./scripts/ssh-run-roc-key.sh"
 fi
 
 log "probe: quota-proxy compose ps (server from $SERVER_TXT)"
-./scripts/ssh-run-server-txt.sh "cd /opt/roc/quota-proxy && docker compose ps"
+./scripts/ssh-run-roc-key.sh "cd /opt/roc/quota-proxy && docker compose ps"
 
 log "probe: quota-proxy healthz (localhost on server)"
-./scripts/ssh-run-server-txt.sh "curl -fsS -m $TIMEOUT http://127.0.0.1:8787/healthz"
+./scripts/ssh-run-roc-key.sh "curl -fsS -m $TIMEOUT http://127.0.0.1:8787/healthz"
 
 log "OK"
