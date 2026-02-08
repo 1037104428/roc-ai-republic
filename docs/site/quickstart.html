@@ -62,11 +62,22 @@
   <p>拿到 key 后，在终端执行（把 <code>xxx</code> 替换成你的 key）：</p>
   <pre><code>export CLAWD_TRIAL_KEY="xxx"</code></pre>
 
-  <h2>第 4 步：启动网关并验证</h2>
+  <h2>第 4 步：先用 curl 做一次“最小验证”（推荐）</h2>
+  <p>这一步可以帮你快速确认：key 是对的、API 可用、网络通。</p>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
+  }'</code></pre>
+
+  <h2>第 5 步：启动 OpenClaw 网关并验证</h2>
   <pre><code>openclaw gateway start
 openclaw models status</code></pre>
 
-  <p>如果一切正常，你会看到默认模型指向 <code>clawd-gateway/...</code>。然后你就可以开始用 OpenClaw 了。</p>
+  <p>如果一切正常，你会看到默认模型指向 <code>clawd-gateway/...</code>。然后就可以开始用 OpenClaw 了。</p>
 
   <hr />
   <p>API 健康检查：<a href="https://api.clawdrepublic.cn/healthz">https://api.clawdrepublic.cn/healthz</a></p>
