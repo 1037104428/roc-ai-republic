@@ -106,7 +106,18 @@ curl -fsS https://api.clawdrepublic.cn/healthz
 $env:CLAWD_TRIAL_KEY = "trial_xxx"
 ```
 
-## 4) 最小验证：先用 curl 跑通一次
+## 4)（可选）兼容 OpenAI 工具：设置 OPENAI_API_KEY / OPENAI_BASE_URL
+
+很多客户端/脚本默认读取 `OPENAI_API_KEY` / `OPENAI_BASE_URL`。
+
+```bash
+export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
+```
+
+> 提示：`OPENAI_API_KEY` 里放的是你的 TRIAL_KEY（不是上游厂商 Key）。不要把它粘贴到公开场合。
+
+## 5) 最小验证：先用 curl 跑通一次
 
 ```bash
 curl -fsS https://api.clawdrepublic.cn/healthz
@@ -120,7 +131,7 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   }'
 ```
 
-### 4.1)（可选）一键自检脚本
+### 5.1)（可选）一键自检脚本
 
 如果你不想手工逐条跑，也可以直接运行一键探活脚本（会依次检查站点/接口/常见链接）：
 
@@ -128,7 +139,7 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
 curl -fsSL https://clawdrepublic.cn/probe-roc-all.sh | bash
 ```
 
-## 5) 启动 OpenClaw 并验证
+## 6) 启动 OpenClaw 并验证
 
 ```bash
 openclaw gateway start
