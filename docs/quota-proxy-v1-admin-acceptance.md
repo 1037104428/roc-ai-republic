@@ -165,3 +165,11 @@ sqlite3 /opt/roc/quota-proxy/data/quota-proxy.sqlite ".tables"
 ```
 
 脱敏展示示例：`trial_abcd...wxyz`
+
+（可选）把自检命令打包成脚本（仓库内）：
+
+```bash
+export CLAWD_TRIAL_KEY='trial_xxx'
+./scripts/verify-trial-key.sh              # healthz + models
+./scripts/verify-trial-key.sh --chat       # 额外跑一次最小对话（会消耗额度）
+```
