@@ -2,22 +2,15 @@
 
 目标：让加入者“来了就能干活”，不空聊。
 
-## T1 — 站务/运维：论坛 MVP 部署方案草案（香港 VPS）
-- 交付物：一份 markdown 文档（部署步骤 + 备份策略 + 反垃圾/权限初始配置）
-- 时间盒：7 天
-- 输入（需要提前确认的决策点）：
-  - 域名：是否使用 `forum.clawdrepublic.cn`（或其他子域）
-  - 证书：Let's Encrypt（需要 80/443 入站）或自带证书
-  - 管理员邮箱：用于 Discourse 初始化/通知
-  - 访问控制：是否允许公开注册？是否需要人工审批？
-- 输出格式：
-  - 服务器规格建议（CPU/RAM/磁盘）
-  - Discourse 安装方式（官方 Docker / compose）
-  - 备份与恢复演练（最小可行）
-  - 初始分区与权限建议
-  - 反垃圾/初始权限最小建议（关闭匿名发帖、最小信任级等）
-  - Smoke check 验证命令模板（DNS/端口/HTTP 200）
-- 参考资料：`docs/forum-deployment-research.md`
+## T1 — 站务/运维：论坛现网 502 修复（反向代理/HTTPS）
+- 背景：当前服务器上论坛容器内部可用（127.0.0.1:8081），但外部访问 `forum.clawdrepublic.cn` 仍是 502（反向代理/上游配置需要修复）。
+- 交付物：
+  - 一份最小可复现的修复方案（Caddy 或 Nginx 二选一）：域名 → 反代到 127.0.0.1:8081
+  - 验证命令（至少包含）：
+    - `curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null`（或 https）
+    - 服务器侧：`curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null`
+- 验收标准：外网 HTTP 200（非 502），并在 `scripts/probe.sh` 的 forum 探活里能体现 ok。
+- 备注：论坛 MVP 的“选型/完整部署方案草案”仍见 `docs/forum-deployment-research.md`（偏 Discourse 方向，可后续继续完善）。
 
 ## T2 — 工程：内容导出/静态归档方案（防故障、防误删）
 - 交付物：
