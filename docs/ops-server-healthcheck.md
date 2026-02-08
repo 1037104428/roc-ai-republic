@@ -80,6 +80,10 @@ password:YOUR_PASSWORD
 ```bash
 # 需要能够无交互 ssh 登录
 ./scripts/check-server-quota-proxy.sh
+
+# 只想“用 /tmp/server.txt 跑一条远端命令”（key 模式）
+./scripts/ssh-run-roc-key.sh "cd /opt/roc/quota-proxy && docker compose ps"
+./scripts/ssh-run-roc-key.sh "curl -fsS http://127.0.0.1:8787/healthz"
 ```
 
 ### 方式 2：密码模式（临时，避免安装 sshpass）
