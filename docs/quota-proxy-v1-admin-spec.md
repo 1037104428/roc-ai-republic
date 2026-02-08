@@ -39,7 +39,8 @@
 
 - `ADMIN_TOKEN`：管理接口鉴权 token。
   - 建议用 `openssl rand -hex 32` 生成，并仅在服务器侧保存（不要写进仓库）。
-  - 通过请求头：`Authorization: Bearer $ADMIN_TOKEN`（或 `x-admin-token: $ADMIN_TOKEN`）
+  - 鉴权请求头（对外文档统一）：`Authorization: Bearer $ADMIN_TOKEN`
+  - 备注：如代码里还兼容 `x-admin-token`，仅作为内部/过渡用法；对外不要宣传，避免与常见网关/反代的 header 规则冲突。
 
 - `SQLITE_PATH`：**持久化文件路径**（当前实现为 JSON 文件）。
   - 例如：`/data/quota-proxy.json`
