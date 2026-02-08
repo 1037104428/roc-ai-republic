@@ -27,6 +27,19 @@
 - 交付物：把 `docs/openclaw-cn-pack-deepseek-v0.md` 补齐成“可复制粘贴能跑”的版本（尤其是 DeepSeek provider 配置片段与验证步骤）
 - 时间盒：7 天
 
+## T5 — quota-proxy：SQLite 持久化 + 管理端点（ADMIN_TOKEN 保护）
+- 背景：现在 quota-proxy 还处于 v0 骨架，配额与 key 的存储需要可持久化，方便试用 key 分发与用量查询。
+- 交付物：
+  - 代码：SQLite 持久化（建议：`QUOTA_DB_PATH=/data/quota.db`，容器挂载到 volume）
+  - 管理端点（都需 `ADMIN_TOKEN`）：
+    - `POST /admin/keys`：生成 1 个 trial key（可选参数：限额/过期时间），返回 key
+    - `GET /admin/usage`：按 key 汇总/按天汇总的 usage（返回 json）
+  - 文档：在 `quota-proxy/README.md` 增加环境变量、端点与最小验证命令
+- 验收标准（最小可验证）：
+  - `docker compose up -d --build` 后，`curl -fsS http://127.0.0.1:8787/healthz` 返回 `{"ok":true}`
+  - `curl -fsS -X POST http://127.0.0.1:8787/admin/keys -H "Authorization: Bearer $ADMIN_TOKEN"` 能返回 trial key
+  - 重启容器后（`docker compose restart`），usage/key 不丢失（sqlite 文件仍在）
+
 ---
 
 领取方式：在仓库 Issues 里回复认领（目前暂用本文件，后续会同步到 Issues）。
