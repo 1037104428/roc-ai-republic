@@ -37,7 +37,8 @@
 
 ```bash
 export OPENAI_API_KEY="<你的 TRIAL_KEY>"
-export OPENAI_BASE_URL="https://api.clawdrepublic.cn"
+# OpenAI-compatible 的 base URL 通常需要包含 /v1
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
 ```
 
 2) 验证 healthz（不产生调用成本）：
@@ -100,6 +101,26 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
 ```
+
+返回示例（字段可能随版本调整）：
+
+```json
+{
+  "day": "2026-02-08",
+  "mode": "file",
+  "items": [
+    {"key":"trial_xxx","req_count":12,"updated_at":1700000000000}
+  ]
+}
+```
+
+字段说明：
+- `day`: 查询日期（`YYYY-MM-DD`）
+- `mode`: `file`=已开启 `SQLITE_PATH`（JSON 文件持久化）；`memory`=纯内存（不推荐生产）
+- `items[]`:
+  - `key`: trial key（外部展示建议脱敏）
+  - `req_count`: 当天累计请求次数
+  - `updated_at`: 最后一次写入/更新的时间戳（毫秒）
 
 安全提醒：
 - `/admin/*` 接口不要直出公网；保持仅本机 127.0.0.1 可访问，再通过 SSH/反代做额外保护。
