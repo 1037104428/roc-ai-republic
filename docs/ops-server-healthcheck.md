@@ -55,6 +55,16 @@ password:YOUR_PASSWORD
 
 ## 自动巡检脚本
 
+### 方式 0：一键探活（官网 + API + 服务器 quota-proxy）
+
+```bash
+# pretty 输出（适合人读）
+./scripts/probe-roc-all.sh
+
+# JSON 单行输出（适合 cron/CI 收集）
+./scripts/probe-roc-all.sh --json
+```
+
 ### 方式 1：SSH Key（推荐）
 
 ```bash
