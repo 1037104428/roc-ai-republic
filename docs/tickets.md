@@ -40,6 +40,18 @@
   - `curl -fsS -X POST http://127.0.0.1:8787/admin/keys -H "Authorization: Bearer $ADMIN_TOKEN"` 能返回 trial key
   - 重启容器后（`docker compose restart`），usage/key 不丢失（sqlite 文件仍在）
 
+## T6 — 下载分发：install-cn.sh“国内可达源优先 + 回退 + 自检”完善
+- 背景：需要让小白在国内网络环境下尽量“一条命令装好”，失败时也能给出明确提示/自动回退。
+- 交付物：
+  - 脚本：`scripts/install-cn.sh` 支持
+    - 国内可达源优先（例如 npm mirror / GitHub/Gitee 多入口）
+    - 回退策略（mirror 不可达→npmjs；站点下载失败→备用地址）
+    - 自检：安装完成后执行 `openclaw --version`（并提示 PATH 刷新方式）
+  - 文档：`docs/site/downloads.md` 或 `docs/新手一条龙教程.md` 中加入“1 分钟自检”章节
+- 验收标准（最小可验证）：
+  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash` 能成功安装或给出可读错误
+  - 安装完成后能输出 `openclaw --version`
+
 ---
 
 领取方式：在仓库 Issues 里回复认领（目前暂用本文件，后续会同步到 Issues）。
