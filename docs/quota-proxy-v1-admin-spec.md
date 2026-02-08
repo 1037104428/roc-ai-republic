@@ -204,3 +204,45 @@ export ADMIN_TOKEN="your_admin_token_here"
 - 部署后快速验证：确认服务状态和持久化模式
 - 故障排查：快速检查基础配置
 - 新人上手：了解当前环境配置
+
+### 4. `quick-gen-trial-key.sh` - 快速生成 trial key
+新增功能：
+1. 一键生成 trial key
+2. 自动检查服务健康状态
+3. 输出可直接使用的环境变量命令
+4. 详细的错误提示
+
+```bash
+# 快速生成 trial key（需要 ADMIN_TOKEN）
+./scripts/quick-gen-trial-key.sh http://127.0.0.1:8787 your_admin_token_here
+
+# 指定有效期（默认7天）
+DAYS=30 ./scripts/quick-gen-trial-key.sh http://127.0.0.1:8787 your_admin_token_here
+```
+
+#### 使用场景
+- 管理员快速发放试用 key
+- 自动化脚本集成
+- 新人快速获取测试 key
+
+#### 输出示例
+```
+正在生成 trial key...
+目标: http://127.0.0.1:8787
+有效期: 7 天
+
+✅ 成功生成 trial key:
+
+export CLAWD_TRIAL_KEY="trial_abc123def456..."
+
+使用方式:
+  export CLAWD_TRIAL_KEY="trial_abc123def456..."
+  openclaw --trial-key "${CLAWD_TRIAL_KEY}"
+
+或直接使用:
+  openclaw --trial-key "trial_abc123def456..."
+
+提示:
+  - 此 key 有效期为 7 天
+  - 查看使用情况: curl -sS "http://127.0.0.1:8787/admin/usage" -H "Authorization: Bearer your_admin_token_here" | jq .
+```
