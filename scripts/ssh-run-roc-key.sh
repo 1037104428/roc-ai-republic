@@ -22,11 +22,17 @@ fi
 
 ip=$(awk '
   BEGIN{ip=""}
+  # Preferred: ip:1.2.3.4 (or ip=...)
   /^[[:space:]]*ip[[:space:]]*[:=]/{
-    # split on first : or =
     line=$0
     sub(/^[[:space:]]*ip[[:space:]]*[:=][[:space:]]*/,"",line)
     gsub(/[[:space:]]+/,"",line)
+    ip=line
+  }
+  # Fallback: a bare IPv4 on its own line
+  ip=="" && $0 ~ /^[[:space:]]*([0-9]{1,3}\.){3}[0-9]{1,3}[[:space:]]*$/ {
+    line=$0
+    gsub(/^[[:space:]]+|[[:space:]]+$/,"",line)
     ip=line
   }
   END{print ip}
