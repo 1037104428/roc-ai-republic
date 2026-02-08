@@ -22,20 +22,23 @@
 
   <h2>如何获取 TRIAL_KEY（当前：人工发放）</h2>
   <div class="warn">
-    为了避免被滥用，目前先走“人工发放”。后续会上线自助注册/发放，但会保持可运营与可审计。
+    为了避免被滥用，目前先走"人工发放"。后续会上线自助注册/发放，但会保持可运营与可审计。
   </div>
   <ol>
     <li>到论坛发帖申请：<a href="/forum/">/forum/</a>（标题建议：申请 TRIAL_KEY）</li>
     <li>正文写 1-2 句话：你要做什么、预计每天大概多少次调用</li>
     <li>管理员私信/回复发放 <code>trial_...</code> 格式的 key</li>
   </ol>
+  <p>如果你不知道怎么写申请帖，可以直接照着模板写：
+    <a href="https://clawdrepublic.cn/forum/">论坛置顶贴里有模板</a>（标题/用途/预估调用频率三件事写清楚就行）。
+  </p>
 
   <h2>最小验证：用 curl 调一次模型</h2>
-  <p>把 key 放到环境变量：</p>
-  <pre><code>export TRIAL_KEY="trial_xxx"</code></pre>
+  <p>把 key 放到环境变量（本站文档统一用 <code>CLAWD_TRIAL_KEY</code>）：</p>
+  <pre><code>export CLAWD_TRIAL_KEY="trial_xxx"</code></pre>
   <p>发送一次最小对话请求（看到返回 JSON 含 <code>choices</code> 即可）：</p>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
-  -H "Authorization: Bearer ${TRIAL_KEY}" \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
   -H 'content-type: application/json' \
   -d '{
     "model": "deepseek-chat",
@@ -44,7 +47,7 @@
 
   <h2>通用工具兼容：设置 OpenAI 环境变量</h2>
   <p>很多客户端默认读 <code>OPENAI_API_KEY</code> / <code>OPENAI_BASE_URL</code>：</p>
-  <pre><code>export OPENAI_API_KEY="${TRIAL_KEY}"
+  <pre><code>export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
 
   <h2>健康检查（不调用模型，不消耗额度）</h2>
@@ -87,63 +90,66 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
-  <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是“网关收到的请求次数”，而不是“上游成功次数”。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
+  <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是"网关收到的请求次数"，而不是"上游成功次数"。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
+
+  <h3>3) 删除/禁用某个 TRIAL_KEY</h3>
+  <pre><code>curl -fsS -X DELETE "http://127.0.0.1:8787/admin/keys/trial_xxx" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+  <p>返回示例：</p>
+  <pre><code>{"deleted":true,"key":"trial_xxx"}</code></pre>
+  <p><strong>注意：</strong>删除后该 key 将立即失效，所有使用该 key 的请求会返回 401。已记录的用量数据不会被删除。</p>
+
+  <h3>4) 重置某个 key 的当日用量（清零）</h3>
+  <pre><code>curl -fsS -X POST "http://127.0.0.1:8787/admin/usage/reset?key=trial_xxx" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+  <p>返回示例：</p>
+  <pre><code>{"reset":true,"key":"trial_xxx","day":"2026-02-09"}</code></pre>
+  <p><strong>注意：</strong>重置的是当天的用量计数，不会影响历史数据。</p>
+
   <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
-  <hr />
-  
-  <h2>常见问题与提示</h2>
-  
-  <h3>Q: 申请后多久能拿到 key？</h3>
-  <p>人工审核通常在 24 小时内回复。如果急需，可在论坛帖子中 @管理员。</p>
-  
-  <h3>Q: 额度是多少？会过期吗？</h3>
-  <p>试用期额度为 1000 次调用/月，试用期 30 天。如需更多额度，可在论坛申请升级。</p>
-  
-  <h3>Q: 支持哪些模型？</h3>
-  <p>目前支持：<code>deepseek-chat</code>、<code>deepseek-coder</code>。后续会逐步增加更多模型。</p>
-  
-  <h3>Q: 如何查看剩余额度？</h3>
-  <p>目前需要通过管理员查询。未来会提供自助查询接口。</p>
-  
-  <h3>Q: 调用失败怎么办？</h3>
-  <p>检查步骤：</p>
+  <h2>论坛使用指南</h2>
+  <p>Clawd 国度论坛是社区交流、问题求助和 TRIAL_KEY 申请的主要平台：</p>
+
+  <h3>论坛地址</h3>
+  <ul>
+    <li>主站：<a href="https://clawdrepublic.cn/forum/">https://clawdrepublic.cn/forum/</a></li>
+    <li>备用：<a href="http://forum.clawdrepublic.cn/">http://forum.clawdrepublic.cn/</a></li>
+  </ul>
+
+  <h3>主要板块</h3>
   <ol>
-    <li><code>curl -fsS https://api.clawdrepublic.cn/healthz</code>（确认服务正常）</li>
-    <li>确认 <code>TRIAL_KEY</code> 环境变量已设置且正确</li>
-    <li>确认请求格式正确（特别是 <code>Authorization: Bearer</code> 头部）</li>
-    <li>在论坛发帖求助，附上错误信息</li>
+    <li><strong>新手入门</strong> - 安装、配置、基础使用问题</li>
+    <li><strong>TRIAL_KEY 申请</strong> - 申请试用额度，说明使用场景</li>
+    <li><strong>问题求助</strong> - 遇到问题时的求助专区</li>
+    <li><strong>Clawd 入驻</strong> - 分享你的 Clawd 使用经验</li>
+    <li><strong>功能建议</strong> - 提出改进建议和新功能需求</li>
   </ol>
-  
-  <h3>Q: 可以用于生产环境吗？</h3>
-  <p>试用服务适合开发、测试和学习。生产环境请申请正式合作。</p>
-  
-  <h3>实用脚本：一键验证配置</h3>
-  <pre><code>#!/bin/bash
-# 保存为 verify-trial-key.sh
-set -e
-echo "=== 验证 TRIAL_KEY 配置 ==="
-echo "1. 检查环境变量..."
-if [ -z "$TRIAL_KEY" ]; then
-  echo "❌ TRIAL_KEY 未设置"
-  exit 1
-fi
-echo "✅ TRIAL_KEY 已设置"
 
-echo "2. 检查服务健康..."
-curl -fsS https://api.clawdrepublic.cn/healthz
-echo "✅ 服务健康"
+  <h3>TRIAL_KEY 申请模板</h3>
+  <p>申请时请尽量包含以下信息：</p>
+  <pre><code>标题：申请 TRIAL_KEY - [你的名字/项目名]
 
-echo "3. 测试最小调用..."
-curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
-  -H "Authorization: Bearer ${TRIAL_KEY}" \
-  -H 'content-type: application/json' \
-  -d '{
-    "model": "deepseek-chat",
-    "messages": [{"role":"user","content":"ping"}],
-    "max_tokens": 10
-  }' | jq -r '.choices[0].message.content // "❌ 调用失败"'
-echo "✅ 配置验证完成"</code></pre>
+正文：
+1. 使用场景：我要用 OpenClaw 做什么（例如：个人助手、项目开发、学习研究等）
+2. 预计调用频率：每天大约需要调用多少次模型
+3. 其他说明：任何你觉得需要补充的信息</code></pre>
+
+  <h3>常见问题</h3>
+  <ul>
+    <li><strong>Q：申请后多久能收到 key？</strong><br/>A：管理员通常在 24 小时内处理申请，请关注论坛私信或回复。</li>
+    <li><strong>Q：额度用完了怎么办？</strong><br/>A：可以在论坛申请增加额度，说明使用情况和需求。</li>
+    <li><strong>Q：遇到技术问题怎么办？</strong><br/>A：先在论坛搜索相关问题，如果没有找到答案，在"问题求助"板块发帖。</li>
+  </ul>
+
+  <h3>自动化检查脚本</h3>
+  <p>我们提供了自动化检查脚本，帮助验证论坛状态：</p>
+  <pre><code># 检查论坛初始化状态
+cd /path/to/roc-ai-republic
+./scripts/check-forum-init.sh --url https://clawdrepublic.cn/forum/
+
+# 检查论坛可访问性
+curl -fsS -m 10 https://clawdrepublic.cn/forum/ | grep -o 'Clawd 国度论坛'</code></pre>
 
   <hr />
   <p>仓库文档：<a href="https://github.com/1037104428/roc-ai-republic">roc-ai-republic</a>（docs/quota-proxy*）</p>
