@@ -91,6 +91,49 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是“网关收到的请求次数”，而不是“上游成功次数”。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
   <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
+  <h2>论坛使用指南</h2>
+  <p>Clawd 国度论坛是社区交流、问题求助和 TRIAL_KEY 申请的主要平台：</p>
+  
+  <h3>论坛地址</h3>
+  <ul>
+    <li>主站：<a href="https://clawdrepublic.cn/forum/">https://clawdrepublic.cn/forum/</a></li>
+    <li>备用：<a href="http://forum.clawdrepublic.cn/">http://forum.clawdrepublic.cn/</a></li>
+  </ul>
+  
+  <h3>主要板块</h3>
+  <ol>
+    <li><strong>新手入门</strong> - 安装、配置、基础使用问题</li>
+    <li><strong>TRIAL_KEY 申请</strong> - 申请试用额度，说明使用场景</li>
+    <li><strong>问题求助</strong> - 遇到问题时的求助专区</li>
+    <li><strong>Clawd 入驻</strong> - 分享你的 Clawd 使用经验</li>
+    <li><strong>功能建议</strong> - 提出改进建议和新功能需求</li>
+  </ol>
+  
+  <h3>TRIAL_KEY 申请模板</h3>
+  <p>申请时请尽量包含以下信息：</p>
+  <pre><code>标题：申请 TRIAL_KEY - [你的名字/项目名]
+
+正文：
+1. 使用场景：我要用 OpenClaw 做什么（例如：个人助手、项目开发、学习研究等）
+2. 预计调用频率：每天大约需要调用多少次模型
+3. 其他说明：任何你觉得需要补充的信息</code></pre>
+  
+  <h3>常见问题</h3>
+  <ul>
+    <li><strong>Q：申请后多久能收到 key？</strong><br/>A：管理员通常在 24 小时内处理申请，请关注论坛私信或回复。</li>
+    <li><strong>Q：额度用完了怎么办？</strong><br/>A：可以在论坛申请增加额度，说明使用情况和需求。</li>
+    <li><strong>Q：遇到技术问题怎么办？</strong><br/>A：先在论坛搜索相关问题，如果没有找到答案，在"问题求助"板块发帖。</li>
+  </ul>
+
+  <h3>自动化检查脚本</h3>
+  <p>我们提供了自动化检查脚本，帮助验证论坛状态：</p>
+  <pre><code># 检查论坛初始化状态
+cd /path/to/roc-ai-republic
+./scripts/check-forum-init.sh --url https://clawdrepublic.cn/forum/
+
+# 检查论坛可访问性
+curl -fsS -m 10 https://clawdrepublic.cn/forum/ | grep -o 'Clawd 国度论坛'</code></pre>
+
   <hr />
   <p>仓库文档：<a href="https://github.com/1037104428/roc-ai-republic">roc-ai-republic</a>（docs/quota-proxy*）</p>
 </body>
