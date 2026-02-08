@@ -47,6 +47,16 @@
     "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
   }'</code></pre>
 
+  <h2>用 OpenClaw（推荐）</h2>
+  <p>如果你是为了跑通 OpenClaw，一般只需要把 <code>CLAWD_TRIAL_KEY</code> 放到环境变量，然后按小白一条龙写入配置即可：</p>
+  <ul>
+    <li>小白一条龙：<a href="/quickstart.html">/quickstart.html</a></li>
+  </ul>
+  <p>最小启动与验证：</p>
+  <pre><code>export CLAWD_TRIAL_KEY="trial_xxx"
+openclaw gateway start
+openclaw models status</code></pre>
+
   <h2>通用工具兼容：设置 OpenAI 环境变量</h2>
   <p>很多客户端默认读 <code>OPENAI_API_KEY</code> / <code>OPENAI_BASE_URL</code>：</p>
   <pre><code>export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"

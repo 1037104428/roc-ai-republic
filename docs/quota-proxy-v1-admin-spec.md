@@ -13,6 +13,13 @@
   - 可用 `https://api.clawdrepublic.cn/healthz` 做非消耗型健康检查
 
 （官网版说明页：`docs/site/quota-proxy.html`）
+## 给新人的官网入口（TRIAL_KEY + 最小 curl 验证）
+
+- 官网页面：`https://clawdrepublic.cn/quota-proxy.html`（源文件：`docs/site/quota-proxy.html`）
+- 建议新人优先走小白一条龙：`https://clawdrepublic.cn/quickstart.html`
+
+约定：对外文档统一用环境变量名 `CLAWD_TRIAL_KEY`（等价于 OpenAI 生态常用的 `OPENAI_API_KEY`）。
+
 
 ### label 推荐格式（便于运营统计）
 
