@@ -38,11 +38,10 @@
 ### 1. 设置环境变量
 ```bash
 # 将 xxx 替换为你的实际 key
-export TRIAL_KEY="trial_xxx"
-export CLAWD_TRIAL_KEY="${TRIAL_KEY}"
+export CLAWD_TRIAL_KEY="trial_xxx"
 
 # 对于通用 OpenAI 客户端
-export OPENAI_API_KEY="${TRIAL_KEY}"
+export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
 ```
 
@@ -53,7 +52,7 @@ curl -fsS https://api.clawdrepublic.cn/healthz
 
 # 测试调用（消耗 1 次额度）
 curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
-  -H "Authorization: Bearer ${TRIAL_KEY}" \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
   -H 'content-type: application/json' \
   -d '{
     "model": "deepseek-chat",
