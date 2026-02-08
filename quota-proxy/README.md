@@ -31,7 +31,8 @@
 
 环境变量：
 - 必填：`DEEPSEEK_API_KEY`
-- 可选：`PORT`（默认 8787）、`DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com/v1`）、`DAILY_REQ_LIMIT`
+- 可选（v0）：`PORT`（默认 8787）、`DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com/v1`）、`DAILY_REQ_LIMIT`
+- 预留（v1）：`ADMIN_TOKEN`（管理口鉴权）、`SQLITE_PATH`（默认 `/data/quota-proxy.sqlite`）
 
 ## 本地运行（开发）
 ```bash
