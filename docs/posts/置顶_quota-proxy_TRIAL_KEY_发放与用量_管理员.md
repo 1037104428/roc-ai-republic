@@ -71,13 +71,26 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
 ```
 
+返回示例（示意）：
+
+```json
+{
+  "day": "2026-02-09",
+  "mode": "file",
+  "items": [
+    {"key":"trial_abc...xyz","req_count":12,"updated_at":1760000000000},
+    {"key":"trial_def...uvw","req_count":3,"updated_at":1760000001234}
+  ]
+}
+```
+
 输出字段说明：
 - `day`：查询日期（`YYYY-MM-DD`）
 - `mode`：
   - `file`：开启了 `SQLITE_PATH`（持久化启用，推荐生产）
   - `memory`：纯内存（不推荐生产）
 - `items[]`：
-  - `key`：TRIAL_KEY（建议对外展示时做脱敏）
+  - `key`：TRIAL_KEY（建议对外展示时做脱敏：只留前后几位）
   - `req_count`：当天累计请求次数
   - `updated_at`：最后一次写入/更新的毫秒时间戳
 
