@@ -7,9 +7,70 @@ set -euo pipefail
 # - Fallback to npmjs if install fails
 # - Do NOT permanently change user's npm registry config
 # - Self-check: openclaw --version
+#
+# Usage:
+#   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
+#   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12
+#   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
 NPM_REGISTRY_FALLBACK_DEFAULT="https://registry.npmjs.org"
+OPENCLAW_VERSION_DEFAULT="latest"
+
+usage() {
+  cat <<'TXT'
+[cn-pack] OpenClaw CN installer
+
+Options:
+  --version <ver>          Install a specific OpenClaw version (default: latest)
+  --registry-cn <url>      CN npm registry (default: https://registry.npmmirror.com)
+  --registry-fallback <u>  Fallback npm registry (default: https://registry.npmjs.org)
+  --dry-run                Print commands without executing
+  -h, --help               Show help
+
+Env vars (equivalent):
+  OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK
+TXT
+}
+
+DRY_RUN=0
+VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
+REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
+REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --version)
+      VERSION="${2:-}"; shift 2 ;;
+    --registry-cn)
+      REG_CN="${2:-}"; shift 2 ;;
+    --registry-fallback)
+      REG_FALLBACK="${2:-}"; shift 2 ;;
+    --dry-run)
+      DRY_RUN=1; shift ;;
+    -h|--help)
+      usage; exit 0 ;;
+    *)
+      echo "[cn-pack] Unknown arg: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "$VERSION" || -z "$REG_CN" || -z "$REG_FALLBACK" ]]; then
+  echo "[cn-pack] Missing required values." >&2
+  usage
+  exit 2
+fi
+
+run() {
+  if [[ "$DRY_RUN" == "1" ]]; then
+    printf '[dry-run] %q ' "$@"; echo
+  else
+    "$@"
+  fi
+}
 
 if command -v npm >/dev/null 2>&1; then
   echo "[cn-pack] npm found: $(npm -v)"
@@ -18,13 +79,10 @@ else
   exit 1
 fi
 
-REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
-REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
-
 install_openclaw() {
   local reg="$1"
-  echo "[cn-pack] Installing via registry: $reg"
-  npm i -g openclaw@latest --registry "$reg"
+  echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg"
+  run npm i -g "openclaw@${VERSION}" --registry "$reg"
 }
 
 if install_openclaw "$REG_CN"; then
