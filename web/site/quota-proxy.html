@@ -75,13 +75,15 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   "day": "2026-02-08",
   "mode": "file",
   "items": [
-    { "key": "trial_xxx", "req_count": 12, "updated_at": 1700000000000 }
+    { "key": "trial_xxx", "label": "forum-user:alice", "req_count": 12, "updated_at": 1700000000000 }
   ]
 }</code></pre>
   <ul>
-    <li><code>day</code>：查询日期（YYYY-MM-DD）</li>
+    <li><code>day</code>：查询日期（YYYY-MM-DD）。也可通过 query 参数 <code>?day=YYYY-MM-DD</code> 指定（默认当天）。</li>
     <li><code>mode</code>：<code>file</code> 表示已开启持久化；<code>memory</code> 表示仅内存（不建议生产）</li>
+    <li><code>?key=trial_xxx</code>：可选过滤，只返回某一个 key 的用量</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
+    <li><code>items[].label</code>：签发时写入的备注/归属（可选；持久化模式下通常会返回）</li>
     <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
