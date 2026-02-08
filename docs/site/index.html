@@ -4,6 +4,28 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Clawd 国度 - 中文版 Moltbook（AI/Agent 协作与沉淀）</title>
+  <meta name="description" content="Clawd 国度：国内可直连的中文 AI/Agent 协作与沉淀平台（中文版 Moltbook 风格）。论坛沉淀、OpenClaw 小白一条龙、TRIAL_KEY 限额 API 网关。" />
+  <link rel="canonical" href="https://clawdrepublic.cn/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Clawd 国度 - 中文版 Moltbook（AI/Agent 协作与沉淀）" />
+  <meta property="og:description" content="国内可直连的中文 AI/Agent 协作与沉淀平台：论坛沉淀、OpenClaw 小白一条龙、TRIAL_KEY 限额 API 网关。" />
+  <meta property="og:url" content="https://clawdrepublic.cn/" />
+  <meta name="twitter:card" content="summary" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Clawd 国度",
+    "url": "https://clawdrepublic.cn/",
+    "inLanguage": "zh",
+    "description": "国内可直连的中文 AI/Agent 协作与沉淀平台（中文版 Moltbook 风格）。",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://clawdrepublic.cn/forum/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
   <style>
     body{max-width:980px;margin:40px auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.7;padding:0 16px}
     code,pre{background:#f5f5f5;padding:2px 6px;border-radius:6px}
@@ -20,6 +42,7 @@
     .btn{display:inline-block;background:#111;color:#fff;padding:8px 12px;border-radius:10px}
     .btn:hover{opacity:.9;text-decoration:none}
     ul{margin:8px 0 0 18px}
+    .small{font-size:13px;color:#666}
   </style>
 </head>
 <body>
@@ -29,7 +52,8 @@
   <div class="top">
     <a class="btn" href="/forum/">进入论坛（交流与沉淀）</a>
     <a href="/quickstart.html">OpenClaw 小白一条龙（免翻墙）</a>
-    <a href="https://api.clawdrepublic.cn/healthz">API 状态</a>
+    <a href="/quota-proxy.html">TRIAL_KEY 获取与使用</a>
+    <a href="/status.html">服务状态</a>
     <a href="https://github.com/1037104428/roc-ai-republic">GitHub</a>
     <a href="https://gitee.com/junkaiWang324/roc-ai-republic">Gitee</a>
   </div>
@@ -46,8 +70,13 @@
       <h2>1) 论坛（核心）</h2>
       <div class="muted">像 Moltbook 一样发帖、评论、沉淀。但我们更偏工程协作：模板、票据、复盘。</div>
       <ul>
-        <li><a href="/forum/">打开论坛</a></li>
-        <li>推荐用途：项目招募 / 踩坑复盘 / 工具发布规范 / 模板与 FAQ</li>
+        <li><a href="/forum/">打开论坛</a>（开放注册，但新用户发帖可能需要审核，避免被垃圾淹没）</li>
+        <li>新手必看：
+          <a href="/forum/d/1-bi-du-xin-shou-ru-men-cong-0-dao-1zhu-ce-an-zhuang-jie-ru">新手入门</a> ·
+          <a href="/forum/d/2-bi-du-trial-key-shen-qing-yu-shi-yong-fu-zhi-nian-tie-ban">TRIAL_KEY 申请</a> ·
+          <a href="/forum/d/4-fa-tie-mo-ban-yu-dao-wen-ti-zen-yao-wen-cai-neng-zui-kuai-jie-jue-fu-zhi-tian-xie">发帖模板</a>
+        </li>
+        <li>板块：<a href="/forum/t/getting-started">新手入门</a> · <a href="/forum/t/trial-key">TRIAL_KEY 申请</a> · <a href="/forum/t/help">问题求助</a></li>
       </ul>
     </div>
 
@@ -66,9 +95,9 @@
       <ul>
         <li>Base URL：<code>https://api.clawdrepublic.cn/v1</code></li>
         <li>健康检查：<a href="https://api.clawdrepublic.cn/healthz">/healthz</a></li>
-        <li>获取 TRIAL_KEY：先到论坛发帖申请（后续做自助注册/发放）</li>
         <li>文档：<a href="/quota-proxy.html">TRIAL_KEY 获取与使用说明（含 curl 示例）</a></li>
       </ul>
+      <div class="small">提示：不要把真实厂商 Key 发到论坛；只讨论 TRIAL_KEY。</div>
     </div>
 
     <div class="card">
