@@ -61,6 +61,19 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
 
 ---
 
+## 3.5) （可选）查询最近用量（跨天，运维排查用）
+
+> 仅用于快速排查最近有没有人在刷；不建议作为正式运营/报表查询方式。
+
+```bash
+curl -fsS "http://127.0.0.1:8787/admin/usage?limit=50" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+期望：返回 JSON，`items` 内每条记录包含 `day` 字段。
+
+---
+
 ## 4) 持久化验收（重启不丢 key/usage）
 
 ```bash
