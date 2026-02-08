@@ -26,13 +26,46 @@ export DEEPSEEK_API_KEY="YOUR_KEY_HERE"
 
 （后续会提供把它写进 `~/.bashrc` 的方式，避免重开终端就丢。）
 
-### 1.3 在 OpenClaw 里启用 DeepSeek（配置模板，待补）
-- 我们会提供一个 `openclaw.json` 的最小片段：
-  - provider 选择 deepseek（或 openai-compatible）
-  - baseURL 指向 DeepSeek 的兼容接口
-  - apiKey 从环境变量读取
+### 1.3 在 OpenClaw 里启用 DeepSeek（可复制粘贴配置片段）
 
-> 我需要先确认 OpenClaw 当前版本对 deepseek / openai-compatible baseURL 的配置字段；确认后立刻补上可用片段。
+OpenClaw 支持通过 `models.providers` 添加 **OpenAI-compatible** 的自定义 provider（见 OpenClaw 文档：concepts/model-providers）。DeepSeek 官方提供 OpenAI 兼容接口时，可按下面方式接入。
+
+把下面片段合并到你的 `~/.openclaw/openclaw.json`（注意：`${DEEPSEEK_API_KEY}` 会从环境变量读取）：
+
+```json5
+{
+  env: {
+    // 也可以不写在这里，直接在 shell 里 export DEEPSEEK_API_KEY
+    DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}",
+  },
+  agents: {
+    defaults: {
+      model: { primary: "deepseek/deepseek-chat" },
+      models: {
+        "deepseek/deepseek-chat": {},
+        "deepseek/deepseek-reasoner": {},
+      },
+    },
+  },
+  models: {
+    mode: "merge",
+    providers: {
+      deepseek: {
+        // DeepSeek 的 OpenAI-compatible base URL（如官方为 /v1）
+        baseUrl: "https://api.deepseek.com/v1",
+        apiKey: "${DEEPSEEK_API_KEY}",
+        api: "openai-completions",
+        models: [
+          { id: "deepseek-chat", name: "DeepSeek Chat" },
+          { id: "deepseek-reasoner", name: "DeepSeek Reasoner" }
+        ]
+      }
+    }
+  }
+}
+```
+
+> 说明：如果 DeepSeek 实际 baseUrl 或模型 id 与上面不同，把 `baseUrl` 与 `models[].id` 改成其官方文档给的值即可。这个片段的关键是：`api: "openai-completions"` + `baseUrl` + `apiKey`。
 
 ### 1.4 一键验证
 ```bash
