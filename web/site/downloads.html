@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clawd 国度 · 下载与镜像</title>
+  <meta name="description" content="OpenClaw 安装脚本、仓库镜像、常用下载链接。" />
+  <link rel="canonical" href="https://clawdrepublic.cn/downloads.html" />
+  <style>
+    body{max-width:920px;margin:40px auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.7;padding:0 16px}
+    code,pre{background:#f5f5f5;padding:2px 6px;border-radius:6px}
+    pre{padding:12px;overflow:auto}
+    h1,h2{line-height:1.2}
+    a{color:#0b65c2;text-decoration:none}a:hover{text-decoration:underline}
+    .card{border:1px solid #eee;border-radius:12px;padding:14px 14px;margin:12px 0}
+    .muted{color:#666}
+  </style>
+</head>
+<body>
+  <h1>下载与镜像</h1>
+  <p class="muted"><a href="/">返回首页</a> · <a href="/quickstart.html">小白一条龙</a> · <a href="/quota-proxy.html">TRIAL_KEY 文档</a> · <a href="/status.html">服务状态</a></p>
+
+  <div class="card">
+    <h2>OpenClaw 一键安装脚本（国内源优先）</h2>
+    <pre><code>curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash</code></pre>
+    <p>安装完成后验证：</p>
+    <pre><code>openclaw --version</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>仓库镜像（文档/脚本都在这里）</h2>
+    <ul>
+      <li>GitHub：<a href="https://github.com/1037104428/roc-ai-republic">https://github.com/1037104428/roc-ai-republic</a></li>
+      <li>Gitee：<a href="https://gitee.com/junkaiWang324/roc-ai-republic">https://gitee.com/junkaiWang324/roc-ai-republic</a></li>
+    </ul>
+    <p class="muted">提示：如果 GitHub 访问不稳定，请优先用 Gitee 拉取。</p>
+  </div>
+
+  <div class="card">
+    <h2>离线安装 / 受限网络怎么办？</h2>
+    <ol>
+      <li>先用能上网的机器执行安装脚本，或从镜像仓库获取安装说明。</li>
+      <li>把 <code>openclaw</code> 安装产物、以及 <code>~/.openclaw/</code> 配置拷到目标机器。</li>
+      <li>在目标机器运行 <code>openclaw gateway start</code> 验证启动。</li>
+    </ol>
+    <p class="muted">（后续会补一个“完全离线包 + 校验方式”。）</p>
+  </div>
+
+  <hr />
+  <p class="muted">发现链接失效/需要镜像：请到论坛发帖，我们会补齐。</p>
+</body>
+</html>
