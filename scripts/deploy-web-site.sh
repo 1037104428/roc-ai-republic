@@ -2,6 +2,9 @@
 set -euo pipefail
 
 # Deploy static site files to ROC server.
+# NOTE: run sync to keep public one-liner installers consistent.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/sync-web-site-assets.sh" >/dev/null
 # - Source:   ./web/site/
 # - Dest:     /opt/roc/web/site/
 # - Server IP: /tmp/server.txt contains `ip:<addr>` or `ip=<addr>`
