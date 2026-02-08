@@ -152,14 +152,34 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 export ADMIN_TOKEN="your_admin_token_here"
 ./scripts/test-quota-proxy-admin.sh http://127.0.0.1:8787 "$ADMIN_TOKEN"
 
+# Admin API 增强测试（v2 - 持久化验证）
+./scripts/test-quota-proxy-admin-v2.sh http://127.0.0.1:8787 "$ADMIN_TOKEN"
+
 # 远程服务器测试（通过 SSH）
 ./scripts/ssh-run-roc-key.sh 'cd /opt/roc/quota-proxy && curl -fsS http://127.0.0.1:8787/healthz'
 ```
 
-测试脚本 `test-quota-proxy-admin.sh` 会检查：
+### 测试脚本说明
+
+#### 1. `test-quota-proxy-admin.sh` - 基础测试
+检查：
 1. 健康状态 (`/healthz`)
 2. 未授权访问保护 (`/admin/usage` 返回 401)
 3. 授权访问 (`/admin/usage` 带 token)
 4. Trial key 生成 (`POST /admin/keys`)
+
+#### 2. `test-quota-proxy-admin-v2.sh` - 增强持久化验证
+新增功能：
+1. 持久化模式检测（`file`/`memory`）
+2. Trial key 持久化验证
+3. 使用统计查询（按key过滤）
+4. 跨日查询验证
+5. 批量查询测试
+6. 工具依赖检查（jq, curl）
+
+#### 使用建议
+- 开发/测试环境：使用 `test-quota-proxy-admin.sh` 快速验证
+- 生产环境部署验证：使用 `test-quota-proxy-admin-v2.sh` 进行全面持久化验证
+- 定期巡检：结合 cron 任务定期运行验证脚本
 
 对于生产环境，建议定期运行验证脚本确保服务正常。
