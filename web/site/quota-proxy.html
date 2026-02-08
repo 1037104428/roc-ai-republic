@@ -81,6 +81,7 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
   <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
 
   <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
+  <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向 JSON 数据文件），否则会返回 400。</p>
   <pre><code>export ADMIN_TOKEN='***'
 curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
@@ -122,8 +123,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li><code>day</code>：查询日期（YYYY-MM-DD）。也可通过 query 参数 <code>?day=YYYY-MM-DD</code> 指定（默认当天）。</li>
     <li><code>mode</code>：
       <ul>
-        <li><code>file</code>：已开启持久化（当前默认实现为 JSON 文件；环境变量名仍沿用 <code>SQLITE_PATH</code>）</li>
-        <li><code>sqlite</code>：SQLite 持久化（当服务端运行 SQLite 版本时）</li>
+        <li><code>file</code>：已开启持久化（当前实现为 <strong>JSON 文件</strong>；环境变量名仍沿用 <code>SQLITE_PATH</code>，后续切 SQLite 不破坏配置）</li>
         <li><code>memory</code>：仅内存（不建议生产）</li>
       </ul>
     </li>
