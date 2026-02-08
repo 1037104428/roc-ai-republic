@@ -83,6 +83,12 @@ openclaw --version
 
 - 去论坛「TRIAL_KEY 申请」板块发帖：https://clawdrepublic.cn/forum/t/trial-key
 - 建议照抄模板（置顶贴里有）：https://clawdrepublic.cn/quota-proxy.html
+- 为了更快审核，建议在帖里写清楚：
+  - 你要用它做什么（例如：本地写代码、做 demo、学习）
+  - 预计频率（每天大概几次对话/脚本调用）
+  - 你的环境（Windows/macOS/Linux；是否在公司网络）
+
+> 注意：**不要在公开帖子里粘贴你拿到的 TRIAL_KEY**。管理员只会私信/单独回复给你。
 
 拿到 key 后，在终端执行（把 `trial_xxx` 换成你的 key）：
 
