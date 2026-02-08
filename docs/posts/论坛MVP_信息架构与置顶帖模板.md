@@ -101,7 +101,27 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 
 如果论坛未运行或配置不正确，脚本会给出明确的错误提示。
 
-## 6) 后续步骤
+## 6) 服务状态检查
+
+论坛部署后，可使用以下命令检查服务状态：
+
+```bash
+# 检查论坛容器状态
+docker compose ps | grep forum
+
+# 启动论坛服务
+docker compose up -d forum
+
+# 查看论坛日志
+docker compose logs forum
+
+# 使用服务检查脚本（推荐）
+./scripts/check-forum-service.sh --url http://127.0.0.1:8081 --timeout 10
+```
+
+如果论坛服务未运行，脚本会输出具体建议操作步骤。
+
+## 7) 后续步骤
 
 1. 部署论坛（Flarum / Discourse / NodeBB）
 2. 创建管理员账号
@@ -109,3 +129,4 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 4. 发布置顶帖
 5. 邀请第一批用户
 6. 运行检查脚本验证初始化状态
+7. 定期使用服务检查脚本监控论坛健康状态
