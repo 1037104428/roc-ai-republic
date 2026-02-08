@@ -10,8 +10,8 @@
 
 ## 安全边界
 - 不做任何隐蔽/绕行/“翻墙入口”；就是普通 HTTP(S) 服务。
-- 不收集多余隐私：v0 仅做 **按日请求次数** 计数（内存/文件 JSON）。
-- 生产版（v1）再引入：SQLite 持久化 + 更细用量统计（若需要）。
+- 不收集多余隐私：仅做 **按日请求次数** 计数（v0：内存/JSON；v1：SQLite）。
+- v1 已引入 SQLite 持久化 + 简单管理接口（见下文）。
 
 ## 暴露端口 / HTTPS 建议
 `compose.yaml` 默认将服务端口绑定到本机回环：`127.0.0.1:8787:8787`。
@@ -19,8 +19,10 @@
 - 推荐做法：用 Caddy/Nginx 反代到 `http://127.0.0.1:8787` 并启用 HTTPS。
 - 不建议直接把 8787 端口对公网暴露（除非你额外做了鉴权/防火墙/限流等）。
 
-## v0 功能现状（已可跑）
-实现文件：`server.js`
+## v0 / v1 版本说明（都已可跑）
+
+- v0（JSON/内存版）：`server.js`
+- v1（SQLite 版）：`server-sqlite.js`（推荐生产使用）
 
 提供：
 - `GET /healthz` → `{ ok: true }`
@@ -29,18 +31,21 @@
   - `Authorization: Bearer <TRIAL_KEY>`（或 `x-trial-key`）
   - `DAILY_REQ_LIMIT`（默认 200）超限返回 429
 
-环境变量：
+环境变量（通用）：
 - 必填：`DEEPSEEK_API_KEY`
 - 可选：
   - `PORT`（默认 8787）
   - `DEEPSEEK_BASE_URL`（默认 `https://api.deepseek.com/v1`）
   - `DAILY_REQ_LIMIT`（默认 200）
-- 发放/用量（推荐开启）：
-  - `SQLITE_PATH`：**v0 里实际是 JSON 文件路径**（为了兼容先沿用 env 名），例如：`/data/quota-proxy.json`
-    - 只要设置了该变量：
-      - `TRIAL_KEY` 必须是管理员签发过的（未知 key 会 401）
-      - 用量会写入该文件（JSON）
-  - `ADMIN_TOKEN`：管理口鉴权 token（不要写进仓库）
+
+环境变量（发放/用量，推荐开启）：
+- `SQLITE_PATH`：
+  - v0：JSON 文件路径（历史兼容名），例如：`/data/quota-proxy.json`
+  - v1：SQLite DB 文件路径，例如：`/data/quota.db`
+  - 只要设置了该变量：
+    - `TRIAL_KEY` 必须是管理员签发过的（未知 key 会 401）
+    - 用量会落盘（v0 写 JSON；v1 写 SQLite）
+- `ADMIN_TOKEN`：管理口鉴权 token（不要写进仓库）
 
 > 计数口径：每次请求进入 `/v1/chat/completions` 时会先 `incrUsage()`，所以**上游失败/超时也会计入当日次数**（更符合“试用配额=请求机会”）。
 
@@ -49,6 +54,10 @@
 cd quota-proxy
 npm i
 DEEPSEEK_API_KEY=*** PORT=8787 node server.js
+curl -fsS http://127.0.0.1:8787/healthz
+
+# v1（SQLite）
+DEEPSEEK_API_KEY=*** PORT=8787 SQLITE_PATH=./quota.db ADMIN_TOKEN=*** node server-sqlite.js
 curl -fsS http://127.0.0.1:8787/healthz
 ```
 
@@ -63,7 +72,7 @@ DEEPSEEK_API_KEY=***
 PORT=8787
 DAILY_REQ_LIMIT=200
 # 推荐开启：发放/用量持久化
-SQLITE_PATH=/data/quota-proxy.json
+SQLITE_PATH=/data/quota.db
 ADMIN_TOKEN=***
 EOF
 
@@ -115,7 +124,12 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
   - `req_count`: 当天累计请求次数
   - `updated_at`: 最后一次写入/更新的时间戳（毫秒）
 
-## 下一步（v1 / 中等落地）
-- 真正的 SQLite 持久化（替换 JSON 文件）
+### 3) 列出已签发 key（管理员）
+```bash
+curl -fsS http://127.0.0.1:8787/admin/keys \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+## 下一步（v2 / 可选增强）
 - key 维度策略：有效期 / 日限额（每 key 覆盖）/ 禁用
 - 可选：脱敏审计日志（只保留 request_id / 时间 / key hash / 状态码）
