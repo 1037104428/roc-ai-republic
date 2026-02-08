@@ -14,7 +14,13 @@
 - 只做“正向可达”：国内网络可直接访问的镜像/源。
 
 ## 快速开始（开发中）
-见：
+- 安装：`bash scripts/install-cn.sh`
+  - 环境变量：
+    - `NPM_REGISTRY`：优先使用的 npm 源（默认 `https://registry.npmmirror.com`）
+    - `NPM_REGISTRY_FALLBACK`：回退 npm 源（默认 `https://registry.npmjs.org`）
+  - 自检：脚本会执行 `openclaw --version`；你也可以手动跑：`openclaw status && openclaw models status`
+
+更多见：
 - `scripts/install-cn.sh`
 - `docs/openclaw-cn-pack-deepseek-v0.md`
 - `quota-proxy/`（限额网关）
