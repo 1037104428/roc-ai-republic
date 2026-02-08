@@ -1,8 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${1:-http://127.0.0.1:8787}"
-DAY="${DAY:-$(date +%F)}"
+# Usage:
+#   bash scripts/verify-quota-proxy.sh [--base-url http://127.0.0.1:8787] [--day YYYY-MM-DD]
+# Env:
+#   BASE_URL=...  (preferred over positional args)
+#   DAY=...
+
+_base_url_arg=""
+_day_arg=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --base-url)
+      _base_url_arg="${2:-}"; shift 2 ;;
+    --day)
+      _day_arg="${2:-}"; shift 2 ;;
+    -h|--help)
+      echo "usage: $0 [--base-url URL] [--day YYYY-MM-DD]"; exit 0 ;;
+    *)
+      # Backward-compat: allow old positional BASE_URL as first arg
+      if [[ -z "${_base_url_arg}" ]]; then
+        _base_url_arg="$1"; shift ;
+      else
+        echo "unknown arg: $1" >&2; exit 2
+      fi
+      ;;
+  esac
+done
+
+BASE_URL="${BASE_URL:-${_base_url_arg:-http://127.0.0.1:8787}}"
+DAY="${DAY:-${_day_arg:-$(date +%F)}}"
 
 # Optional:
 # - ADMIN_TOKEN=...            # to call /admin/*

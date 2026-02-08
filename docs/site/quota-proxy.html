@@ -125,10 +125,12 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
   <pre><code>cd /home/kai/.openclaw/workspace/roc-ai-republic
 # 仅探活（不签发 key）：
 BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh
+# 或者（等价）：bash scripts/verify-quota-proxy.sh --base-url http://127.0.0.1:8787
 
 # 需要签发 key（会调用 /admin/keys）：
 ADMIN_TOKEN='***' ISSUE_KEY=1 TRIAL_LABEL='forum-user:alice' \
-  BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh</code></pre>
+  BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh
+# 或者（等价）：ADMIN_TOKEN='***' ISSUE_KEY=1 TRIAL_LABEL='forum-user:alice' bash scripts/verify-quota-proxy.sh --base-url http://127.0.0.1:8787</code></pre>
   <p>提示：脚本会把 key 输出到终端；请注意不要把完整 key 贴到公开场合。</p>
 
   <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
