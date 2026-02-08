@@ -11,6 +11,9 @@
 ## TRIAL_KEY 是什么？
 
 - `TRIAL_KEY` 是一枚试用密钥，用于访问我们的 **quota-proxy 试用网关**：`https://api.clawdrepublic.cn`
+- 使用方式（二选一）：
+  - `Authorization: Bearer <TRIAL_KEY>`（推荐）
+  - 或请求头 `x-trial-key: <TRIAL_KEY>`
 - 目标：让你在**不自己购买/配置上游 key** 的情况下，也能完成一次端到端验证（安装 → 配置 → 调用）。
 
 ## 如何获取 TRIAL_KEY（当前：手动发放）
@@ -97,9 +100,13 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -H 'content-type: application/json' \
   -d '{"label":"forum-user:alice"}'
 
-# 查当日用量
+# 查当日用量（按天汇总；输出稳定）
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
+
+# 只查某个 key（可选）
+# curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
+#   -H "Authorization: Bearer ${ADMIN_TOKEN}"
 ```
 
 返回示例（字段可能随版本调整）：
