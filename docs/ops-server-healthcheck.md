@@ -5,7 +5,7 @@
 ## 目标
 
 - 查看 compose 状态：`docker compose ps`
-- 检查健康探针：`curl -fsS http://127.0.0.1:8787/healthz`
+- 检查健康探针：`curl -fsS http://127.0.0.1:8787/healthz`（期望输出：`{"ok":true}`）
 
 ## 前置条件（推荐）
 
