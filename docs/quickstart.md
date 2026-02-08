@@ -90,6 +90,16 @@ openclaw --version
 export CLAWD_TRIAL_KEY="trial_xxx"
 ```
 
+（可选）让它每次打开终端都生效：
+
+```bash
+# bash
+printf '\nexport CLAWD_TRIAL_KEY="trial_xxx"\n' >> ~/.bashrc
+
+# zsh
+printf '\nexport CLAWD_TRIAL_KEY="trial_xxx"\n' >> ~/.zshrc
+```
+
 自检（建议做一次，避免环境变量没生效）：
 
 ```bash
