@@ -108,6 +108,17 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
   <h2>（运维/管理员）发放 TRIAL_KEY 与 /admin/usage 说明</h2>
   <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
 
+  <h3>0) 一键探活 / 验收脚本（推荐）</h3>
+  <p>仓库提供了一个验收脚本，帮助你在服务器上一条命令完成：healthz、（可选）签发 key、以及用 key 验证 <code>/v1/models</code>。</p>
+  <pre><code>cd /home/kai/.openclaw/workspace/roc-ai-republic
+# 仅探活（不签发 key）：
+BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh
+
+# 需要签发 key（会调用 /admin/keys）：
+ADMIN_TOKEN='***' ISSUE_KEY=1 TRIAL_LABEL='forum-user:alice' \
+  BASE_URL=http://127.0.0.1:8787 bash scripts/verify-quota-proxy.sh</code></pre>
+  <p>提示：脚本会把 key 输出到终端；请注意不要把完整 key 贴到公开场合。</p>
+
   <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
   <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向 JSON 数据文件，例如 <code>/data/quota.json</code>），否则会返回 400。</p>
   <p>服务端（docker compose）常见配置示例：</p>
