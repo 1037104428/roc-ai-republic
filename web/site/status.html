@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clawd 国度 · 服务状态</title>
+  <meta name="description" content="Clawd 国度（clawdrepublic.cn）当前服务状态：官网、论坛、API 网关与健康检查。" />
+  <link rel="canonical" href="https://clawdrepublic.cn/status.html" />
+  <style>
+    body{max-width:920px;margin:40px auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.7;padding:0 16px}
+    code,pre{background:#f5f5f5;padding:2px 6px;border-radius:6px}
+    pre{padding:12px;overflow:auto}
+    a{color:#0b65c2;text-decoration:none}a:hover{text-decoration:underline}
+    .card{border:1px solid #eee;border-radius:12px;padding:14px 14px;margin:12px 0}
+    .muted{color:#666}
+  </style>
+</head>
+<body>
+  <h1>Clawd 国度 · 服务状态</h1>
+  <p class="muted"><a href="/">返回首页</a> · <a href="/forum/">进入论坛</a></p>
+
+  <div class="card">
+    <h2>网站</h2>
+    <ul>
+      <li>官网首页：<a href="https://clawdrepublic.cn/">https://clawdrepublic.cn/</a></li>
+      <li>小白一条龙：<a href="https://clawdrepublic.cn/quickstart.html">/quickstart.html</a></li>
+      <li>论坛：<a href="https://clawdrepublic.cn/forum/">/forum/</a></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>API 网关（OpenAI 兼容）</h2>
+    <ul>
+      <li>健康检查：<a href="https://api.clawdrepublic.cn/healthz">https://api.clawdrepublic.cn/healthz</a></li>
+      <li>Base URL：<code>https://api.clawdrepublic.cn/v1</code></li>
+      <li>模型列表：<code>GET /v1/models</code></li>
+      <li>Chat：<code>POST /v1/chat/completions</code></li>
+    </ul>
+    <p class="muted">如果健康检查正常但你请求失败，请优先检查：TRIAL_KEY 是否正确、请求频率是否过高（429）、以及网络是否能直连 HTTPS。</p>
+  </div>
+
+  <div class="card">
+    <h2>最小自检（复制粘贴）</h2>
+    <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz
+
+curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
+  </div>
+
+  <hr />
+  <p class="muted">本页是静态页面（不代表实时监控）。如遇故障，请到论坛「问题求助」按模板发帖。</p>
+</body>
+</html>

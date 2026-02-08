@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clawd 国度 · TRIAL_KEY 获取与使用（quota-proxy）</title>
+  <style>
+    body{max-width:920px;margin:40px auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.7;padding:0 16px}
+    code,pre{background:#f5f5f5;padding:2px 6px;border-radius:6px}
+    pre{padding:12px;overflow:auto}
+    h1,h2{line-height:1.2}
+    a{color:#0b65c2;text-decoration:none}a:hover{text-decoration:underline}
+    .warn{background:#fff7e6;border:1px solid #ffe2a8;padding:10px 12px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <h1>TRIAL_KEY 获取与使用（quota-proxy）</h1>
+  <p><a href="/">返回首页</a> · <a href="/quickstart.html">小白一条龙</a> · <a href="/forum/">论坛</a></p>
+
+  <h2>这是什么</h2>
+  <p>Clawd 国度提供一个 <strong>OpenAI 兼容</strong> 的模型网关（DeepSeek 上游由服务器端持有，不下发给客户端）。你拿到的 <code>TRIAL_KEY</code> 用于领取/消耗试用额度。</p>
+
+  <h2>如何获取 TRIAL_KEY（当前：人工发放）</h2>
+  <div class="warn">
+    为了避免被滥用，目前先走“人工发放”。后续会上线自助注册/发放，但会保持可运营与可审计。
+  </div>
+  <ol>
+    <li>到论坛发帖申请：<a href="/forum/">/forum/</a>（标题建议：申请 TRIAL_KEY）</li>
+    <li>正文写 1-2 句话：你要做什么、预计每天大概多少次调用</li>
+    <li>管理员私信/回复发放 <code>trial_...</code> 格式的 key</li>
+  </ol>
+
+  <h2>最小验证：用 curl 调一次模型</h2>
+  <p>把 key 放到环境变量：</p>
+  <pre><code>export TRIAL_KEY="trial_xxx"</code></pre>
+  <p>发送一次最小对话请求（看到返回 JSON 含 <code>choices</code> 即可）：</p>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer ${TRIAL_KEY}" \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
+  }'</code></pre>
+
+  <h2>通用工具兼容：设置 OpenAI 环境变量</h2>
+  <p>很多客户端默认读 <code>OPENAI_API_KEY</code> / <code>OPENAI_BASE_URL</code>：</p>
+  <pre><code>export OPENAI_API_KEY="${TRIAL_KEY}"
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
+
+  <h2>健康检查（不调用模型，不消耗额度）</h2>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
+
+  <h2>（运维/管理员）发放 TRIAL_KEY 与 /admin/usage 说明</h2>
+  <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
+
+  <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
+  <pre><code>export ADMIN_TOKEN='***'
+curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H 'content-type: application/json' \
+  -d '{"label":"forum-user:alice"}'</code></pre>
+  <p>返回示例：</p>
+  <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
+
+  <h3>2) 查询用量（按天聚合，推荐）</h3>
+  <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
+
+  <p>典型返回：</p>
+  <pre><code>{
+  "day": "2026-02-08",
+  "mode": "file",
+  "items": [
+    { "key": "trial_xxx", "req_count": 12, "updated_at": 1700000000000 }
+  ]
+}</code></pre>
+  <ul>
+    <li><code>day</code>：查询日期（YYYY-MM-DD）</li>
+    <li><code>mode</code>：<code>file</code> 表示已开启持久化；<code>memory</code> 表示仅内存（不建议生产）</li>
+    <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
+    <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
+    <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
+  </ul>
+
+  <hr />
+  <p>仓库文档：<a href="https://github.com/1037104428/roc-ai-republic">roc-ai-republic</a>（docs/quota-proxy*）</p>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clawd 国度 · OpenClaw 小白一条龙（免翻墙）</title>
+  <meta name="description" content="OpenClaw 国内免翻墙安装与配置：复制粘贴即可使用 Clawd 国度的 TRIAL_KEY 限额 API（DeepSeek 网关）。" />
+  <link rel="canonical" href="https://clawdrepublic.cn/quickstart.html" />
+  <style>
+    body{max-width:920px;margin:40px auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.7;padding:0 16px}
+    code,pre{background:#f5f5f5;padding:2px 6px;border-radius:6px}
+    pre{padding:12px;overflow:auto}
+    h1,h2{line-height:1.2}
+    a{color:#0b65c2;text-decoration:none}a:hover{text-decoration:underline}
+    .warn{background:#fff7e6;border:1px solid #ffe2a8;padding:10px 12px;border-radius:8px}
+    .card{border:1px solid #eee;border-radius:12px;padding:14px 14px;margin:12px 0}
+    .muted{color:#666}
+  </style>
+</head>
+<body>
+  <h1>Clawd 国度 · OpenClaw 小白一条龙（免翻墙）</h1>
+  <p class="muted"><a href="/">返回首页</a> · <a href="/forum/">进入论坛</a> · <a href="/quota-proxy.html">TRIAL_KEY 文档</a> · <a href="/status.html">服务状态</a></p>
+
+  <div class="card">
+    <h2>你将获得什么</h2>
+    <ul>
+      <li>国内可直连安装 OpenClaw</li>
+      <li>默认使用 Clawd 国度的 DeepSeek 限额网关（不用自己申请 DeepSeek key）</li>
+      <li>遇到问题：按模板发帖，我们用“复制粘贴 + 你应该看到什么 + 失败怎么办”的方式带你过</li>
+    </ul>
+    <p>
+      论坛必读：
+      <a href="/forum/d/1-bi-du-xin-shou-ru-men-cong-0-dao-1zhu-ce-an-zhuang-jie-ru">新手入门</a> ·
+      <a href="/forum/d/2-bi-du-trial-key-shen-qing-yu-shi-yong-fu-zhi-nian-tie-ban">TRIAL_KEY 申请</a> ·
+      <a href="/forum/d/4-fa-tie-mo-ban-yu-dao-wen-ti-zen-yao-wen-cai-neng-zui-kuai-jie-jue-fu-zhi-tian-xie">发帖模板</a>
+    </p>
+  </div>
+
+  <h2>第 0 步：先准备 Node.js（如果你已经有 npm，可跳过）</h2>
+  <div class="warn">OpenClaw 依赖 Node.js。若你不确定有没有：在终端输入 <code>npm -v</code>，能输出版本号就行。</div>
+
+  <h2>第 1 步：一条命令安装 OpenClaw（国内源优先）</h2>
+  <pre><code>curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash</code></pre>
+  <p>安装完成后，验证：</p>
+  <pre><code>openclaw --version</code></pre>
+
+  <h2>第 2 步：写入配置（复制粘贴即可）</h2>
+  <p>把下面内容保存为：<code>~/.openclaw/openclaw.json</code></p>
+  <pre><code>{
+  "agents": {
+    "defaults": {
+      "model": { "primary": "clawd-gateway/deepseek-chat" },
+      "models": {
+        "clawd-gateway/deepseek-chat": {},
+        "clawd-gateway/deepseek-reasoner": {}
+      }
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "clawd-gateway": {
+        "baseUrl": "https://api.clawdrepublic.cn/v1",
+        "apiKey": "${CLAWD_TRIAL_KEY}",
+        "api": "openai-completions",
+        "models": [
+          { "id": "deepseek-chat", "name": "DeepSeek Chat" },
+          { "id": "deepseek-reasoner", "name": "DeepSeek Reasoner" }
+        ]
+      }
+    }
+  }
+}
+</code></pre>
+
+  <h2>第 3 步：拿到试用额度（TRIAL_KEY）</h2>
+  <p>你需要一个 <code>CLAWD_TRIAL_KEY</code>（试用 key）。目前先走“人工发放”，避免被滥用；新用户的申请帖可能需要审核后显示。</p>
+  <ol>
+    <li>去论坛「TRIAL_KEY 申请」板块发帖：<a href="/forum/t/trial-key">/forum/t/trial-key</a></li>
+    <li>建议直接照抄：<a href="/forum/d/2-bi-du-trial-key-shen-qing-yu-shi-yong-fu-zhi-nian-tie-ban">《TRIAL_KEY 申请与使用（复制粘贴版）》</a>里的模板</li>
+  </ol>
+  <p>拿到 key 后，在终端执行（把 <code>xxx</code> 替换成你的 key）：</p>
+  <pre><code>export CLAWD_TRIAL_KEY="xxx"</code></pre>
+
+  <h2>第 4 步：先用 curl 做一次“最小验证”（强烈推荐）</h2>
+  <p>这一步可以帮你快速确认：key 是对的、API 可用、网络通。</p>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz
+
+curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
+  }'</code></pre>
+
+  <h2>第 5 步：启动 OpenClaw 网关并验证</h2>
+  <pre><code>openclaw gateway start
+openclaw models status</code></pre>
+
+  <p>如果一切正常，你会看到默认模型指向 <code>clawd-gateway/...</code>。然后就可以开始用 OpenClaw 了。</p>
+
+  <hr />
+  <p>API 健康检查：<a href="https://api.clawdrepublic.cn/healthz">https://api.clawdrepublic.cn/healthz</a></p>
+  <p class="muted">遇到问题：请到 <a href="/forum/t/help">问题求助</a>，按 <a href="/forum/d/4-fa-tie-mo-ban-yu-dao-wen-ti-zen-yao-wen-cai-neng-zui-kuai-jie-jue-fu-zhi-tian-xie">发帖模板</a> 提问。</p>
+</body>
+</html>
