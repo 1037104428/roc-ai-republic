@@ -173,6 +173,10 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 # 2) 查询今日用量
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
+
+# 2.1) （推荐）用脚本查询（减少参数出错；贴日志时建议 --mask）
+ADMIN_TOKEN="$ADMIN_TOKEN" BASE_URL=http://127.0.0.1:8787 \
+  bash scripts/curl-admin-usage.sh --day "$(date +%F)" --pretty --mask | head
 ```
 
 ### （常用）通过 SSH 在服务器本机生成 key（避免暴露 8787 到公网）
