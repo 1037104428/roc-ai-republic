@@ -25,6 +25,17 @@
 - 每周可投入：__ 小时
 - 7 天内能交付的一个成果
 
+## 试运行（当前可验证）
+- Landing（下载/安装）：<https://clawdrepublic.cn/>
+- API（quota-proxy healthz）：<https://api.clawdrepublic.cn/healthz>
+
+快速验收：
+- `curl -fsSI https://clawdrepublic.cn/ | head`
+- `curl -fsS https://api.clawdrepublic.cn/healthz`
+
+TRIAL_KEY 获取方式（临时）：
+- 目前由管理员签发（后续会开放自助申请/自动签发流程）。
+
 ## 相关链接
 - GitHub：<https://github.com/1037104428/roc-ai-republic>
 - Gitee：<https://gitee.com/junkaiWang324/roc-ai-republic>
