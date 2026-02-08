@@ -79,8 +79,11 @@
     <li>去论坛「TRIAL_KEY 申请」板块发帖：<a href="/forum/t/trial-key">/forum/t/trial-key</a></li>
     <li>建议直接照抄：<a href="/forum/d/2-bi-du-trial-key-shen-qing-yu-shi-yong-fu-zhi-nian-tie-ban">《TRIAL_KEY 申请与使用（复制粘贴版）》</a>里的模板</li>
   </ol>
-  <p>拿到 key 后，在终端执行（把 <code>xxx</code> 替换成你的 key）：</p>
+  <p>拿到 key 后，设置环境变量（把 <code>xxx</code> 替换成你的 key）：</p>
+  <p>macOS/Linux（bash/zsh）：</p>
   <pre><code>export CLAWD_TRIAL_KEY="xxx"</code></pre>
+  <p>Windows PowerShell：</p>
+  <pre><code>$env:CLAWD_TRIAL_KEY = "xxx"</code></pre>
 
   <h2>第 4 步：先用 curl 做一次“最小验证”（强烈推荐）</h2>
   <p>这一步可以帮你快速确认：key 是对的、API 可用、网络通。</p>
