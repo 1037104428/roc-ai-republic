@@ -88,7 +88,7 @@ password:YOUR_PASSWORD
 ./scripts/probe-roc-all.sh --json
 
 # 字段与退出码
-# - 输出字段：ts, home_ok, api_ok, server_ok, all_ok
+# - 输出字段：ts, home_ok, api_ok, install_ok, quota_page_ok, server_ok, all_ok
 # - 退出码：全部 ok → 0；任意失败 → 2
 #
 # 示例：只在失败时告警
