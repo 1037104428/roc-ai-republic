@@ -38,6 +38,14 @@ ssh -o BatchMode=yes root@<server-ip> 'echo ok'
 
 推进循环默认从本机的 `/tmp/server.txt` 读取服务器信息。
 
+> 一键清理明文密码（只保留 ip: 行，顺便 chmod 600）：
+>
+> ```bash
+> cd roc-ai-republic
+> ./scripts/sanitize-server-txt.sh
+> ```
+
+
 目前约定格式示例（最小）：
 
 ```text
