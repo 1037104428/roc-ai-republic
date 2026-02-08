@@ -110,6 +110,15 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
 
   <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
   <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向 JSON 数据文件），否则会返回 400。</p>
+  <p>服务端（docker compose）常见配置示例：</p>
+  <pre><code># /opt/roc/quota-proxy/docker-compose.yml 里（示意）
+services:
+  quota-proxy:
+    environment:
+      - ADMIN_TOKEN=***
+      - SQLITE_PATH=/data/quota.json
+    volumes:
+      - ./data:/data</code></pre>
   <pre><code>export ADMIN_TOKEN='***'
 curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
