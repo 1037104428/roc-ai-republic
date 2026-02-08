@@ -85,6 +85,13 @@ PASSWORD='YOUR_PASSWORD' ./scripts/check-server-quota-proxy-password.py
 # SERVER_FILE=/tmp/server.txt REMOTE_DIR=/opt/roc/quota-proxy ./scripts/check-server-quota-proxy-password.py
 ```
 
+3) （可选）如果你只想“用 /tmp/server.txt 跑一条远端命令”，可以用轻量封装：
+
+```bash
+./scripts/ssh-run-server-txt.sh "cd /opt/roc/quota-proxy && docker compose ps"
+./scripts/ssh-run-server-txt.sh "curl -fsS http://127.0.0.1:8787/healthz"
+```
+
 > 备注：本脚本依赖 Python 的 `pexpect`。
 > - Debian/Ubuntu：`sudo apt-get update && sudo apt-get install -y python3-pexpect`
 > - 或 pip：`python3 -m pip install --user pexpect`
