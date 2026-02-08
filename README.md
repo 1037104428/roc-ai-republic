@@ -32,6 +32,10 @@
 快速验收：
 - `curl -fsSI https://clawdrepublic.cn/ | head`
 - `curl -fsS https://api.clawdrepublic.cn/healthz`
+- 或使用脚本：
+  - `./scripts/verify-roc-public.sh`
+  - `curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/verify-roc-public.sh | bash`
+  - `curl -fsSL https://gitee.com/junkaiWang324/roc-ai-republic/raw/main/scripts/verify-roc-public.sh | bash`
 
 TRIAL_KEY 获取方式（临时）：
 - 目前由管理员签发（后续会开放自助申请/自动签发流程）。
