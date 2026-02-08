@@ -36,8 +36,8 @@
   <h2>最小验证：用 curl 调一次模型</h2>
   <p>把 key 放到环境变量（本站文档统一用 <code>CLAWD_TRIAL_KEY</code>）：</p>
   <pre><code>export CLAWD_TRIAL_KEY="trial_xxx"</code></pre>
-  <p>Windows PowerShell：</p>
-  <pre><code>$env:CLAWD_TRIAL_KEY="trial_xxx"</code></pre>
+  <p>（Windows PowerShell）</p>
+  <pre><code>$env:CLAWD_TRIAL_KEY = "trial_xxx"</code></pre>
   <p>发送一次最小对话请求（看到返回 JSON 含 <code>choices</code> 即可）：</p>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
@@ -88,9 +88,8 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li><code>mode</code>：<code>file</code> 表示已开启持久化；<code>memory</code> 表示仅内存（不建议生产）</li>
     <li><code>?key=trial_xxx</code>：可选过滤，只返回某一个 key 的用量</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
-    <li><code>items[].label</code>：签发时写入的备注/归属（可选；<code>memory</code> 模式下可能为空或不返回）</li>
+    <li><code>items[].label</code>：签发时写入的备注/归属（可选；持久化模式下通常会返回）</li>
     <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
-    <li><strong>对外展示建议：</strong>如需截图/粘贴到工单，请把 <code>items[].key</code> 做脱敏（只保留前后各 3-4 位）。</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
   <p><strong>计数语义提醒：</strong><code>req_count</code> 统计的是"网关收到的请求次数"，而不是"上游成功次数"。因此上游 5xx/超时、以及超过额度时返回 429 的那次请求，也可能会被计入。</p>
