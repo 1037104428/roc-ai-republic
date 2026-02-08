@@ -136,3 +136,30 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+## 快速测试脚本
+
+仓库中提供了测试脚本，方便快速验证 quota-proxy 功能：
+
+```bash
+# 进入项目目录
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 基本健康检查
+./scripts/verify-quota-proxy.sh http://127.0.0.1:8787
+
+# Admin API 测试（需要 ADMIN_TOKEN）
+export ADMIN_TOKEN="your_admin_token_here"
+./scripts/test-quota-proxy-admin.sh http://127.0.0.1:8787 "$ADMIN_TOKEN"
+
+# 远程服务器测试（通过 SSH）
+./scripts/ssh-run-roc-key.sh 'cd /opt/roc/quota-proxy && curl -fsS http://127.0.0.1:8787/healthz'
+```
+
+测试脚本 `test-quota-proxy-admin.sh` 会检查：
+1. 健康状态 (`/healthz`)
+2. 未授权访问保护 (`/admin/usage` 返回 401)
+3. 授权访问 (`/admin/usage` 带 token)
+4. Trial key 生成 (`POST /admin/keys`)
+
+对于生产环境，建议定期运行验证脚本确保服务正常。
