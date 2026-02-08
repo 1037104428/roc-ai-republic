@@ -72,17 +72,32 @@ run() {
   fi
 }
 
+if command -v node >/dev/null 2>&1; then
+  NODE_VER_RAW="$(node -v || true)"
+  echo "[cn-pack] node found: ${NODE_VER_RAW}"
+  NODE_MAJOR="${NODE_VER_RAW#v}"
+  NODE_MAJOR="${NODE_MAJOR%%.*}"
+  if [[ -n "${NODE_MAJOR}" ]] && (( NODE_MAJOR < 20 )); then
+    echo "[cn-pack] Node.js >= 20 is required. Current: ${NODE_VER_RAW}" >&2
+    exit 1
+  fi
+else
+  echo "[cn-pack] node not found. Please install Node.js >= 20 first." >&2
+  exit 1
+fi
+
 if command -v npm >/dev/null 2>&1; then
   echo "[cn-pack] npm found: $(npm -v)"
 else
-  echo "[cn-pack] npm not found. Please install Node.js >= 20 first." >&2
+  echo "[cn-pack] npm not found. Please install npm (usually bundled with Node.js)." >&2
   exit 1
 fi
 
 install_openclaw() {
   local reg="$1"
   echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg"
-  run npm i -g "openclaw@${VERSION}" --registry "$reg"
+  # no-audit/no-fund: faster & quieter, especially on slow networks
+  run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund
 }
 
 if install_openclaw "$REG_CN"; then
@@ -99,6 +114,7 @@ else
   echo "[cn-pack] Install finished but 'openclaw' not found in PATH." >&2
   echo "[cn-pack] Tips: reopen your shell, or ensure your npm global bin is on PATH." >&2
   echo "[cn-pack] npm prefix: $(npm config get prefix 2>/dev/null || true)" >&2
+  echo "[cn-pack] npm global bin: $(npm bin -g 2>/dev/null || true)" >&2
   exit 2
 fi
 
