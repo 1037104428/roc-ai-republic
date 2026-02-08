@@ -12,6 +12,7 @@ set -euo pipefail
 #   ./scripts/append-progress-log.sh "小落地：... commit=abcd123"
 #   ./scripts/append-progress-log.sh --file /path/to/progress.md "..."
 #   ./scripts/append-progress-log.sh --no-ts "raw line"
+#   ./scripts/append-progress-log.sh --text "..."
 
 DEFAULT_FILE="/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md"
 FILE="$DEFAULT_FILE"
@@ -21,10 +22,12 @@ usage() {
   cat <<'EOF'
 Usage:
   append-progress-log.sh [--file <path>] [--no-ts] <text>
+  append-progress-log.sh [--file <path>] [--no-ts] --text "<text>"
 
 Options:
   --file <path>  Override progress log path
   --no-ts        Do not prefix with timestamp
+  --text <text>  Convenience flag; same as passing <text> positionally
 EOF
 }
 
@@ -37,6 +40,8 @@ while [[ $# -gt 0 ]]; do
       FILE="${2:-}"; [[ -n "$FILE" ]] || die "--file requires a value"; shift 2 ;;
     --no-ts)
       WITH_TS=0; shift ;;
+    --text)
+      TEXT_ARG="${2:-}"; [[ -n "$TEXT_ARG" ]] || die "--text requires a value"; ARGS+=("$TEXT_ARG"); shift 2 ;;
     -h|--help)
       usage; exit 0 ;;
     *)
