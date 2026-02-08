@@ -57,12 +57,18 @@ if [[ "$MODE" == "json" ]]; then
     server_ok=1
   fi
 
-  printf '{"ts":"%s","home_ok":%s,"api_ok":%s,"server_ok":%s}\n' \
+  all_ok=0
+  if [[ $home_ok -eq 1 && $api_ok -eq 1 && $server_ok -eq 1 ]]; then all_ok=1; fi
+
+  printf '{"ts":"%s","home_ok":%s,"api_ok":%s,"server_ok":%s,"all_ok":%s}\n' \
     "$ts" \
     "$([[ $home_ok -eq 1 ]] && echo true || echo false)" \
     "$([[ $api_ok -eq 1 ]] && echo true || echo false)" \
-    "$([[ $server_ok -eq 1 ]] && echo true || echo false)"
-  exit 0
+    "$([[ $server_ok -eq 1 ]] && echo true || echo false)" \
+    "$([[ $all_ok -eq 1 ]] && echo true || echo false)"
+
+  # Exit code: 0 if all ok, 2 otherwise (useful for cron/CI)
+  if [[ $all_ok -eq 1 ]]; then exit 0; else exit 2; fi
 fi
 
 log "probe: public endpoints"

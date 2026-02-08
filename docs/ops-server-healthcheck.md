@@ -63,6 +63,16 @@ password:YOUR_PASSWORD
 
 # JSON 单行输出（适合 cron/CI 收集）
 ./scripts/probe-roc-all.sh --json
+
+# 字段与退出码
+# - 输出字段：ts, home_ok, api_ok, server_ok, all_ok
+# - 退出码：全部 ok → 0；任意失败 → 2
+#
+# 示例：只在失败时告警
+# ./scripts/probe-roc-all.sh --json || echo "probe failed"
+#
+# 示例：用 jq 取字段
+# ./scripts/probe-roc-all.sh --json | jq -r '.all_ok'
 ```
 
 ### 方式 1：SSH Key（推荐）
