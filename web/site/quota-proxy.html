@@ -183,7 +183,7 @@ curl -fsS "${OPENAI_BASE_URL}/models" \
     </li>
     <li><code>?key=trial_xxx</code>：可选过滤，只返回某一个 key 的用量</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
-    <li><code>items[].label</code>：签发时写入的备注/归属（可选；持久化模式下通常会返回）</li>
+    <li><code>items[].label</code>：签发时写入的备注/归属（可选）。如果你升级过旧数据文件或手工编辑过 JSON，可能会出现 <code>null</code>/<code>""</code>，不影响用量统计。</li>
     <li><code>items[].req_count</code>：当天累计请求次数（注意：上游失败/超限 429 也可能计入）</li>
     <li><code>items[].updated_at</code>：最后一次更新用量的时间戳（毫秒）</li>
   </ul>
