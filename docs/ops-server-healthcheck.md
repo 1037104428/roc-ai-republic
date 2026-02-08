@@ -226,4 +226,7 @@ curl -fsSI https://<your-domain>/ | head
 
 # 不加时间戳（原样追加）
 ./scripts/append-progress-log.sh --no-ts "- raw line starting with dash"
+
+# 如果文本里包含引号/反斜杠等，建议用 --stdin 避免 shell 转义坑
+printf '%s' "blocker: can't append due to quoting" | ./scripts/append-progress-log.sh --stdin
 ```

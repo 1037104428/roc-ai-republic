@@ -23,17 +23,20 @@ usage() {
 Usage:
   append-progress-log.sh [--file <path>] [--no-ts] <text>
   append-progress-log.sh [--file <path>] [--no-ts] --text "<text>"
+  echo "..." | append-progress-log.sh [--file <path>] [--no-ts] --stdin
 
 Options:
   --file <path>  Override progress log path
   --no-ts        Do not prefix with timestamp
   --text <text>  Convenience flag; same as passing <text> positionally
+  --stdin        Read text from stdin (avoids shell quoting pitfalls)
 EOF
 }
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 ARGS=()
+READ_STDIN=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --file)
@@ -42,6 +45,8 @@ while [[ $# -gt 0 ]]; do
       WITH_TS=0; shift ;;
     --text)
       TEXT_ARG="${2:-}"; [[ -n "$TEXT_ARG" ]] || die "--text requires a value"; ARGS+=("$TEXT_ARG"); shift 2 ;;
+    --stdin)
+      READ_STDIN=1; shift ;;
     -h|--help)
       usage; exit 0 ;;
     *)
@@ -49,8 +54,17 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ ${#ARGS[@]} -ge 1 ]] || die "missing <text>"
-TEXT="${ARGS[*]}"
+if [[ $READ_STDIN -eq 1 ]]; then
+  if [[ ${#ARGS[@]} -ge 1 ]]; then
+    die "--stdin cannot be used together with positional <text>/--text"
+  fi
+  # Read full stdin (preserve newlines). Trim one trailing newline if present.
+  TEXT="$(cat)"
+  [[ -n "$TEXT" ]] || die "--stdin: empty input"
+else
+  [[ ${#ARGS[@]} -ge 1 ]] || die "missing <text>"
+  TEXT="${ARGS[*]}"
+fi
 
 mkdir -p "$(dirname "$FILE")"
 
