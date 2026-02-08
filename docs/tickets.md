@@ -9,6 +9,30 @@
   - 验证命令（至少包含）：
     - `curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null`（或 https）
     - 服务器侧：`curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null`
+  - 配置示例（可直接复制粘贴改域名）：
+
+    Caddy（推荐，自动 HTTPS）：
+    ```caddyfile
+    forum.clawdrepublic.cn {
+      reverse_proxy 127.0.0.1:8081
+    }
+    ```
+    - 验证/重载（示例）：`caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy`
+
+    Nginx：
+    ```nginx
+    server {
+      listen 80;
+      server_name forum.clawdrepublic.cn;
+      location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+    }
+    ```
+    - 验证/重载（示例）：`nginx -t && systemctl reload nginx`
 - 验收标准：外网 HTTP 200（非 502），并在 `scripts/probe.sh` 的 forum 探活里能体现 ok。
 - 备注：论坛 MVP 的“选型/完整部署方案草案”仍见 `docs/forum-deployment-research.md`（偏 Discourse 方向，可后续继续完善）。
 
