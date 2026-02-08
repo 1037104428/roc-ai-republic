@@ -62,6 +62,8 @@
 
 ## 验收/验证命令（实现后）
 
+更完整的“可复制粘贴验收清单”见：`docs/quota-proxy-v1-admin-acceptance.md`。
+
 ```bash
 # 0) 基础健康检查
 curl -fsS http://127.0.0.1:8787/healthz
