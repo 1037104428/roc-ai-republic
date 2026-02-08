@@ -78,14 +78,14 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <p>典型返回：</p>
   <pre><code>{
   "day": "2026-02-08",
-  "mode": "sqlite",
+  "mode": "file",
   "items": [
     { "key": "trial_xxx", "label": "forum-user:alice", "req_count": 12, "updated_at": 1700000000000 }
   ]
 }</code></pre>
   <ul>
     <li><code>day</code>：查询日期（YYYY-MM-DD）。也可通过 query 参数 <code>?day=YYYY-MM-DD</code> 指定（默认当天）。</li>
-    <li><code>mode</code>：<code>sqlite</code> 表示已开启 SQLite 持久化；<code>memory</code> 表示仅内存（不建议生产）</li>
+    <li><code>mode</code>：<code>file</code> 表示已开启持久化（当前实现为 JSON 文件，环境变量名仍沿用 <code>SQLITE_PATH</code>）；<code>memory</code> 表示仅内存（不建议生产）</li>
     <li><code>?key=trial_xxx</code>：可选过滤，只返回某一个 key 的用量</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
     <li><code>items[].label</code>：签发时写入的备注/归属（可选；持久化模式下通常会返回）</li>

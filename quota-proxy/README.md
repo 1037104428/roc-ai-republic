@@ -133,7 +133,7 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
 
 输出字段说明：
 - `day`: 查询日期（`YYYY-MM-DD`）
-- `mode`: `sqlite`=SQLite 持久化（推荐生产）；`memory`=纯内存（不推荐生产）
+- `mode`: `file`=已开启持久化（v0 当前实现为 JSON 文件，环境变量名仍沿用 `SQLITE_PATH`）；`sqlite`=SQLite 持久化（仅当你运行 `server-sqlite.js`）；`memory`=纯内存（不推荐生产）
 - `items[]`:
   - `key`: trial key（建议在外部展示时做脱敏）
   - `req_count`: 当天累计请求次数

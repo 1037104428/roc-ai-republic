@@ -172,6 +172,33 @@ app.post('/admin/keys', (req, res) => {
   return res.json({ key: trialKey, label, created_at: now });
 });
 
+app.delete('/admin/keys/:key', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
+  if (!STORE_PATH) return res.status(400).json({ error: { message: 'persistence disabled (set SQLITE_PATH)' } });
+
+  const key = String(req.params.key || '').trim();
+  if (!key) return res.status(400).json({ error: { message: 'missing key' } });
+
+  const existed = !!state.keys[key];
+  delete state.keys[key];
+  saveStoreSoon();
+  return res.json({ deleted: existed, key });
+});
+
+app.post('/admin/usage/reset', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
+
+  const key = (req.query?.key && String(req.query.key)) || null;
+  if (!key) return res.status(400).json({ error: { message: 'missing key (use ?key=trial_xxx)' } });
+
+  const d = (req.query?.day && String(req.query.day)) || dayKey();
+  const now = Date.now();
+  state.usage[d] ||= {};
+  state.usage[d][key] = { requests: 0, updated_at: now };
+  saveStoreSoon();
+  return res.json({ reset: true, key, day: d });
+});
+
 app.get('/admin/usage', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
 
