@@ -14,11 +14,15 @@ set -euo pipefail
 #   SERVER_TXT=/tmp/server.txt
 #   HOME_URL=https://clawdrepublic.cn
 #   API_HEALTHZ_URL=https://api.clawdrepublic.cn/healthz
+#   INSTALL_URL=https://clawdrepublic.cn/install-cn.sh
+#   QUOTA_PROXY_PAGE=https://clawdrepublic.cn/quota-proxy.html
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER_TXT="${SERVER_TXT:-/tmp/server.txt}"
 HOME_URL="${HOME_URL:-https://clawdrepublic.cn}"
 API_HEALTHZ_URL="${API_HEALTHZ_URL:-https://api.clawdrepublic.cn/healthz}"
+INSTALL_URL="${INSTALL_URL:-https://clawdrepublic.cn/install-cn.sh}"
+QUOTA_PROXY_PAGE="${QUOTA_PROXY_PAGE:-https://clawdrepublic.cn/quota-proxy.html}"
 
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$*"; }
 
@@ -51,11 +55,19 @@ if [[ "$MODE" == "json" ]]; then
 
   home_ok=0
   api_ok=0
+  install_ok=0
+  quota_page_ok=0
   server_ok=0
 
   if curl -fsS -m "$TIMEOUT" "$HOME_URL" >/dev/null; then home_ok=1; fi
 
   if curl -fsS -m "$TIMEOUT" "$API_HEALTHZ_URL" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then api_ok=1; fi
+
+  # Expect script is reachable (header or body ok)
+  if curl -fsSI -m "$TIMEOUT" "$INSTALL_URL" >/dev/null; then install_ok=1; fi
+
+  # Expect quota-proxy page includes latest env var name
+  if curl -fsS -m "$TIMEOUT" "$QUOTA_PROXY_PAGE" | grep -q 'CLAWD_TRIAL_KEY'; then quota_page_ok=1; fi
 
   if [[ -f "$SERVER_TXT" ]]; then
     # Normalize /tmp/server.txt (drop password lines, unify ip format)
@@ -76,12 +88,14 @@ if [[ "$MODE" == "json" ]]; then
   fi
 
   all_ok=0
-  if [[ $home_ok -eq 1 && $api_ok -eq 1 && $server_ok -eq 1 ]]; then all_ok=1; fi
+  if [[ $home_ok -eq 1 && $api_ok -eq 1 && $install_ok -eq 1 && $quota_page_ok -eq 1 && $server_ok -eq 1 ]]; then all_ok=1; fi
 
-  printf '{"ts":"%s","home_ok":%s,"api_ok":%s,"server_ok":%s,"all_ok":%s}\n' \
+  printf '{"ts":"%s","home_ok":%s,"api_ok":%s,"install_ok":%s,"quota_page_ok":%s,"server_ok":%s,"all_ok":%s}\n' \
     "$ts" \
     "$([[ $home_ok -eq 1 ]] && echo true || echo false)" \
     "$([[ $api_ok -eq 1 ]] && echo true || echo false)" \
+    "$([[ $install_ok -eq 1 ]] && echo true || echo false)" \
+    "$([[ $quota_page_ok -eq 1 ]] && echo true || echo false)" \
     "$([[ $server_ok -eq 1 ]] && echo true || echo false)" \
     "$([[ $all_ok -eq 1 ]] && echo true || echo false)"
 
@@ -91,6 +105,12 @@ fi
 
 log "probe: public endpoints"
 ./scripts/verify-roc-public.sh
+
+log "probe: install-cn.sh reachable"
+curl -fsSI -m "$TIMEOUT" "$INSTALL_URL" | head -n 5
+
+log "probe: quota-proxy page contains CLAWD_TRIAL_KEY"
+curl -fsS -m "$TIMEOUT" "$QUOTA_PROXY_PAGE" | grep -n 'CLAWD_TRIAL_KEY' | head -n 3
 
 if [[ ! -f "$SERVER_TXT" ]]; then
   log "skip: server probe (missing $SERVER_TXT)"
