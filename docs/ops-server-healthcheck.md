@@ -52,6 +52,14 @@ ssh -o BatchMode=yes root@<server-ip> 'echo ok'
 ip:8.8.8.8
 ```
 
+兼容格式（脚本会尽量解析并归一化为 `ip:x.x.x.x`）：
+
+```text
+ip=8.8.8.8
+ip: 8.8.8.8
+8.8.8.8
+```
+
 如果需要“密码模式（临时）”，可写成：
 
 ```text
