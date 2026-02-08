@@ -34,11 +34,11 @@
   </p>
 
   <h2>最小验证：用 curl 调一次模型</h2>
-  <p>把 key 放到环境变量：</p>
-  <pre><code>export TRIAL_KEY="trial_xxx"</code></pre>
+  <p>把 key 放到环境变量（本站文档统一用 <code>CLAWD_TRIAL_KEY</code>）：</p>
+  <pre><code>export CLAWD_TRIAL_KEY="trial_xxx"</code></pre>
   <p>发送一次最小对话请求（看到返回 JSON 含 <code>choices</code> 即可）：</p>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
-  -H "Authorization: Bearer ${TRIAL_KEY}" \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
   -H 'content-type: application/json' \
   -d '{
     "model": "deepseek-chat",
@@ -47,7 +47,7 @@
 
   <h2>通用工具兼容：设置 OpenAI 环境变量</h2>
   <p>很多客户端默认读 <code>OPENAI_API_KEY</code> / <code>OPENAI_BASE_URL</code>：</p>
-  <pre><code>export OPENAI_API_KEY="${TRIAL_KEY}"
+  <pre><code>export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
 
   <h2>健康检查（不调用模型，不消耗额度）</h2>
