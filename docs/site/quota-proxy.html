@@ -52,6 +52,10 @@
   <pre><code>export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
 
+  <h2>可选：列出可用模型（OpenAI-compatible）</h2>
+  <p>如果你想先确认网关端暴露了哪些模型：</p>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models</code></pre>
+
   <h2>健康检查（不调用模型，不消耗额度）</h2>
   <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
 
@@ -85,7 +89,13 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 }</code></pre>
   <ul>
     <li><code>day</code>：查询日期（YYYY-MM-DD）。也可通过 query 参数 <code>?day=YYYY-MM-DD</code> 指定（默认当天）。</li>
-    <li><code>mode</code>：<code>file</code> 表示已开启持久化（当前实现为 JSON 文件，环境变量名仍沿用 <code>SQLITE_PATH</code>）；<code>memory</code> 表示仅内存（不建议生产）</li>
+    <li><code>mode</code>：
+      <ul>
+        <li><code>file</code>：已开启持久化（当前默认实现为 JSON 文件；环境变量名仍沿用 <code>SQLITE_PATH</code>）</li>
+        <li><code>sqlite</code>：SQLite 持久化（当服务端运行 SQLite 版本时）</li>
+        <li><code>memory</code>：仅内存（不建议生产）</li>
+      </ul>
+    </li>
     <li><code>?key=trial_xxx</code>：可选过滤，只返回某一个 key 的用量</li>
     <li><code>items[].key</code>：trial key（对外展示建议脱敏）</li>
     <li><code>items[].label</code>：签发时写入的备注/归属（可选；持久化模式下通常会返回）</li>
