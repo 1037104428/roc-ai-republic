@@ -132,7 +132,8 @@ ADMIN_TOKEN='***' ISSUE_KEY=1 TRIAL_LABEL='forum-user:alice' \
   <p>提示：脚本会把 key 输出到终端；请注意不要把完整 key 贴到公开场合。</p>
 
   <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
-  <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向 JSON 数据文件，例如 <code>/data/quota.json</code>），否则会返回 400。</p>
+  <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向一个<strong>可写</strong>的数据文件路径，例如 <code>/data/quota.json</code>），否则会返回 400。</p>
+  <p><strong>命名提醒：</strong>当前线上 v0.1 的持久化实现还是 <strong>JSON 文件</strong>（不是 SQLite），但为了后续平滑升级到 SQLite（例如 <code>/data/quota.db</code>）不破坏环境变量名，配置项暂时沿用 <code>SQLITE_PATH</code>。</p>
   <p>服务端（docker compose）常见配置示例：</p>
   <pre><code># /opt/roc/quota-proxy/docker-compose.yml 里（示意）
 services:
