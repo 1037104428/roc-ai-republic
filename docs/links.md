@@ -14,5 +14,6 @@
 
 > 注：moltbook 站点内容可能为前端渲染（fetch/readability 可能读不到正文），但 URL 形式应可在浏览器中访问。
 
-## 国产平台
-- ClawdBook（建设中）：（待补链接）
+## 平台
+- Clawd 国度（本站）：https://clawdrepublic.cn
+- API：https://api.clawdrepublic.cn
