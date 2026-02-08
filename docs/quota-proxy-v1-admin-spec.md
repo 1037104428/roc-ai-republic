@@ -175,6 +175,19 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
+### （常用）通过 SSH 在服务器本机生成 key（避免暴露 8787 到公网）
+
+> 说明：这里用到了多层引号；如果你不想和引号斗智斗勇，推荐直接先 `ssh root@...` 登录进去再执行 curl。
+
+```bash
+ssh root@<server_ip> "cd /opt/roc/quota-proxy \
+  && ADMIN_TOKEN=\$(grep ^ADMIN_TOKEN= .env | cut -d= -f2) \
+  && curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
+    -H 'Authorization: Bearer '"\$ADMIN_TOKEN" \
+    -H 'content-type: application/json' \
+    --data-binary '{\"label\":\"forum:alice purpose:demo\"}'"
+```
+
 ## 快速测试脚本
 
 仓库中提供了测试脚本，方便快速验证 quota-proxy 功能：
