@@ -131,8 +131,19 @@
 
 `GET /admin/usage?limit=50`
 
-- 不带 `day` 时，返回跨天的最近记录（每条包含 `day`）。
+- 不带 `day` 时，返回跨天的最近记录（每条通常包含 `day`）。
 - 仅用于快速排查，不建议作为正式运营查询方式。
+
+返回示例：
+
+```json
+{
+  "mode": "file",
+  "items": [
+    { "day": "2026-02-08", "key": "trial_xxx", "label": "forum:alice purpose:demo", "req_count": 12, "updated_at": 1700000000000 }
+  ]
+}
+```
 
 ---
 

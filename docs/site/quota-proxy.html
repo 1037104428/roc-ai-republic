@@ -90,6 +90,13 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?limit=50" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
   <p>说明：该模式仅用于快速排查，不建议作为正式运营统计口径（建议固定按 <code>day</code> 查询）。</p>
+  <p>该模式返回的 <code>items</code> 里通常会带上每条记录所属的 <code>day</code>（因为是“跨天最近记录”）：</p>
+  <pre><code>{
+  "mode": "file",
+  "items": [
+    { "day": "2026-02-08", "key": "trial_xxx", "label": "forum:alice", "req_count": 12, "updated_at": 1700000000000 }
+  ]
+}</code></pre>
 
   <p>（可选）只看某一个 key：</p>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
