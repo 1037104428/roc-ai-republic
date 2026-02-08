@@ -8,13 +8,17 @@ if [[ ! -f "$SRC" ]]; then
   exit 1
 fi
 
-# Keep only the first ip:... line. Drop password or any other secrets.
-IP_LINE=$(grep -E '^ip:' "$SRC" | head -n 1 || true)
-if [[ -z "$IP_LINE" ]]; then
-  echo "error: no 'ip:' line found in $SRC" >&2
-  echo "hint: expected format: ip:1.2.3.4" >&2
+# Keep only the first ip line. Drop password or any other secrets.
+# Accept: ip:1.2.3.4 | ip: 1.2.3.4 | ip=1.2.3.4
+IP_RAW=$(grep -E '^[[:space:]]*ip[[:space:]]*[:=]' "$SRC" | head -n 1 || true)
+if [[ -z "$IP_RAW" ]]; then
+  echo "error: no ip line found in $SRC" >&2
+  echo "hint: expected format: ip:1.2.3.4 (or ip=1.2.3.4)" >&2
   exit 2
 fi
+
+IP=$(printf '%s' "$IP_RAW" | sed -E 's/^[[:space:]]*ip[[:space:]]*[:=][[:space:]]*//; s/[[:space:]]+//g')
+IP_LINE="ip:${IP}"
 
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
