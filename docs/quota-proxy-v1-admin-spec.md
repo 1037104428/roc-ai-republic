@@ -5,9 +5,15 @@
 ## 配置约定
 
 - `ADMIN_TOKEN`：管理接口鉴权 token。
+  - 建议用 `openssl rand -hex 32` 生成，并仅在服务器侧保存（不要写进仓库）。
   - 通过请求头：`Authorization: Bearer $ADMIN_TOKEN`
 - `SQLITE_PATH`：SQLite DB 文件路径（默认 `/data/quota-proxy.sqlite`）
   - compose 里建议挂载：`./data:/data`
+
+## 安全与暴露面（建议）
+
+- **管理接口永远不要直出公网**：保持 8787 仅监听 `127.0.0.1`，通过反代（Caddy/Nginx）做 HTTPS + 额外访问控制。
+- `ADMIN_TOKEN` 一旦泄露应立即轮换，并视情况清理/禁用已发放 trial keys。
 
 ## 数据模型（最小可用）
 
