@@ -138,3 +138,30 @@ ls -la /opt/roc/quota-proxy/data/quota-proxy.sqlite
 # 可读表结构（示例；具体表名以实现为准）
 sqlite3 /opt/roc/quota-proxy/data/quota-proxy.sqlite ".tables"
 ```
+
+---
+
+## 附：给用户的发放回复模板（可复制）
+
+> 建议通过论坛私信/工单发送；**不要**在公开帖子里粘贴完整 key。
+
+```
+你的 TRIAL_KEY 已签发：trial_xxx
+
+最小自检（不会调用上游模型；通常不消耗额度；但可能计入 req_count 作为“请求次数”统计）：
+  export CLAWD_TRIAL_KEY='trial_xxx'
+  curl -fsS https://api.clawdrepublic.cn/v1/models \
+    -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"
+
+如果需要跑一个最小对话（会消耗额度）：
+  curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+    -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
+    -H 'content-type: application/json' \
+    -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"你好"}]}'
+
+常见报错：
+- 401/403：key 贴错或没带 Authorization 头
+- 429：额度用尽或限流
+```
+
+脱敏展示示例：`trial_abcd...wxyz`
