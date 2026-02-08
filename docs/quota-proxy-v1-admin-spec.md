@@ -148,6 +148,9 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 # 基本健康检查
 ./scripts/verify-quota-proxy.sh http://127.0.0.1:8787
 
+# 服务状态检查（推荐日常使用）
+./scripts/check-quota-status.sh --url http://127.0.0.1:8787
+
 # Admin API 测试（需要 ADMIN_TOKEN）
 export ADMIN_TOKEN="your_admin_token_here"
 ./scripts/test-quota-proxy-admin.sh http://127.0.0.1:8787 "$ADMIN_TOKEN"
@@ -161,7 +164,26 @@ export ADMIN_TOKEN="your_admin_token_here"
 
 ### 测试脚本说明
 
-#### 1. `check-current-persistence.sh` - 持久化模式检查
+#### 1. `check-quota-status.sh` - 服务状态检查（推荐日常使用）
+快速查看 quota-proxy 服务状态、持久化模式和基本统计：
+```bash
+# 基础状态检查
+./scripts/check-quota-status.sh --url http://127.0.0.1:8787
+
+# 带管理员令牌的详细检查
+./scripts/check-quota-status.sh --url http://127.0.0.1:8787 --admin-token your_admin_token_here
+
+# 显示详细信息
+./scripts/check-quota-status.sh --url http://127.0.0.1:8787 --admin-token your_admin_token_here --details
+```
+输出包括：
+- 健康状态检查
+- 持久化配置分析
+- 管理接口验证（如果提供令牌）
+- 今日用量统计
+- 服务状态总结和建议
+
+#### 2. `check-current-persistence.sh` - 持久化模式检查
 检查当前 quota-proxy 的实际持久化模式（JSON/SQLite/内存）：
 ```bash
 ./scripts/check-current-persistence.sh http://127.0.0.1:8787
