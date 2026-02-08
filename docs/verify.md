@@ -108,3 +108,30 @@ curl -fsS \
 
 echo
 ```
+
+（C）吊销一个 Key（运营撤回/误发处理）
+
+```bash
+ADMIN_TOKEN='<ADMIN_TOKEN>'
+KEY='<TRIAL_KEY>'
+
+curl -fsS -X DELETE \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "https://api.clawdrepublic.cn/admin/keys/$KEY"
+
+echo
+```
+
+（D）重置某天用量（仅用于运营排障/纠错；通常不建议频繁使用）
+
+```bash
+ADMIN_TOKEN='<ADMIN_TOKEN>'
+KEY='<TRIAL_KEY>'
+DAY='2026-02-09'
+
+curl -fsS -X POST \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "https://api.clawdrepublic.cn/admin/usage/reset?key=$KEY&day=$DAY"
+
+echo
+```
