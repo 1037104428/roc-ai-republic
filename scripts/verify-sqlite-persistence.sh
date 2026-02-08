@@ -4,6 +4,32 @@ set -euo pipefail
 # Verify SQLite persistence for quota-proxy
 # Usage: ./scripts/verify-sqlite-persistence.sh [base_url]
 
+show_help() {
+    cat << EOF
+Usage: $0 [base_url]
+
+Verify SQLite persistence for quota-proxy service.
+
+Arguments:
+  base_url    Base URL of quota-proxy (default: http://127.0.0.1:8787)
+
+Environment variables:
+  ADMIN_TOKEN    Admin token for testing admin API (optional)
+  SQLITE_PATH    SQLite file path (default: /data/quota.sqlite)
+
+Examples:
+  $0 http://127.0.0.1:8787
+  ADMIN_TOKEN=your_token $0 https://api.example.com
+
+EOF
+}
+
+# Check for help flag
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    show_help
+    exit 0
+fi
+
 BASE_URL="${1:-http://127.0.0.1:8787}"
 ADMIN_TOKEN="${ADMIN_TOKEN:-}"
 SQLITE_PATH="${SQLITE_PATH:-/data/quota.sqlite}"
