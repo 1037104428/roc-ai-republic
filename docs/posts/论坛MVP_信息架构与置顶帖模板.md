@@ -121,7 +121,30 @@ docker compose logs forum
 
 如果论坛服务未运行，脚本会输出具体建议操作步骤。
 
-## 7) 后续步骤
+## 7) 快速验证脚本
+
+我们提供了一个 `quick-verify-forum.sh` 脚本来快速验证论坛服务状态：
+
+```bash
+# 查看帮助
+./scripts/quick-verify-forum.sh --help
+
+# 验证默认论坛地址
+./scripts/quick-verify-forum.sh
+
+# 验证生产环境论坛
+./scripts/quick-verify-forum.sh --url http://forum.clawdrepublic.cn --timeout 15
+```
+
+脚本会检查：
+1. HTTP可访问性
+2. 页面标题
+3. 登录/注册功能
+4. 置顶帖区域
+
+输出结果会显示每个检查项的 ✅/❌ 状态。
+
+## 8) 后续步骤
 
 1. 部署论坛（Flarum / Discourse / NodeBB）
 2. 创建管理员账号
@@ -130,3 +153,4 @@ docker compose logs forum
 5. 邀请第一批用户
 6. 运行检查脚本验证初始化状态
 7. 定期使用服务检查脚本监控论坛健康状态
+8. 使用快速验证脚本进行日常健康检查
