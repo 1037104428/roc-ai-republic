@@ -12,6 +12,24 @@ git status
 git log -n 5 --oneline
 ```
 
+## 0.1) 一键探活（推荐）
+
+> 适合运维/验收：一次跑完「官网 + API + 论坛 + 服务器 quota-proxy」。
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/probe.sh
+```
+
+（可选）自定义探活目标（例如换域名/服务器）：
+
+```bash
+WEB_URL=https://clawdrepublic.cn \
+API_URL=https://api.clawdrepublic.cn \
+SSH_HOST=root@<SERVER_IP> \
+bash ./scripts/probe.sh
+```
+
 ## 1) 官网（Landing Page）
 
 ```bash
