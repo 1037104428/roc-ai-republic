@@ -104,7 +104,7 @@
   "day": "2026-02-08",
   "mode": "file",
   "items": [
-    { "key": "trial_xxx", "req_count": 12, "updated_at": 1700000000000 }
+    { "key": "trial_xxx", "label": "forum:alice purpose:demo", "req_count": 12, "updated_at": 1700000000000 }
   ]
 }
 ```
@@ -116,6 +116,7 @@
     - `memory`：纯内存（不推荐生产）
   - `items[]`：用量条目列表（默认按 `updated_at` 倒序）
     - `key`：trial key（外部展示建议脱敏，例如 `trial_abcd…wxyz`）
+    - `label`：签发时写入的备注（建议用“label 推荐格式”）
     - `req_count`：当天累计请求次数（见“计数语义”）
     - `updated_at`：最后一次更新用量的时间戳（毫秒）
 
