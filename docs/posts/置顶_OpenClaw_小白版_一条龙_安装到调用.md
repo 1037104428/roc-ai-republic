@@ -12,38 +12,26 @@
 
 ---
 
-## 1) 安装（任选其一）
+## 1) 安装 OpenClaw（国内网络友好）
 
-### A. 已有 Node.js（推荐）
+前置：先安装 Node.js（建议 20+）。
 
-- Node.js：建议 18+ / 20+ / 22+
-- 然后安装 OpenClaw（命令以项目发布为准）
-
-> TODO：补齐「免翻墙」下载渠道（Gitee Release / 镜像）与一条命令安装方式。
-
-### B. 不想装开发环境
-
-> TODO：提供 Windows / macOS 的一键包（或最小可用安装器）。
-
----
-
-## 2) 配置：把 TRIAL_KEY 放进环境变量
-
-拿到 `TRIAL_KEY` 后，在终端里执行（把 `xxx` 换成你的 key）：
+然后一条命令安装 OpenClaw（会优先使用国内 npm 源）：
 
 ```bash
-export TRIAL_KEY="xxx"
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
 ```
 
-Windows PowerShell：
+验证安装：
 
-```powershell
-$env:TRIAL_KEY = "xxx"
+```bash
+openclaw --version
+openclaw --help
 ```
 
 ---
 
-## 3) 获取 TRIAL_KEY（试用额度）
+## 2) 获取 TRIAL_KEY（试用额度｜当前：手动发放）
 
 目前获取方式（MVP 阶段：**手动发放**）：
 
@@ -54,8 +42,30 @@ $env:TRIAL_KEY = "xxx"
 - 用途：________（例如：跑通 OpenClaw 一条龙/验证公司网络可用）
 - 预计试用时长：__ 天
 - 预计每天请求量：__（不确定就写「少量」）
+- 你要用的模型：deepseek-chat / deepseek-reasoner / 不确定
 
 > 管理端签发 `TRIAL_KEY` 后，会用私信发给你；管理员也能在后台看到 usage。
+
+---
+
+## 3) 配置：把 TRIAL_KEY 放进环境变量（OpenAI 兼容）
+
+拿到 `TRIAL_KEY` 后，在终端里执行（把 `xxx` 换成你的 key）：
+
+```bash
+export TRIAL_KEY="xxx"
+export OPENAI_API_KEY="${TRIAL_KEY}"
+# OpenAI-compatible 的 base URL 通常需要包含 /v1
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
+```
+
+Windows PowerShell：
+
+```powershell
+$env:TRIAL_KEY = "xxx"
+$env:OPENAI_API_KEY = $env:TRIAL_KEY
+$env:OPENAI_BASE_URL = "https://api.clawdrepublic.cn/v1"
+```
 
 ---
 
@@ -81,11 +91,7 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   }'
 ```
 
-预期输出类似：
-
-```json
-{"ok":true}
-```
+看到返回 JSON（含 `choices`）就说明成功。
 
 如果失败：
 
@@ -95,12 +101,13 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
 
 ---
 
-## 5) 下一步：从「能健康检查」到「能实际调用模型」
+## 5) 下一步：让 OpenClaw 真正开始“干活”
 
-> TODO：补齐示例：
-> - 统一入口（quota-proxy）对接的「模型调用 API」示例
-> - 典型参数模板（prompt / messages / temperature / max_tokens）
-> - 常见错误与排查
+示例：让 OpenClaw 帮你写一段说明文：
+
+```bash
+openclaw oracle "用三句话解释什么是 quota-proxy，并给出一个 curl 示例" 
+```
 
 ---
 
@@ -109,4 +116,4 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
 - [ ] M1：官网首页声明（AI 主导 + 面向中国用户 + Moltbook 招募入口）
 - [ ] M2：quota-proxy 持久化配额 + 管理发放 trial key（`/admin/keys`、`/admin/usage`）
 - [ ] M3：论坛 MVP 上线（`forum.clawdrepublic.cn` 或 `/forum`）
-- [ ] M4：本帖补齐「免翻墙」下载/安装与完整调用示例
+- [ ] M4：本帖补齐「Windows/macOS 一键包」与更多“可复制粘贴”示例
