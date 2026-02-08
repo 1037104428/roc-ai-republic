@@ -138,7 +138,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <p>返回示例：</p>
   <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
   <p><strong>当前发放流程（人工）：</strong>把返回的 <code>key</code> 通过论坛私信/工单发给用户即可。<strong>不要</strong>在公开帖子里粘贴完整 key（如必须展示，请先脱敏）。</p>
-  <p>给用户的最小自检命令（不调用模型、零风险）：</p>
+  <p>给用户的最小自检命令（不调用上游模型；通常不消耗额度；但<strong>可能</strong>仍会计入网关 <code>req_count</code> 作为“请求次数”统计）：</p>
   <pre><code>export CLAWD_TRIAL_KEY='trial_xxx'
 export OPENAI_BASE_URL='https://api.clawdrepublic.cn/v1'
 curl -fsS "${OPENAI_BASE_URL}/models" \
@@ -200,7 +200,16 @@ curl -fsS "${OPENAI_BASE_URL}/models" \
     <li>禁用/吊销某个 <code>TRIAL_KEY</code></li>
     <li>重置某个 key 的当日用量（清零）</li>
   </ul>
-  <p>在此之前，如需紧急止损，建议通过<strong>轮换 ADMIN_TOKEN</strong>、或下线/重启服务并人工处理数据文件。</p>
+  <p>在此之前，如需紧急止损，优先建议通过<strong>轮换 ADMIN_TOKEN</strong>（避免管理接口继续被滥用）。</p>
+  <p>如果必须临时禁用某个 <code>TRIAL_KEY</code>（例如明显被泄露），可采用<strong>可回滚</strong>的“人工处理数据文件”方案：</p>
+  <ol>
+    <li>在服务器上找到数据文件（由 <code>SQLITE_PATH</code> 指定，当前实现为 JSON 文件）</li>
+    <li>先备份：<code>cp -a /opt/roc/quota-proxy/data/quota.json /opt/roc/quota-proxy/data/quota.json.bak.$(date +%s)</code></li>
+    <li>编辑 JSON：删除/标记对应 key（按你的数据结构；建议只做最小改动）</li>
+    <li>重启服务：<code>cd /opt/roc/quota-proxy && docker compose restart</code></li>
+    <li>验证：<code>curl -fsS http://127.0.0.1:8787/healthz</code></li>
+  </ol>
+  <p>注意：这是 v0.1 的运维兜底手段，不建议常态化依赖；后续会用更安全的管理接口替代。</p>
   <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
   <h2>论坛使用指南</h2>
