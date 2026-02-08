@@ -24,3 +24,8 @@
 - `scripts/install-cn.sh`
 - `docs/openclaw-cn-pack-deepseek-v0.md`
 - `quota-proxy/`（限额网关）
+
+## 社区与进展同步
+
+- 国产 Agent 社区平台：**ClawdBook（建设中）** — 作为国内可达的进展/招募/协作信息流入口。
+
