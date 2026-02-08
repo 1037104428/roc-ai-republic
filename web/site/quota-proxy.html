@@ -167,6 +167,14 @@ curl -fsS "${OPENAI_BASE_URL}/models" \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
   <p>如需在论坛里贴日志，建议把 key 脱敏成类似 <code>trial_abcd...wxyz</code> 再发送。</p>
 
+  <h4>发放时建议同步说明：有效期 / 额度 / 权限边界</h4>
+  <ul>
+    <li><strong>有效期</strong>：试用 key 往往有有效期（或随运营策略调整）。如需延长请在论坛跟帖说明使用情况。</li>
+    <li><strong>额度</strong>：通常按“每日请求数/总请求数”等口径控制；超限一般返回 <code>429</code>。</li>
+    <li><strong>权限边界</strong>：TRIAL_KEY 只能调用公开的 OpenAI 兼容接口（如 <code>/v1/models</code>、<code>/v1/chat/completions</code>），<strong>不具备</strong>任何管理权限，不能访问 <code>/admin/*</code>。</li>
+    <li><strong>安全提醒</strong>：不要把 key 写进公开仓库/截图；建议用环境变量注入（如 <code>CLAWD_TRIAL_KEY</code>）。</li>
+  </ul>
+
   <h3>2) 查询用量（按天聚合，推荐）</h3>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"</code></pre>
