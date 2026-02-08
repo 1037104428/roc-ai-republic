@@ -173,6 +173,29 @@ curl -fsS http://127.0.0.1:8787/healthz
 ssh root@<server-ip> 'cd /opt/roc/quota-proxy && docker compose ps && echo ---HEALTHZ--- && curl -fsS http://127.0.0.1:8787/healthz'
 ```
 
+## 常见故障排查（服务器侧）
+
+当 `docker compose ps` 显示容器未运行，或 `/healthz` 超时/非 200，可按下面顺序快速定位：
+
+```bash
+cd /opt/roc/quota-proxy
+
+# 1) 看容器状态
+docker compose ps
+
+# 2) 看最近日志（最常用）
+docker compose logs --tail=200 -f quota-proxy
+
+# 3) 重新拉取镜像并重启（可回滚；不会改代码）
+docker compose pull
+docker compose up -d
+
+# 4) 再次健康检查
+curl -fsS http://127.0.0.1:8787/healthz
+```
+
+如果你使用了反向代理（Caddy/Nginx），同时也要检查代理侧是否把请求转发到 `127.0.0.1:8787`，以及证书/域名解析是否正确。
+
 ## 对外访问（如已部署 Caddy/Nginx）
 
 如果你已经把 quota-proxy 通过反向代理对外提供（推荐 HTTPS + 子域名），可以在任意机器上做最小外部探测：
