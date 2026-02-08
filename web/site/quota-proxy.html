@@ -89,6 +89,61 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
   <hr />
+  
+  <h2>常见问题与提示</h2>
+  
+  <h3>Q: 申请后多久能拿到 key？</h3>
+  <p>人工审核通常在 24 小时内回复。如果急需，可在论坛帖子中 @管理员。</p>
+  
+  <h3>Q: 额度是多少？会过期吗？</h3>
+  <p>试用期额度为 1000 次调用/月，试用期 30 天。如需更多额度，可在论坛申请升级。</p>
+  
+  <h3>Q: 支持哪些模型？</h3>
+  <p>目前支持：<code>deepseek-chat</code>、<code>deepseek-coder</code>。后续会逐步增加更多模型。</p>
+  
+  <h3>Q: 如何查看剩余额度？</h3>
+  <p>目前需要通过管理员查询。未来会提供自助查询接口。</p>
+  
+  <h3>Q: 调用失败怎么办？</h3>
+  <p>检查步骤：</p>
+  <ol>
+    <li><code>curl -fsS https://api.clawdrepublic.cn/healthz</code>（确认服务正常）</li>
+    <li>确认 <code>TRIAL_KEY</code> 环境变量已设置且正确</li>
+    <li>确认请求格式正确（特别是 <code>Authorization: Bearer</code> 头部）</li>
+    <li>在论坛发帖求助，附上错误信息</li>
+  </ol>
+  
+  <h3>Q: 可以用于生产环境吗？</h3>
+  <p>试用服务适合开发、测试和学习。生产环境请申请正式合作。</p>
+  
+  <h3>实用脚本：一键验证配置</h3>
+  <pre><code>#!/bin/bash
+# 保存为 verify-trial-key.sh
+set -e
+echo "=== 验证 TRIAL_KEY 配置 ==="
+echo "1. 检查环境变量..."
+if [ -z "$TRIAL_KEY" ]; then
+  echo "❌ TRIAL_KEY 未设置"
+  exit 1
+fi
+echo "✅ TRIAL_KEY 已设置"
+
+echo "2. 检查服务健康..."
+curl -fsS https://api.clawdrepublic.cn/healthz
+echo "✅ 服务健康"
+
+echo "3. 测试最小调用..."
+curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer ${TRIAL_KEY}" \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"ping"}],
+    "max_tokens": 10
+  }' | jq -r '.choices[0].message.content // "❌ 调用失败"'
+echo "✅ 配置验证完成"</code></pre>
+
+  <hr />
   <p>仓库文档：<a href="https://github.com/1037104428/roc-ai-republic">roc-ai-republic</a>（docs/quota-proxy*）</p>
 </body>
 </html>
