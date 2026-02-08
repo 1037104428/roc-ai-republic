@@ -105,3 +105,15 @@ curl -fsS http://127.0.0.1:8787/healthz
 ```bash
 ssh root@<server-ip> 'cd /opt/roc/quota-proxy && docker compose ps && echo ---HEALTHZ--- && curl -fsS http://127.0.0.1:8787/healthz'
 ```
+
+## 对外访问（如已部署 Caddy/Nginx）
+
+如果你已经把 quota-proxy 通过反向代理对外提供（推荐 HTTPS + 子域名），可以在任意机器上做最小外部探测：
+
+```bash
+# API 网关健康
+curl -fsS https://api.<your-domain>/healthz
+
+# landing page（200 即可；内容可能随版本变化）
+curl -fsSI https://<your-domain>/ | head
+```
