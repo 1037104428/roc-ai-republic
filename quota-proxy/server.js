@@ -183,6 +183,7 @@ app.get('/admin/usage', (req, res) => {
     const byKey = state.usage[qDay] || {};
     let items = Object.entries(byKey).map(([key, row]) => ({
       key,
+      label: state.keys?.[key]?.label ?? null,
       req_count: row?.requests || 0,
       updated_at: row?.updated_at || null,
     }));
@@ -196,7 +197,7 @@ app.get('/admin/usage', (req, res) => {
   const items = [];
   for (const [day, byKey] of Object.entries(state.usage)) {
     for (const [key, row] of Object.entries(byKey)) {
-      items.push({ day, key, req_count: row.requests, updated_at: row.updated_at });
+      items.push({ day, key, label: state.keys?.[key]?.label ?? null, req_count: row.requests, updated_at: row.updated_at });
     }
   }
   items.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
