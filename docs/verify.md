@@ -140,29 +140,15 @@ curl -fsS \
 echo
 ```
 
-（C）吊销一个 Key（运营撤回/误发处理）
+（C）禁用/吊销 Key、重置当日用量（规划中）
 
-```bash
-ADMIN_TOKEN='<ADMIN_TOKEN>'
-KEY='<TRIAL_KEY>'
-
-curl -fsS -X DELETE \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "https://api.clawdrepublic.cn/admin/keys/$KEY"
-
-echo
-```
-
-（D）重置某天用量（仅用于运营排障/纠错；通常不建议频繁使用）
-
-```bash
-ADMIN_TOKEN='<ADMIN_TOKEN>'
-KEY='<TRIAL_KEY>'
-DAY='2026-02-09'
-
-curl -fsS -X POST \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "https://api.clawdrepublic.cn/admin/usage/reset?key=$KEY&day=$DAY"
-
-echo
-```
+> 注意：截至本文档更新时，线上 quota-proxy 仅保证已实现并稳定的管理接口为：
+> - `POST /admin/keys`（签发 trial key）
+> - `GET /admin/usage`（查询用量）
+>
+> 若出现误发/泄露等情况，临时处理方式：
+> 1) 重新签发新 key
+> 2) 通知用户更换
+> 3) 必要时轮换 `ADMIN_TOKEN`
+>
+> 后续若新增 `DELETE /admin/keys/:key`、`POST /admin/usage/reset` 等接口，会在《quota-proxy 管理接口规范》中更新，并同步补齐这里的验收命令。
