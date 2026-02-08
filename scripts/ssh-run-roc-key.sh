@@ -14,6 +14,10 @@ if [[ ${1:-} == "" ]]; then
   exit 2
 fi
 
+if grep -qE '^password:' /tmp/server.txt 2>/dev/null; then
+  echo "warn: /tmp/server.txt contains password:. Prefer key-only auth; keep only ip:..., and chmod 600 /tmp/server.txt" >&2
+fi
+
 ip=$(awk -F: '/^ip:/{gsub(/ /,"",$2);print $2}' /tmp/server.txt)
 if [[ -z ${ip} ]]; then
   echo "/tmp/server.txt missing ip:..." >&2
