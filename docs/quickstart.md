@@ -26,6 +26,19 @@ npm -v
 curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
 ```
 
+可选：指定版本 / 仅打印命令（不执行）/ 换国内 npm 源：
+
+```bash
+# 指定版本
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12
+
+# 仅打印将要执行的命令（便于检查网络/源）
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --dry-run
+
+# 换国内源（例如腾讯云 npm 镜像）
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-cn https://mirrors.cloud.tencent.com/npm/
+```
+
 验证：
 
 ```bash
