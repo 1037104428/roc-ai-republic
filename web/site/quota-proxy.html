@@ -51,6 +51,17 @@
   <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
 
+  <h3>可选：一键自检脚本（推荐给小白）</h3>
+  <p>仓库提供了一个脚本，把 <code>/healthz</code>、<code>/v1/models</code>、（可选）最小对话三步串起来，方便你确认“网络通 + key 有效 + 模型可用”。</p>
+  <pre><code># 前置：已安装 bash + curl
+cd /tmp
+git clone https://github.com/openclaw/roc-ai-republic.git
+cd roc-ai-republic
+
+export CLAWD_TRIAL_KEY='trial_xxx'
+./scripts/verify-trial-key.sh --base-url https://api.clawdrepublic.cn</code></pre>
+  <p>注意：脚本会打印诊断信息；请不要把完整 key 贴到公开帖子里（可用 <code>trial_xxx...yyy</code> 方式脱敏）。</p>
+
   <h2>Python 最小示例（OpenAI SDK）</h2>
   <p>如果你更习惯用代码验证，可以用官方 <code>openai</code> SDK（v1.x）：</p>
   <pre><code>python -m pip install -U openai
