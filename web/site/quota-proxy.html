@@ -109,7 +109,7 @@ export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
   <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
 
   <h3>1) 生成（发放）一个 TRIAL_KEY</h3>
-  <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向 JSON 数据文件），否则会返回 400。</p>
+  <p>注意：<code>POST /admin/keys</code> 要求服务端开启持久化（设置 <code>SQLITE_PATH</code> 指向 JSON 数据文件，例如 <code>/data/quota.json</code>），否则会返回 400。</p>
   <p>服务端（docker compose）常见配置示例：</p>
   <pre><code># /opt/roc/quota-proxy/docker-compose.yml 里（示意）
 services:
@@ -184,7 +184,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
     <li>重置某个 key 的当日用量（清零）</li>
   </ul>
   <p>在此之前，如需紧急止损，建议通过<strong>轮换 ADMIN_TOKEN</strong>、或下线/重启服务并人工处理数据文件。</p>
-<p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
+  <p><strong>安全提醒：</strong>管理接口建议仅在服务器本机（<code>127.0.0.1</code>）访问；如需展示给外部，请先做 HTTPS + 访问控制，并对 key 做脱敏。</p>
 
   <h2>论坛使用指南</h2>
   <p>Clawd 国度论坛是社区交流、问题求助和 TRIAL_KEY 申请的主要平台：</p>
