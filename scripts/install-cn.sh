@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# OpenClaw CN quick install (v0)
-# - Prefer npm from domestic registry (npmmirror)
+# OpenClaw CN quick install
+# Goals:
+# - Prefer a mainland-friendly npm registry (npmmirror)
 # - Fallback to npmjs if install fails
+# - Do NOT permanently change user's npm registry config
 # - Self-check: openclaw --version
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
@@ -21,11 +23,8 @@ REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
 
 install_openclaw() {
   local reg="$1"
-  echo "[cn-pack] Using npm registry: $reg"
-  npm config set registry "$reg" >/dev/null
-
-  # Install OpenClaw globally
-  npm i -g openclaw@latest
+  echo "[cn-pack] Installing via registry: $reg"
+  npm i -g openclaw@latest --registry "$reg"
 }
 
 if install_openclaw "$REG_CN"; then
@@ -39,7 +38,9 @@ fi
 if command -v openclaw >/dev/null 2>&1; then
   echo "[cn-pack] Installed. Check: $(openclaw --version)"
 else
-  echo "[cn-pack] Install finished but 'openclaw' not found in PATH. Try reopening your shell." >&2
+  echo "[cn-pack] Install finished but 'openclaw' not found in PATH." >&2
+  echo "[cn-pack] Tips: reopen your shell, or ensure your npm global bin is on PATH." >&2
+  echo "[cn-pack] npm prefix: $(npm config get prefix 2>/dev/null || true)" >&2
   exit 2
 fi
 
