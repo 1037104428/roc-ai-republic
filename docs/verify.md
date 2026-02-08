@@ -21,6 +21,19 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ./scripts/probe.sh
 ```
 
+没有服务器 SSH 权限时（例如普通贡献者），可跳过 SSH 检查：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/probe.sh --no-ssh
+```
+
+（可选）查看帮助：
+
+```bash
+./scripts/probe.sh --help
+```
+
 （可选）自定义探活目标（例如换域名/服务器）：
 
 ```bash
