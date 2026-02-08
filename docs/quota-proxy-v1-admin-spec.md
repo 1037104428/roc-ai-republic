@@ -246,3 +246,67 @@ export CLAWD_TRIAL_KEY="trial_abc123def456..."
   - 此 key 有效期为 7 天
   - 查看使用情况: curl -sS "http://127.0.0.1:8787/admin/usage" -H "Authorization: Bearer your_admin_token_here" | jq .
 ```
+
+### 5. `verify-sqlite-persistence.sh` - SQLite持久化验证
+新增功能：
+1. 健康端点检查
+2. 持久化配置验证
+3. SQLite文件状态检查
+4. Admin API集成测试（可选）
+5. 详细的下一步建议
+
+```bash
+# 基础验证（仅检查健康状态和配置）
+./scripts/verify-sqlite-persistence.sh http://127.0.0.1:8787
+
+# 完整验证（需要 ADMIN_TOKEN）
+export ADMIN_TOKEN="your_admin_token_here"
+./scripts/verify-sqlite-persistence.sh http://127.0.0.1:8787
+```
+
+#### 使用场景
+- 部署后验证：确认SQLite持久化配置正确
+- 故障排查：检查持久化相关的问题
+- 运维巡检：定期验证持久化功能
+- 新人培训：了解持久化验证流程
+
+#### 输出示例
+```
+🔍 Verifying SQLite persistence for quota-proxy at http://127.0.0.1:8787
+
+1. Checking health endpoint...
+✅ Health check passed
+
+2. Checking persistence configuration...
+   ADMIN_TOKEN is set (length: 64)
+
+3. SQLite persistence status:
+   SQLITE_PATH: /data/quota.sqlite
+   Note: Run on server to check file existence:
+     docker exec -it $(docker ps -q -f name=quota-proxy) ls -la $SQLITE_PATH 2>/dev/null || echo 'File not found'
+
+4. Testing admin API with persistence...
+   Generating test key: test-verify-1700000000
+✅ Test key created
+   Checking usage...
+✅ Usage query works
+
+📋 Summary:
+   - Health endpoint: ✅ OK
+   - Persistence config: SQLITE_PATH=/data/quota.sqlite
+   - Admin API: ✅ Token available
+
+💡 Next steps:
+   1. Set ADMIN_TOKEN environment variable for full verification
+   2. On server, check SQLite file: docker exec -it $(docker ps -q -f name=quota-proxy) sqlite3 $SQLITE_PATH '.tables'
+   3. Verify data persists across container restarts
+```
+
+#### 验证要点
+1. **健康检查**：确保服务正常运行
+2. **配置验证**：检查SQLITE_PATH等环境变量
+3. **文件状态**：验证SQLite文件存在且可访问
+4. **功能测试**：通过Admin API验证持久化功能
+5. **运维建议**：提供具体的下一步操作建议
+
+此脚本特别适合在生产环境中验证持久化配置，确保数据不会因容器重启而丢失。
