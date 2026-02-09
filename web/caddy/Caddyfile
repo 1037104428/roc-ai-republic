@@ -2,6 +2,13 @@
 # Deploy to: /opt/roc/web/caddy/Caddyfile
 # Usage: caddy run --config /opt/roc/web/caddy/Caddyfile
 
+# HTTPS auto-configuration (must be first if present)
+{
+    # Auto HTTPS with Let's Encrypt
+    email admin@clawdrepublic.cn
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
 # Main domain - landing page
 clawdrepublic.cn {
     # Static site files
@@ -32,11 +39,4 @@ clawdrepublic.cn {
 # Redirect www to non-www
 www.clawdrepublic.cn {
     redir https://clawdrepublic.cn{uri} permanent
-}
-
-# HTTPS auto-configuration
-{
-    # Auto HTTPS with Let's Encrypt
-    email admin@clawdrepublic.cn
-    acme_ca https://acme-v02.api.letsencrypt.org/directory
 }
