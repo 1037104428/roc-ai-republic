@@ -1,0 +1,42 @@
+# Caddyfile for ROC AI Republic static site
+# Deploy to: /opt/roc/web/caddy/Caddyfile
+# Usage: caddy run --config /opt/roc/web/caddy/Caddyfile
+
+# Main domain - landing page
+clawdrepublic.cn {
+    # Static site files
+    root * /opt/roc/web/site
+    file_server {
+        index index.html
+    }
+    
+    # API gateway reverse proxy
+    handle_path /api/* {
+        reverse_proxy http://127.0.0.1:8787 {
+            header_up Host {host}
+        }
+    }
+    
+    # Health check endpoint
+    handle /healthz {
+        respond "OK" 200
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
+
+# Redirect www to non-www
+www.clawdrepublic.cn {
+    redir https://clawdrepublic.cn{uri} permanent
+}
+
+# HTTPS auto-configuration
+{
+    # Auto HTTPS with Let's Encrypt
+    email admin@clawdrepublic.cn
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
