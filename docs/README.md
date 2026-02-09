@@ -30,6 +30,8 @@
   - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-fallback https://registry.npmjs.org`
 - 脚本自测（不改系统，不安装）：
   - `cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/verify-install-cn.sh --dry-run`
+- 故障排除指南：
+  - `docs/install-cn-troubleshooting.md`（Node.js版本、权限、网络等问题）
 
 ## quota-proxy（试用网关）
 
