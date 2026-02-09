@@ -472,3 +472,94 @@ curl -fsS -H "Authorization: Bearer $KEY1" http://127.0.0.1:8787/v1/models && ec
 curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \
   -X DELETE "http://127.0.0.1:8787/admin/keys/$KEY1"
 ```
+
+## 10) TRIAL_KEY 生命周期自动化测试
+
+### 10.1) TRIAL_KEY 生命周期测试脚本
+
+```bash
+# 自动化测试 TRIAL_KEY 的完整生命周期（创建 → 验证 → 重置 → 删除）
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 检查脚本语法
+bash -n scripts/test-trial-key-lifecycle.sh
+
+# 查看脚本帮助
+./scripts/test-trial-key-lifecycle.sh --help
+
+# 在服务器上测试（默认）
+ADMIN_TOKEN="your_admin_token_here" ./scripts/test-trial-key-lifecycle.sh
+
+# 本地模式测试（如果 quota-proxy 运行在 localhost:8787）
+LOCAL_MODE=true ADMIN_TOKEN="your_admin_token_here" ./scripts/test-trial-key-lifecycle.sh
+
+# 自定义服务器 IP
+SERVER_IP="your.server.ip" ADMIN_TOKEN="your_admin_token_here" ./scripts/test-trial-key-lifecycle.sh
+
+# 脚本会自动执行以下步骤：
+# 1. 创建带唯一标签的测试 TRIAL_KEY
+# 2. 验证 key 出现在 /admin/usage 中（标签匹配）
+# 3. 尝试用 key 调用 /v1/models（验证 key 可用性）
+# 4. 重置 key 用量（/admin/usage/reset）
+# 5. 删除 key（/admin/keys/:key）
+# 6. 验证 key 已从 /admin/usage 移除
+# 7. 输出 SUCCESS 或失败原因
+```
+
+### 10.2) 测试脚本使用场景
+
+1. **部署验证**：部署新的 quota-proxy 版本后，验证所有管理接口正常工作
+2. **回归测试**：代码修改后，确保 TRIAL_KEY 生命周期功能不受影响
+3. **运维巡检**：定期运行，确保 quota-proxy 服务健康
+4. **贡献者验收**：新贡献者提交 PR 后，运行此脚本验证功能完整性
+
+### 10.3) 手动验证 TRIAL_KEY 生命周期
+
+```bash
+# 手动验证 TRIAL_KEY 生命周期（分步执行）
+ADMIN_TOKEN="your_admin_token_here"
+BASE_URL="http://127.0.0.1:8787"
+TEST_LABEL="test-$(date +%Y%m%d-%H%M%S)"
+
+echo "测试标签: $TEST_LABEL"
+
+# 1. 创建 TRIAL_KEY
+echo "创建 TRIAL_KEY..."
+RESPONSE=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  -H "Content-Type: application/json" \n  -X POST "${BASE_URL}/admin/keys" \n  -d "{\"label\":\"$TEST_LABEL\"}")
+TRIAL_KEY=$(echo "$RESPONSE" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
+echo "创建的 key: $TRIAL_KEY"
+
+# 2. 验证 key 在 /admin/usage 中
+echo "验证 key 在 /admin/usage 中..."
+USAGE=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  "${BASE_URL}/admin/usage")
+if echo "$USAGE" | grep -q "$TRIAL_KEY"; then
+  echo "✓ Key 存在于 /admin/usage"
+else
+  echo "✗ Key 不存在于 /admin/usage"
+  exit 1
+fi
+
+# 3. 测试 key 可用性
+echo "测试 key 可用性..."
+curl -fsS -H "Authorization: Bearer $TRIAL_KEY" \n  "${BASE_URL}/v1/models" >/dev/null 2>&1 && echo "✓ Key 可用" || echo "⚠ Key 可能无配额（正常）"
+
+# 4. 重置用量
+echo "重置用量..."
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  -H "Content-Type: application/json" \n  -X POST "${BASE_URL}/admin/usage/reset" \n  -d "{\"key\":\"$TRIAL_KEY\"}" && echo "✓ 用量重置成功"
+
+# 5. 删除 key
+echo "删除 key..."
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  -X DELETE "${BASE_URL}/admin/keys/$TRIAL_KEY" && echo "✓ Key 删除成功"
+
+# 6. 验证 key 已移除
+echo "验证 key 已移除..."
+FINAL_USAGE=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  "${BASE_URL}/admin/usage")
+if echo "$FINAL_USAGE" | grep -q "$TRIAL_KEY"; then
+  echo "✗ Key 仍然存在于 /admin/usage"
+  exit 1
+else
+  echo "✓ Key 已从 /admin/usage 移除"
+fi
+
+echo "✅ TRIAL_KEY 生命周期验证完成"
+```
