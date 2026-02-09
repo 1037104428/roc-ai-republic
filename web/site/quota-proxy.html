@@ -40,8 +40,10 @@
   <pre><code>export CLAWD_TRIAL_KEY="trial_xxx"</code></pre>
   <p>（Windows PowerShell）</p>
   <pre><code>$env:CLAWD_TRIAL_KEY = "trial_xxx"</code></pre>
+  <p>为了减少复制粘贴时改漏域名，建议先设一个 <code>BASE_URL</code>：</p>
+  <pre><code>export BASE_URL='https://api.clawdrepublic.cn'</code></pre>
   <p>发送一次最小对话请求（看到返回 JSON 含 <code>choices</code> 即可）：</p>
-  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  <pre><code>curl -fsS "${BASE_URL}/v1/chat/completions" \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
   -H 'content-type: application/json' \
   -d '{
@@ -49,7 +51,7 @@
     "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
   }'</code></pre>
   <p>如果你想再做一个更轻量的验证（不跑对话，只看网关是否识别 key），可以列模型：</p>
-  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
+  <pre><code>curl -fsS "${BASE_URL}/v1/models" \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
 
   <h3>可选：一键自检脚本（推荐给小白）</h3>
@@ -68,7 +70,8 @@ export CLAWD_TRIAL_KEY='trial_xxx'
   <pre><code>python -m pip install -U openai
 
 export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
-export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
+export BASE_URL='https://api.clawdrepublic.cn'
+export OPENAI_BASE_URL="${BASE_URL}/v1"
 
 python - <<'PY'
 from openai import OpenAI
@@ -99,7 +102,8 @@ openclaw models status</code></pre>
   <h2>通用工具兼容：设置 OpenAI 环境变量</h2>
   <p>很多客户端默认读 <code>OPENAI_API_KEY</code> / <code>OPENAI_BASE_URL</code>：</p>
   <pre><code>export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
-export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"</code></pre>
+export BASE_URL='https://api.clawdrepublic.cn'
+export OPENAI_BASE_URL="${BASE_URL}/v1"</code></pre>
 
   <h2>可选：列出可用模型（OpenAI-compatible）</h2>
   <p>如果你想先确认网关端暴露了哪些模型（通常需要带 key，否则会 401/403）：</p>
