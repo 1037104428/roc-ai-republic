@@ -7,9 +7,9 @@
 ## 运营发放流程（当前：人工发放）
 
 - 用户在论坛发帖申请（说明用途/频率）。
-- 管理员在服务器本机用 `POST /admin/keys` 生成一个 `trial_...` key。
+- 管理员在服务器本机用 `POST /admin/keys` 生成一个 `sk-...` key。
 - 将该 key 私信/回复给用户，并提示：
-  - 用 `Authorization: Bearer trial_...` 调用 `https://api.clawdrepublic.cn/v1/chat/completions`
+  - 用 `Authorization: Bearer sk-...` 调用 `https://api.clawdrepublic.cn/v1/chat/completions`
   - 可用 `https://api.clawdrepublic.cn/healthz` 做非消耗型健康检查
 
 （官网版说明页：`web/site/quota-proxy.html`）
@@ -187,7 +187,7 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 - response：
 
 ```json
-{ "key": "trial_<hex>", "label": "...", "created_at": 1700000000000 }
+{ "key": "sk-<hex>", "label": "...", "created_at": 1700000000000 }
 ```
 
 ### 2) 查询用量（推荐：按天）
@@ -207,7 +207,7 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
   "day": "2026-02-08",
   "mode": "file",
   "items": [
-    { "key": "trial_xxx", "label": "forum:alice purpose:demo", "req_count": 12, "updated_at": 1700000000000 }
+    { "key": "sk-xxx", "label": "forum:alice purpose:demo", "req_count": 12, "updated_at": 1700000000000 }
   ]
 }
 ```
@@ -218,7 +218,7 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
     - `file`：已开启 `SQLITE_PATH`（JSON 文件持久化）
     - `memory`：纯内存（不推荐生产）
   - `items[]`：用量条目列表（默认按 `updated_at` 倒序）
-    - `key`：trial key（外部展示建议脱敏，例如 `trial_abcd…wxyz`）
+    - `key`：trial key（外部展示建议脱敏，例如 `sk-abcd…wxyz`）
     - `label`：签发时写入的备注（建议用"label 推荐格式"）
     - `req_count`：当天累计请求次数（见"计数语义"）
     - `updated_at`：最后一次更新用量的时间戳（毫秒）
@@ -236,7 +236,7 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 {
   "mode": "file",
   "items": [
-    { "day": "2026-02-08", "key": "trial_xxx", "label": "forum:alice purpose:demo", "req_count": 12, "updated_at": 1700000000000 }
+    { "day": "2026-02-08", "key": "sk-xxx", "label": "forum:alice purpose:demo", "req_count": 12, "updated_at": 1700000000000 }
   ]
 }
 ```
@@ -246,7 +246,7 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 - `mode`：后端持久化模式（`file`/`memory`；生产建议 `file`）。
 - `items[]`：用量条目列表（默认按 `updated_at` 倒序）。
   - `day`：统计日期（`YYYY-MM-DD`）。
-  - `key`：trial key（外部展示建议脱敏，例如 `trial_abcd…wxyz`）。
+  - `key`：trial key（外部展示建议脱敏，例如 `sk-abcd…wxyz`）。
   - `label`：签发时写入的备注。
   - `req_count`：当天累计请求次数。
   - `updated_at`：最后一次更新用量的时间戳（毫秒）。
@@ -421,14 +421,14 @@ DAYS=30 ./scripts/quick-gen-trial-key.sh http://127.0.0.1:8787 your_admin_token_
 
 ✅ 成功生成 trial key:
 
-export CLAWD_TRIAL_KEY="trial_abc123def456..."
+export CLAWD_TRIAL_KEY="sk-abc123def456..."
 
 使用方式:
-  export CLAWD_TRIAL_KEY="trial_abc123def456..."
+  export CLAWD_TRIAL_KEY="sk-abc123def456..."
   openclaw --trial-key "${CLAWD_TRIAL_KEY}"
 
 或直接使用:
-  openclaw --trial-key "trial_abc123def456..."
+  openclaw --trial-key "sk-abc123def456..."
 
 提示:
   - 此 key 有效期为 7 天
@@ -553,7 +553,7 @@ export ADMIN_TOKEN="your_admin_token_here"
 4. 验证管理接口...
    ✅ 管理接口访问正常
    ✅ Key生成功能正常
-   ℹ️  测试key前缀: trial_abc123def456...
+   ℹ️  测试key前缀: sk-abc123def456...
 
 📋 持久化类型总结:
    🔸 当前版本: v0.1 (JSON文件持久化)
@@ -619,7 +619,7 @@ ADMIN_TOKEN="your_admin_token_here" ./scripts/verify-admin-endpoints.sh
 
 3. 创建测试 key /admin/keys:
 创建 key: test-20260209-131800
-✓ Key 创建成功: trial_abc123def456...
+✓ Key 创建成功: sk-abc123def456...
 
 4. 验证 key 已添加:
 找到: test-20260209-131800 (用量: 0/200)
@@ -627,7 +627,7 @@ ADMIN_TOKEN="your_admin_token_here" ./scripts/verify-admin-endpoints.sh
 ======================================
 所有管理端点验证完成
 提示: 如需清理测试 key，运行:
-  curl -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "http://127.0.0.1:8787/admin/keys/trial_abc123def456..."
+  curl -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "http://127.0.0.1:8787/admin/keys/sk-abc123def456..."
 或重置所有用量:
   curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://127.0.0.1:8787/admin/usage/reset"
 ```

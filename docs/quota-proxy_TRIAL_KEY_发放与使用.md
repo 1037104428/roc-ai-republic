@@ -8,7 +8,7 @@
 
 ## 0. 你需要准备什么
 
-- 一个 `TRIAL_KEY`（形如 `trial_xxx`）
+- 一个 `TRIAL_KEY`（形如 `sk-xxx`）
 - 一台能访问网关的机器（你的电脑即可）
 
 ---
@@ -18,8 +18,8 @@
 把 key 放进环境变量（避免贴到命令历史里）：
 
 ```bash
-export CLAWD_TRIAL_KEY='trial_xxx'
-# 兼容旧名字：export TRIAL_KEY='trial_xxx'
+export CLAWD_TRIAL_KEY='sk-xxx'
+# 兼容旧名字：export TRIAL_KEY='sk-xxx'
 ```
 
 验证网关健康：

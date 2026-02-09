@@ -59,7 +59,7 @@ openclaw --version
 
 ### 3. 设置环境变量
 ```bash
-export TRIAL_KEY="trial_xxx"
+export TRIAL_KEY="sk-xxx"
 export CLAWD_TRIAL_KEY="${TRIAL_KEY}"
 ```
 
@@ -105,7 +105,7 @@ openclaw models status
 **症状：** API 返回 401 错误
 **解决：**
 1. 检查环境变量是否正确设置：`echo $CLAWD_TRIAL_KEY`
-2. 确认 key 格式为 `trial_` 开头
+2. 确认 key 格式为 `sk-` 开头
 3. 联系管理员确认 key 状态
 
 ### 问题3：网关启动失败

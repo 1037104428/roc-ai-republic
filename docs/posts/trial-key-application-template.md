@@ -30,7 +30,7 @@
 ## 审核流程说明
 1. **提交申请**：在「TRIAL_KEY 申请」板块发帖，使用上述模板
 2. **人工审核**：管理员会在 24 小时内审核申请
-3. **发放 key**：审核通过后，管理员会通过私信发送 `trial_xxx` 格式的 key
+3. **发放 key**：审核通过后，管理员会通过私信发送 `sk-xxx` 格式的 key
 4. **开始使用**：收到 key 后即可按照使用指南配置
 
 ## 拿到 KEY 后的使用步骤
@@ -38,7 +38,7 @@
 ### 1. 设置环境变量
 ```bash
 # 将 xxx 替换为你的实际 key
-export CLAWD_TRIAL_KEY="trial_xxx"
+export CLAWD_TRIAL_KEY="sk-xxx"
 
 # 对于通用 OpenAI 客户端
 export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"

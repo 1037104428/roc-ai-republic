@@ -81,7 +81,7 @@ API地址: http://8.210.185.194:8787
 
 2. 测试生成试用密钥 /admin/keys:
    ✅ 试用密钥生成成功
-   密钥: trial_abc123def456...
+   密钥: sk-abc123def456...
 
 3. 测试查看使用情况 /admin/usage:
    ✅ 使用情况查询成功
@@ -175,7 +175,7 @@ curl -H "Authorization: Bearer your_token" http://8.210.185.194:8787/admin/usage
    返回：
    ```json
    {
-     "key": "trial_abc123def456",
+     "key": "sk-abc123def456",
      "name": "用户名",
      "quota": 100,
      "expires_at": "2024-01-01T00:00:00Z"

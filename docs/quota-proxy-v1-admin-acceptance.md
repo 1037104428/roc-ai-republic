@@ -104,7 +104,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 ```
 
 期望：返回 JSON，包含：
-- `key`（形如 `trial_<hex>`）
+- `key`（形如 `sk-<hex>`）
 - `created_at`（毫秒时间戳）
 
 ---
@@ -146,7 +146,7 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   "day": "2026-02-09",
   "items": [
     {
-      "key": "trial_...",
+      "key": "sk-...",
       "label": "forum-user:alice",
       "req_count": 3,
       "updated_at": 1760000000000
@@ -234,10 +234,10 @@ sqlite3 /opt/roc/quota-proxy/data/quota-proxy.sqlite ".tables"
 > 建议通过论坛私信/工单发送；**不要**在公开帖子里粘贴完整 key。
 
 ```
-你的 TRIAL_KEY 已签发：trial_xxx
+你的 TRIAL_KEY 已签发：sk-xxx
 
 最小自检（不会调用上游模型；通常不消耗额度；但可能计入 req_count 作为“请求次数”统计）：
-  export CLAWD_TRIAL_KEY='trial_xxx'
+  export CLAWD_TRIAL_KEY='sk-xxx'
   curl -fsS https://api.clawdrepublic.cn/v1/models \
     -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"
 
@@ -252,12 +252,12 @@ sqlite3 /opt/roc/quota-proxy/data/quota-proxy.sqlite ".tables"
 - 429：额度用尽或限流
 ```
 
-脱敏展示示例：`trial_abcd...wxyz`
+脱敏展示示例：`sk-abcd...wxyz`
 
 （可选）把自检命令打包成脚本（仓库内）：
 
 ```bash
-export CLAWD_TRIAL_KEY='trial_xxx'
+export CLAWD_TRIAL_KEY='sk-xxx'
 ./scripts/verify-trial-key.sh                                # healthz + models
 ./scripts/verify-trial-key.sh --chat                         # 额外跑一次最小对话（会消耗额度）
 ./scripts/verify-trial-key.sh --chat --model deepseek-chat    # 指定模型（便于对照线上默认/推荐模型）

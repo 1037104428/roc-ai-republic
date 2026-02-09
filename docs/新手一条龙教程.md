@@ -56,18 +56,18 @@ curl -fsS -m 5 https://api.clawdrepublic.cn/healthz
 
 1) 去论坛发帖申请：https://clawdrepublic.cn/forum/
 2) 正文写清楚 3 件事：用途、预计每天调用次数、想用的模型（不确定就写不确定）
-3) 管理员会私信/回复你一个形如 `trial_...` 的 key
+3) 管理员会私信/回复你一个形如 `sk-...` 的 key
 
 拿到 key 后，在终端设置环境变量：
 
 macOS/Linux（bash/zsh）：
 ```bash
-export CLAWD_TRIAL_KEY='trial_xxx'
+export CLAWD_TRIAL_KEY='sk-xxx'
 ```
 
 Windows PowerShell：
 ```powershell
-$env:CLAWD_TRIAL_KEY='trial_xxx'
+$env:CLAWD_TRIAL_KEY='sk-xxx'
 ```
 
 ---

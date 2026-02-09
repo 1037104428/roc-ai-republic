@@ -112,27 +112,27 @@ openclaw --version
 
 > 注意：**不要在公开帖子里粘贴你拿到的 TRIAL_KEY**。管理员只会私信/单独回复给你。
 
-拿到 key 后，在终端执行（把 `trial_xxx` 换成你的 key）：
+拿到 key 后，在终端执行（把 `sk-xxx` 换成你的 key）：
 
 ```bash
-export CLAWD_TRIAL_KEY="trial_xxx"
+export CLAWD_TRIAL_KEY="sk-xxx"
 ```
 
 （可选）让它每次打开终端都生效：
 
 ```bash
 # bash
-printf '\nexport CLAWD_TRIAL_KEY="trial_xxx"\n' >> ~/.bashrc
+printf '\nexport CLAWD_TRIAL_KEY="sk-xxx"\n' >> ~/.bashrc
 
 # zsh
-printf '\nexport CLAWD_TRIAL_KEY="trial_xxx"\n' >> ~/.zshrc
+printf '\nexport CLAWD_TRIAL_KEY="sk-xxx"\n' >> ~/.zshrc
 ```
 
 自检（建议做一次，避免环境变量没生效）：
 
 ```bash
-# 应该输出 trial_ 开头（不要把 key 发到公开场合）
-echo "${CLAWD_TRIAL_KEY}" | sed -E "s/(trial_[A-Za-z0-9]{4}).*/\1.../"
+# 应该输出 sk- 开头（不要把 key 发到公开场合）
+echo "${CLAWD_TRIAL_KEY}" | sed -E "s/(sk-[A-Za-z0-9]{4}).*/\1.../"
 
 # API 探活（不需要 key）
 curl -fsS https://api.clawdrepublic.cn/healthz
@@ -141,7 +141,7 @@ curl -fsS https://api.clawdrepublic.cn/healthz
 如果你在 Windows PowerShell：
 
 ```powershell
-$env:CLAWD_TRIAL_KEY = "trial_xxx"
+$env:CLAWD_TRIAL_KEY = "sk-xxx"
 ```
 
 ## 4)（可选）兼容 OpenAI 工具：设置 OPENAI_API_KEY / OPENAI_BASE_URL

@@ -109,7 +109,7 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
 
 # 只查某个 key（可选）
-# curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
+# curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=sk-xxx" \
 #   -H "Authorization: Bearer ${ADMIN_TOKEN}"
 ```
 
@@ -120,7 +120,7 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   "day": "2026-02-08",
   "mode": "file",
   "items": [
-    {"key":"trial_xxx","req_count":12,"updated_at":1700000000000}
+    {"key":"sk-xxx","req_count":12,"updated_at":1700000000000}
   ]
 }
 ```

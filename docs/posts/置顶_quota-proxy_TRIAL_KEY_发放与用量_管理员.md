@@ -50,7 +50,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 返回示例：
 
 ```json
-{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}
+{"key":"sk-xxx","label":"forum-user:alice","created_at":1700000000000}
 ```
 
 字段说明：
@@ -68,7 +68,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 
 ```bash
 export ADMIN_TOKEN='***'
-export TRIAL_KEY='trial_xxx'
+export TRIAL_KEY='sk-xxx'
 
 curl -fsS -X DELETE "http://127.0.0.1:8787/admin/keys/${TRIAL_KEY}" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
@@ -100,7 +100,7 @@ curl -fsS -X DELETE \
 # ⚠️ 只在服务器本机执行；先备份
 cp -a /data/quota.db "/data/quota.db.bak.$(date +%F_%H%M%S)"
 
-sqlite3 /data/quota.db "DELETE FROM trial_keys WHERE key='trial_xxx';"
+sqlite3 /data/quota.db "DELETE FROM trial_keys WHERE key='sk-xxx';"
 ```
 
 > 撤销后该 key 继续被使用时，网关应返回 401/403（取决于实现与鉴权模式）。
@@ -139,7 +139,7 @@ export ADMIN_TOKEN='***'
 
 ```bash
 export ADMIN_TOKEN='***'
-curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
+curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=sk-xxx" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
 ```
 
