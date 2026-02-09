@@ -490,3 +490,67 @@ export ADMIN_TOKEN="your_admin_token_here"
 4. **问题排查**：快速识别持久化相关的问题
 
 使用此脚本可以确保团队对 quota-proxy 的持久化实现有清晰一致的理解。
+
+### 7. `verify-admin-endpoints.sh` - 管理端点完整验证
+新增功能：
+1. 健康检查验证
+2. 使用情况查询
+3. 测试 key 生成
+4. 数据持久化验证
+5. 清理建议
+
+```bash
+# 完整验证管理端点
+export ADMIN_TOKEN="your_admin_token_here"
+./scripts/verify-admin-endpoints.sh --host 127.0.0.1:8787
+
+# 或使用环境变量
+ADMIN_TOKEN="your_admin_token_here" ./scripts/verify-admin-endpoints.sh
+```
+
+#### 使用场景
+- **部署验证**：部署后全面验证所有管理端点
+- **运维巡检**：定期检查管理接口功能
+- **故障排查**：快速定位管理接口问题
+- **新人培训**：了解管理端点的完整验证流程
+
+#### 验证步骤
+1. **健康检查**：验证 `/healthz` 端点
+2. **使用情况查询**：验证 `/admin/usage` 端点
+3. **Key 生成**：验证 `/admin/keys` 端点
+4. **数据验证**：确认新生成的 key 出现在使用情况中
+5. **清理建议**：提供测试 key 的清理命令
+
+#### 输出示例
+```
+验证 quota-proxy 管理端点 (127.0.0.1:8787)
+======================================
+1. 健康检查 /healthz:
+✓ 健康检查通过
+
+2. 获取使用情况 /admin/usage:
+当前有 5 个 key
+✓ 使用情况查询通过
+
+3. 创建测试 key /admin/keys:
+创建 key: test-20260209-131800
+✓ Key 创建成功: trial_abc123def456...
+
+4. 验证 key 已添加:
+找到: test-20260209-131800 (用量: 0/200)
+
+======================================
+所有管理端点验证完成
+提示: 如需清理测试 key，运行:
+  curl -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "http://127.0.0.1:8787/admin/keys/trial_abc123def456..."
+或重置所有用量:
+  curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "http://127.0.0.1:8787/admin/usage/reset"
+```
+
+#### 验证要点
+1. **完整性**：覆盖所有关键管理端点
+2. **实用性**：提供可直接复制的验证命令
+3. **安全性**：包含清理建议，避免测试数据积累
+4. **可读性**：清晰的输出格式和进度指示
+
+此脚本特别适合在生产环境中进行全面的管理接口验证，确保所有功能正常工作。
