@@ -3,7 +3,7 @@
 目的：给“OpenClaw 小白中文包”提供 **可控、可持续** 的免费试用额度。
 
 基本思路：
-- 用户拿到一个 `TRIAL_KEY`（我们发）
+- 用户拿到一个 `TRIAL_KEY`（我们发；在客户端/脚本里推荐用环境变量 `CLAWD_TRIAL_KEY` 承载，兼容旧名 `TRIAL_KEY`）
 - OpenClaw 端把 provider `baseUrl` 指向本网关
 - 网关转发到 DeepSeek 官方 API（后端持有赞助者的 `DEEPSEEK_API_KEY`）
 - 网关对每个 `TRIAL_KEY` 做最小限额（v0：按日请求数）

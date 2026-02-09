@@ -39,6 +39,7 @@
 
 TRIAL_KEY 获取方式（临时）：
 - 目前由管理员签发（后续会开放自助申请/自动签发流程）。
+- 环境变量命名建议：脚本与文档优先使用 `CLAWD_TRIAL_KEY`（兼容旧的 `TRIAL_KEY` 作为别名）。
 
 ## 管理员/运维（quota-proxy）
 - Admin API 规格：`docs/quota-proxy-v1-admin-spec.md`
