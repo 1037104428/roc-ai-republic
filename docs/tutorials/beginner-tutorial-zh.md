@@ -1,0 +1,161 @@
+# OpenClaw 小白一条龙（免翻墙｜从 0 到跑通一次调用）
+
+目标：
+1) 官网可访问
+2) 申请/领取 TRIAL_KEY
+3) 用 curl 做一次最小验证
+4) （可选）把 TRIAL_KEY 接入 OpenClaw
+
+- 网页版（推荐，随时保持最新）：https://clawdrepublic.cn/quickstart.html
+- TRIAL_KEY / quota-proxy 说明（含管理员接口说明）：https://clawdrepublic.cn/quota-proxy.html
+- 服务状态页：https://clawdrepublic.cn/status.html
+
+---
+
+## 0) 你需要准备什么
+
+- 一台能上网的电脑
+- 一个终端
+  - macOS/Linux：Terminal
+  - Windows：PowerShell / Windows Terminal
+- 一个可用的 `curl`
+  - macOS/Linux 通常自带
+  - Windows 10/11 的 PowerShell 通常自带；如果没有，可先安装 Git for Windows 或使用 WSL
+
+下面命令默认以 macOS/Linux 为例；Windows PowerShell 的环境变量写法见第 3 步。
+
+---
+
+## 1) 确认官网可访问
+
+```bash
+curl -fsS -m 5 https://clawdrepublic.cn/ > /dev/null && echo OK
+```
+
+失败怎么办：把报错全文 + 失败时间，发到论坛「问题求助」。
+
+---
+
+## 2) 确认 API 健康（不消耗额度）
+
+```bash
+curl -fsS -m 5 https://api.clawdrepublic.cn/healthz
+```
+
+你应该看到类似：
+
+```json
+{"ok":true}
+```
+
+---
+
+## 3) 获取 TRIAL_KEY（当前：人工发放）
+
+为了避免被滥用，当前阶段 TRIAL_KEY 先走人工发放。
+
+1) 去论坛发帖申请：https://clawdrepublic.cn/forum/
+2) 正文写清楚 3 件事：用途、预计每天调用次数、想用的模型（不确定就写不确定）
+3) 管理员会私信/回复你一个形如 `trial_...` 的 key
+
+拿到 key 后，在终端设置环境变量：
+
+macOS/Linux（bash/zsh）：
+```bash
+export CLAWD_TRIAL_KEY='trial_xxx'
+```
+
+Windows PowerShell：
+```powershell
+$env:CLAWD_TRIAL_KEY='trial_xxx'
+```
+
+---
+
+## 4) 用 curl 做一次“最小验证”（会消耗试用额度）
+
+看到返回 JSON 里有 `choices` 字段就算成功。
+
+```bash
+curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
+  }'
+```
+
+---
+
+## 5) （可选）把 TRIAL_KEY 接入 OpenClaw（最小可用）
+
+### 5.1 安装 OpenClaw（国内源优先）
+
+```bash
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
+openclaw --version
+```
+
+### 5.2 写入 OpenClaw 配置
+
+把下面内容保存为：`~/.openclaw/openclaw.json`
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": { "primary": "clawd-gateway/deepseek-chat" },
+      "models": {
+        "clawd-gateway/deepseek-chat": {},
+        "clawd-gateway/deepseek-reasoner": {}
+      }
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "clawd-gateway": {
+        "baseUrl": "https://api.clawdrepublic.cn/v1",
+        "apiKey": "${CLAWD_TRIAL_KEY}",
+        "api": "openai-completions",
+        "models": [
+          { "id": "deepseek-chat", "name": "DeepSeek Chat" },
+          { "id": "deepseek-reasoner", "name": "DeepSeek Reasoner" }
+        ]
+      }
+    }
+  }
+}
+```
+
+### 5.3 启动并自检
+
+```bash
+openclaw gateway start
+openclaw models status
+```
+
+---
+
+## 6) 常见报错（发帖时直接复制这一段也行）
+
+- `curl: (28) ... timeout`：网络不通/被拦/临时波动；请附上失败时间与命令全文
+- `401/403`：TRIAL_KEY 不对/未开通/过期；请私信管理员核对
+- `429`：超过当日试用次数上限（正常的限流行为）
+- `5xx`：服务端异常；请附上失败时间、返回内容
+
+---
+
+## 7) （管理员/运维）一键自检 quota-proxy（建议收藏）
+
+如果你在服务器上部署了 quota-proxy，推荐用仓库自带脚本做巡检（会自动读 `/tmp/server.txt`，或用 `CLAWD_SERVER_HOST` 覆盖）：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 组合检查：compose ps + 127.0.0.1:8787/healthz + 端口是否误暴露（0.0.0.0）
+./scripts/ssh-quota-proxy-status.sh --json | python3 -m json.tool
+```
+
+更多巡检/验收命令见：`docs/ops-server-healthcheck.md`
