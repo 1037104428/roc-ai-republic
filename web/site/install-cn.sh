@@ -74,37 +74,61 @@ run() {
 
 if command -v node >/dev/null 2>&1; then
   NODE_VER_RAW="$(node -v || true)"
-  echo "[cn-pack] node found: ${NODE_VER_RAW}"
   NODE_MAJOR="${NODE_VER_RAW#v}"
   NODE_MAJOR="${NODE_MAJOR%%.*}"
   if [[ -n "${NODE_MAJOR}" ]] && (( NODE_MAJOR < 20 )); then
-    echo "[cn-pack] Node.js >= 20 is required. Current: ${NODE_VER_RAW}" >&2
+    echo "[cn-pack] ERROR: Node.js version ${NODE_VER_RAW} is too old. OpenClaw requires Node.js >= 20." >&2
+    echo "[cn-pack] Please upgrade Node.js first. See: https://nodejs.org/" >&2
     exit 1
   fi
+  echo "[cn-pack] node found: ${NODE_VER_RAW} (>=20 ✓)"
 else
-  echo "[cn-pack] node not found. Please install Node.js >= 20 first." >&2
+  echo "[cn-pack] ERROR: node not found. Please install Node.js >= 20 first." >&2
+  echo "[cn-pack] Download from: https://nodejs.org/" >&2
   exit 1
 fi
 
 if command -v npm >/dev/null 2>&1; then
   echo "[cn-pack] npm found: $(npm -v)"
 else
-  echo "[cn-pack] npm not found. Please install npm (usually bundled with Node.js)." >&2
+  echo "[cn-pack] ERROR: npm not found. Please install npm (usually bundled with Node.js)." >&2
+  echo "[cn-pack] If you have Node.js but not npm, try reinstalling Node.js or check your PATH." >&2
   exit 1
 fi
 
 install_openclaw() {
   local reg="$1"
-  echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg"
+  local attempt="$2"
+  echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg (attempt: $attempt)"
   # no-audit/no-fund: faster & quieter, especially on slow networks
-  run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund
+  if run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund; then
+    return 0
+  else
+    echo "[cn-pack] Install attempt failed via registry: $reg" >&2
+    return 1
+  fi
 }
 
-if install_openclaw "$REG_CN"; then
-  echo "[cn-pack] Install OK via CN registry."
+# 尝试CN源
+if install_openclaw "$REG_CN" "CN-registry"; then
+  echo "[cn-pack] ✅ Install OK via CN registry."
 else
-  echo "[cn-pack] Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
-  install_openclaw "$REG_FALLBACK"
+  echo "[cn-pack] ⚠️ Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
+  echo "[cn-pack] This may be due to network issues, registry mirror sync delay, or package availability." >&2
+  echo "[cn-pack] Retrying with fallback registry in 2 seconds..." >&2
+  sleep 2
+  
+  if install_openclaw "$REG_FALLBACK" "fallback-registry"; then
+    echo "[cn-pack] ✅ Install OK via fallback registry."
+  else
+    echo "[cn-pack] ❌ Both registry attempts failed." >&2
+    echo "[cn-pack] Troubleshooting steps:" >&2
+    echo "[cn-pack] 1. Check network connectivity: curl -fsS https://registry.npmjs.org" >&2
+    echo "[cn-pack] 2. Verify Node.js version: node -v (requires >=20)" >&2
+    echo "[cn-pack] 3. Try manual install: npm i -g openclaw@${VERSION}" >&2
+    echo "[cn-pack] 4. Report issue: https://github.com/openclaw/openclaw/issues" >&2
+    exit 1
+  fi
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
@@ -130,3 +154,27 @@ cat <<'TXT'
 3) Start gateway: openclaw gateway start
 4) Verify: openclaw status && openclaw models status
 TXT
+
+# Optional health check
+if [[ $DRY_RUN -eq 0 ]]; then
+  echo "[cn-pack] Running post-install health check..."
+  if command -v openclaw >/dev/null 2>&1; then
+    echo "[cn-pack] ✓ openclaw command found: $(openclaw --version 2>/dev/null || echo 'version check failed')"
+    
+    # Check if gateway is running
+    if openclaw gateway status 2>/dev/null | grep -q "running\|active"; then
+      echo "[cn-pack] ✓ OpenClaw gateway is running"
+    else
+      echo "[cn-pack] ℹ️ Gateway not running. Start with: openclaw gateway start"
+    fi
+    
+    # Quick config check
+    if [[ -f ~/.openclaw/openclaw.json ]]; then
+      echo "[cn-pack] ✓ Config file exists: ~/.openclaw/openclaw.json"
+    else
+      echo "[cn-pack] ℹ️ Config file not found. Create with: openclaw config init"
+    fi
+  else
+    echo "[cn-pack] ⚠️ openclaw command not in PATH. Try reopening your terminal or adding npm global bin to PATH"
+  fi
+fi
