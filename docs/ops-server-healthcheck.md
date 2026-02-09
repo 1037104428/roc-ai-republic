@@ -129,9 +129,13 @@ password:YOUR_PASSWORD
 
 # 一键组合状态（healthz + compose + 端口暴露审计）
 # - 默认：人类可读
-# - --json：单行 JSON + 严格退出码（overall_ok=1 才 exit 0）
+# - --json：单行 JSON（含 overall_ok）
+# - 退出码：overall_ok=1 → 0；否则 → 5（便于 cron/CI 直接用 `||` 告警）
 ./scripts/ssh-quota-proxy-status.sh
 ./scripts/ssh-quota-proxy-status.sh --json | python3 -m json.tool
+
+# 失败才告警（示例）
+./scripts/ssh-quota-proxy-status.sh --json >/dev/null || echo "quota-proxy status failed"
 
 # 一键远端拉取日志（排障时用；默认 tail=200；也支持 --follow / --service）
 ./scripts/ssh-logs-quota-proxy.sh --since 10m
