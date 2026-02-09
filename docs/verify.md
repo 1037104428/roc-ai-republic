@@ -256,6 +256,21 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 
 期望输出：包含 `"ok": true` 和数据库连接状态。
 
+**新增：数据库健康检查脚本（更详细）**
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-db-health.sh --host http://127.0.0.1:8788
+
+# 如果需要管理员统计（可选）
+ADMIN_TOKEN='<ADMIN_TOKEN>' ./scripts/verify-db-health.sh --host http://127.0.0.1:8788 --admin-token "$ADMIN_TOKEN"
+```
+
+这个脚本会：
+1. 检查 `/healthz/db` 端点（数据库健康）
+2. 如果有管理员令牌，还会检查 `/admin/usage` 获取详细统计
+3. 输出格式化的 JSON 结果
+
 #### 4.1.2) 管理接口探活（确认 token 保护）
 
 推荐：先跑一个“不会发 key”的安全探活脚本（确认管理接口确实被 token 保护）：
