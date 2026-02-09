@@ -38,11 +38,16 @@ git log -n 10 --date=iso --pretty=format:'%h %ad %s'
 cat /tmp/server.txt
 
 # 约定：/tmp/server.txt 格式
-# - 仅需一行：ip:<HOST>
-# - 允许前后空格（脚本会 trim）
+# - 建议仅一行：ip:<HOST>
+# - 允许前后空格
 # - <HOST> 可以是 IP 或可解析域名
 # 示例：
 #   ip:8.210.185.194
+#
+# 安全提示：不要把密码之类的内容放进 /tmp/server.txt。
+# 如果历史上混入过其它行，可先运行（会原地清理，仅保留 ip 行，并 chmod 600）：
+#   cd /home/kai/.openclaw/workspace/roc-ai-republic
+#   ./scripts/sanitize-server-txt.sh /tmp/server.txt
 ```
 
 ## 服务器探活（quota-proxy）
