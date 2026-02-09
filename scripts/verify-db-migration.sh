@@ -57,7 +57,7 @@ check_migration_files() {
 check_migration_script() {
     print_info "检查迁移脚本..."
     
-    local migrate_script="$QUOTA_PROXY_DIR/db-migrate.js"
+    local migrate_script="$QUOTA_PROXY_DIR/db-migrate.cjs"
     if [ ! -f "$migrate_script" ]; then
         print_error "迁移脚本不存在: $migrate_script"
         return 1
@@ -102,7 +102,7 @@ test_create_migration() {
     print_info "测试创建新迁移..."
     
     local test_migration_name="test-add-column"
-    local migrate_script="$QUOTA_PROXY_DIR/db-migrate.js"
+    local migrate_script="$QUOTA_PROXY_DIR/db-migrate.cjs"
     
     # 创建测试迁移
     if ! node "$migrate_script" create "$test_migration_name" 2>&1 | grep -q "创建迁移文件"; then
@@ -167,23 +167,23 @@ generate_usage_guide() {
     print_info "数据库迁移工具使用说明:"
     echo ""
     echo "1. 查看迁移状态:"
-    echo "   cd $QUOTA_PROXY_DIR && node db-migrate.js status"
+    echo "   cd $QUOTA_PROXY_DIR && node db-migrate.cjs status"
     echo ""
     echo "2. 应用所有待处理迁移:"
-    echo "   cd $QUOTA_PROXY_DIR && node db-migrate.js migrate"
+    echo "   cd $QUOTA_PROXY_DIR && node db-migrate.cjs migrate"
     echo ""
     echo "3. 创建新迁移:"
-    echo "   cd $QUOTA_PROxy_DIR && node db-migrate.js create \"迁移描述\""
+    echo "   cd $QUOTA_PROxy_DIR && node db-migrate.cjs create \"迁移描述\""
     echo ""
     echo "4. 指定数据库路径:"
-    echo "   DB_PATH=/path/to/database.db node db-migrate.js status"
+    echo "   DB_PATH=/path/to/database.db node db-migrate.cjs status"
     echo ""
     echo "5. 集成到Docker部署:"
     echo "   在Dockerfile中添加:"
     echo "   COPY db-migrations/ /app/db-migrations/"
-    echo "   COPY db-migrate.js /app/"
+    echo "   COPY db-migrate.cjs /app/"
     echo "   RUN npm install sqlite3"
-    echo "   CMD [\"sh\", \"-c\", \"node db-migrate.js migrate && node server-sqlite.js\"]"
+    echo "   CMD [\"sh\", \"-c\", \"node db-migrate.cjs migrate && node server-sqlite.js\"]"
 }
 
 # 主函数

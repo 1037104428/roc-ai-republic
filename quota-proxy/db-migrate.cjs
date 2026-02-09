@@ -296,7 +296,7 @@ function printHelp() {
 数据库迁移工具
 
 用法:
-  node db-migrate.js [命令] [参数]
+  node db-migrate.cjs [命令] [参数]
 
 命令:
   migrate     应用所有待处理的迁移
@@ -308,9 +308,9 @@ function printHelp() {
   DB_PATH     数据库文件路径 (默认: ./quota-proxy.db)
 
 示例:
-  node db-migrate.js status
-  node db-migrate.js migrate
-  node db-migrate.js create "add-user-table"
+  node db-migrate.cjs status
+  node db-migrate.cjs migrate
+  node db-migrate.cjs create "add-user-table"
     `);
 }
 
