@@ -23,8 +23,10 @@ Examples:
   ./scripts/ssh-portforward-quota-proxy-admin.sh --host root@8.210.185.194
 
 Then (in another terminal):
-  BASE_URL=http://127.0.0.1:8788 ADMIN_TOKEN=... ./scripts/curl-admin-create-key.sh
-  BASE_URL=http://127.0.0.1:8788 ADMIN_TOKEN=... ./scripts/curl-admin-usage.sh --mask
+  BASE_URL=http://127.0.0.1:8788 CLAWD_ADMIN_TOKEN=... ./scripts/curl-admin-create-key.sh
+  BASE_URL=http://127.0.0.1:8788 CLAWD_ADMIN_TOKEN=... ./scripts/curl-admin-usage.sh --mask
+
+  # (ADMIN_TOKEN legacy env var also supported)
 
 Tip:
   Keep this SSH session running while you do admin curls.

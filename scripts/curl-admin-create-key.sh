@@ -4,11 +4,12 @@ set -euo pipefail
 # curl-admin-create-key.sh
 # Helper for creating a trial key via quota-proxy admin endpoint.
 #
-# Requirements:
-#   - ADMIN_TOKEN env var
+# Auth env vars (either works):
+#   - CLAWD_ADMIN_TOKEN (preferred)
+#   - ADMIN_TOKEN       (legacy)
 #
 # Examples:
-#   ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+#   CLAWD_ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
 #     bash scripts/curl-admin-create-key.sh --label 'forum-user:alice' --pretty
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
@@ -20,8 +21,11 @@ DRY_RUN=0
 usage() {
   cat <<'EOF'
 Usage:
-  ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-create-key.sh \
+  CLAWD_ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-create-key.sh \
     [--label TEXT] [--pretty] [--dry-run]
+
+  # Legacy env var name also supported
+  ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-create-key.sh --pretty
 
 Notes:
   - POST /admin/keys requires persistence enabled (SQLITE_PATH).
@@ -48,8 +52,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "${ADMIN_TOKEN:-}" ]]; then
-  echo "ADMIN_TOKEN is required" >&2
+TOKEN="${CLAWD_ADMIN_TOKEN:-${ADMIN_TOKEN:-}}"
+if [[ -z "$TOKEN" ]]; then
+  echo "CLAWD_ADMIN_TOKEN (preferred) or ADMIN_TOKEN (legacy) is required" >&2
   exit 2
 fi
 
@@ -70,7 +75,7 @@ URL=${url}
 BODY=${body}
 
 curl -fsS -X POST "${url}" \
-  -H "Authorization: Bearer \${ADMIN_TOKEN}" \
+  -H "Authorization: Bearer \${CLAWD_ADMIN_TOKEN:-\${ADMIN_TOKEN}}" \
   -H 'content-type: application/json' \
   -d '${body}'
 EOF
@@ -78,7 +83,7 @@ EOF
 fi
 
 out=$(curl -fsS -X POST "$url" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H "Authorization: Bearer ${TOKEN}" \
   -H 'content-type: application/json' \
   -d "$body")
 

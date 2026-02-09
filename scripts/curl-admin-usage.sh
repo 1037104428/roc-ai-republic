@@ -4,11 +4,12 @@ set -euo pipefail
 # curl-admin-usage.sh
 # Helper for fetching usage via quota-proxy admin endpoint.
 #
-# Requirements:
-#   - ADMIN_TOKEN env var
+# Auth env vars (either works):
+#   - CLAWD_ADMIN_TOKEN (preferred)
+#   - ADMIN_TOKEN       (legacy)
 #
 # Examples:
-#   ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+#   CLAWD_ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
 #     bash scripts/curl-admin-usage.sh --day "$(date +%F)" --limit 50 --pretty
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
@@ -23,11 +24,14 @@ MASK=0
 usage() {
   cat <<'EOF'
 Usage:
-  ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-usage.sh \
+  CLAWD_ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-usage.sh \
     [--day YYYY-MM-DD] [--key KEY] [--limit N] [--pretty] [--mask]
 
   # Or pass baseUrl explicitly (overrides BASE_URL env)
-  ADMIN_TOKEN=... bash scripts/curl-admin-usage.sh --base-url http://127.0.0.1:8787 --pretty
+  CLAWD_ADMIN_TOKEN=... bash scripts/curl-admin-usage.sh --base-url http://127.0.0.1:8787 --pretty
+
+  # Legacy env var name also supported
+  ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-usage.sh --pretty
 
 Notes:
   - GET /admin/usage requires persistence enabled (SQLITE_PATH).
@@ -61,8 +65,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "${ADMIN_TOKEN:-}" ]]; then
-  echo "ADMIN_TOKEN is required" >&2
+TOKEN="${CLAWD_ADMIN_TOKEN:-${ADMIN_TOKEN:-}}"
+if [[ -z "$TOKEN" ]]; then
+  echo "CLAWD_ADMIN_TOKEN (preferred) or ADMIN_TOKEN (legacy) is required" >&2
   exit 2
 fi
 
@@ -101,12 +106,12 @@ fi
 url="${BASE_URL%/}/admin/usage${q}"
 
 out=$(curl -fsS "$url" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}")
+  -H "Authorization: Bearer ${TOKEN}")
 
 # Optional redaction for log sharing.
 if [[ "$MASK" == "1" ]]; then
   out=$(python3 - <<'PY'
-import json, re, sys
+import json, sys
 s = sys.stdin.read()
 try:
   data = json.loads(s)
