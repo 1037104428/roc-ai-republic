@@ -46,6 +46,9 @@ TRIAL_KEY 获取方式（临时）：
 - 快速生成 TRIAL_KEY 脚本：`scripts/admin-quick-keygen.sh`
   - 用法：`./scripts/admin-quick-keygen.sh "标签" 配额`
   - 示例：`./scripts/admin-quick-keygen.sh "新手试用" 100000`
+- API 验证脚本：`scripts/verify-admin-api.sh`
+  - 用法：`./scripts/verify-admin-api.sh [base_url] [admin_token]`
+  - 示例：`./scripts/verify-admin-api.sh http://127.0.0.1:8787 my_admin_token`
 - 详细指南：`docs/admin-quick-keygen.md`
 - 本地生成 trial key（curl 示例）：
   - `export ADMIN_TOKEN=...`
