@@ -13,7 +13,7 @@ Usage:
   ./scripts/ssh-quota-proxy-status.sh [--host <root@ip|ip>] [--json]
 
 Defaults:
-  --host : from /tmp/server.txt (expects: ip:<addr>)
+  --host : from $CLAWD_SERVER_HOST, else /tmp/server.txt (expects: ip:<addr>)
 
 Checks (remote):
   - docker compose ps (via ssh-healthz)
@@ -42,6 +42,11 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown arg: $1"; usage; exit 2;;
   esac
 done
+
+# Prefer explicit env override (useful for cron/CI runners without /tmp/server.txt).
+if [[ -z "${HOST}" && -n "${CLAWD_SERVER_HOST:-}" ]]; then
+  HOST="${CLAWD_SERVER_HOST}"
+fi
 
 # Reuse the host parsing behavior from ssh-healthz-quota-proxy.sh.
 if [[ -z "${HOST}" ]]; then

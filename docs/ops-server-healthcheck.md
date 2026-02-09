@@ -143,6 +143,9 @@ password:YOUR_PASSWORD
 ./scripts/ssh-quota-proxy-status.sh
 ./scripts/ssh-quota-proxy-status.sh --json | python3 -m json.tool
 
+# cron/CI 里推荐显式指定目标（避免 /tmp/server.txt 不存在）
+CLAWD_SERVER_HOST=8.8.8.8 ./scripts/ssh-quota-proxy-status.sh --json | python3 -m json.tool
+
 # 失败才告警（示例）
 ./scripts/ssh-quota-proxy-status.sh --json >/dev/null || echo "quota-proxy status failed"
 
