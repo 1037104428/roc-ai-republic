@@ -172,6 +172,31 @@ curl -s -o /dev/null -w "%{http_code}\n" \
   -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"ping"}]}'
 ```
 
+## 验证脚本
+
+我们提供了完整的验证脚本来测试 SQLite 持久化功能：
+
+```bash
+# 设置环境变量
+export ADMIN_TOKEN=your_admin_token_here
+export QUOTA_PROXY_URL=http://localhost:8787
+
+# 运行完整验证
+./scripts/verify-sqlite-persistence.sh
+```
+
+验证脚本会测试：
+1. 健康检查
+2. 管理员认证
+3. Trial key 创建和持久化
+4. Key 使用和计数
+5. 使用情况查询
+6. 数据清理
+
+## 部署指南
+
+详细的 SQLite 版本部署指南请参考：[sqlite-deployment-guide.md](../docs/sqlite-deployment-guide.md)
+
 ## 下一步（v2 / 可选增强）
 - key 维度策略：有效期 / 日限额（每 key 覆盖）/ 禁用
 - 可选：脱敏审计日志（只保留 request_id / 时间 / key hash / 状态码）
