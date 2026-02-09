@@ -1,0 +1,13 @@
+# OpenClaw workspace-local artifacts (do not commit)
+logs/
+memory/
+local_memory/
+tmp/
+.tmp_*.txt
+tmp_*.sh
+
+# OS/editor
+.DS_Store
+*.swp
+*.swo
+*~
