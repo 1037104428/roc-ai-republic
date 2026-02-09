@@ -9,7 +9,8 @@
 1) 仓库：有新 commit（已 push）。
    - verify：`cd /home/kai/.openclaw/workspace/roc-ai-republic && git show --name-only --oneline <COMMIT>`
 2) 服务器：部署状态变化且可探活（healthz OK）。
-   - verify：`ssh root@$(sed -n 's/^ip://p' /tmp/server.txt) 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'`
+   - verify（推荐脚本）：`cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/ssh-healthz-quota-proxy.sh`
+   - verify（手动 one-liner）：`ssh root@$(sed -n 's/^ip://p' /tmp/server.txt) 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'`
 3) 文档：新增/更新文档且已 push（同 1）。
 4) 脚本：新增/更新脚本并可运行（至少 `bash -n` 或 `--help/--dry-run` 能通过）。
 
