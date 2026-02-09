@@ -43,6 +43,54 @@ SSH_HOST=root@<SERVER_IP> \
 bash ./scripts/probe.sh
 ```
 
+## 0.2) 核心服务一键验证
+
+> 适合项目维护者：检查所有核心服务（quota-proxy、论坛、安装脚本、文档）的完整性。
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-all-core-services.sh
+```
+
+远程服务器验证（需要 SSH 权限）：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-all-core-services.sh --remote
+```
+
+验证内容包括：
+1. **Quota-Proxy 服务** - Docker 容器状态、健康检查端点、数据库健康
+2. **论坛服务** - 容器状态、内网访问
+3. **安装脚本** - 语法检查、故障排除文档
+4. **文档完整性** - 所有关键文档是否存在
+
+输出示例：
+```
+=== 中华AI共和国核心服务验证 ===
+时间: 2026-02-09 18:28:32 CST
+模式: 本地验证
+
+1. Quota-Proxy 服务验证
+  ✓ 验证脚本: verify-quota-proxy.sh 存在
+  ✓ 数据库验证脚本: verify-quota-db-health.sh 存在
+
+2. 论坛服务验证
+  ✓ 论坛验证脚本: verify-forum-access.sh 存在
+  ✓ 论坛修复脚本: fix-forum-subdomain.sh 存在
+
+3. 安装脚本验证
+  ✓ 主安装脚本: install-cn.sh 语法正确
+  ✓ 故障排除文档: install-cn-troubleshooting.md 存在
+
+4. 文档完整性验证
+  ✓ README.md: 存在
+  ✓ docs/quickstart.md: 存在
+  ✓ docs/admin-quick-keygen.md: 存在
+  ✓ docs/verify.md: 存在
+  ✓ docs/forum/status.md: 存在
+```
+
 ## 1) 官网（Landing Page）
 
 ```bash
