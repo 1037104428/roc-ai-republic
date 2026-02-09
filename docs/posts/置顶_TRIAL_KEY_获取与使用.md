@@ -16,6 +16,8 @@
   - 或请求头 `x-trial-key: <TRIAL_KEY>`
 - 目标：让你在**不自己购买/配置上游 key** 的情况下，也能完成一次端到端验证（安装 → 配置 → 调用）。
 
+> 文档约定：对外统一使用环境变量名 `CLAWD_TRIAL_KEY` 来承载 `TRIAL_KEY`。
+
 ## 如何获取 TRIAL_KEY（当前：手动发放）
 
 当前阶段我们**先手动发放**（后续再做自助申请/自动签发）。
@@ -39,9 +41,14 @@
 1) 设置环境变量：
 
 ```bash
-export OPENAI_API_KEY="<你的 TRIAL_KEY>"
+# 把 xxx 换成你拿到的 TRIAL_KEY
+export CLAWD_TRIAL_KEY="xxx"
+
 # OpenAI-compatible 的 base URL 通常需要包含 /v1
 export OPENAI_BASE_URL="https://api.clawdrepublic.cn/v1"
+
+# （可选）很多工具默认读 OPENAI_API_KEY；你也可以把 TRIAL_KEY 映射过去
+export OPENAI_API_KEY="${CLAWD_TRIAL_KEY}"
 ```
 
 2) 验证 healthz（不产生调用成本）：
@@ -53,11 +60,8 @@ curl -fsS https://api.clawdrepublic.cn/healthz
 3) 跑一个最小调用（curl 直连网关；会计入试用额度）：
 
 ```bash
-# 把 xxx 换成你拿到的 TRIAL_KEY
-export TRIAL_KEY="xxx"
-
 curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
-  -H "Authorization: Bearer ${TRIAL_KEY}" \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
   -H 'content-type: application/json' \
   -d '{
     "model": "deepseek-chat",
