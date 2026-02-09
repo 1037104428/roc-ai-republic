@@ -3,15 +3,17 @@ set -euo pipefail
 
 MINUTES=15
 JSON=0
+STRICT=0
 
 usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/check-artifact-window.sh [--minutes N] [--json]
+  bash scripts/check-artifact-window.sh [--minutes N] [--json] [--strict]
 
 Notes:
   - Default window is 15 minutes.
   - --json emits a machine-readable summary (no noisy logs).
+  - --strict exits non-zero when required checks fail (admin is optional).
 EOF
 }
 
@@ -23,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --json)
       JSON=1
+      shift
+      ;;
+    --strict)
+      STRICT=1
       shift
       ;;
     -h|--help)
@@ -100,8 +106,21 @@ if need_cmd curl; then
   fi
 fi
 
+overall_ok=0
+# In strict mode:
+# - repo must have a commit in window
+# - api must be ok
+# - server may be ok (or skip if server not configured)
+# - admin is optional (ok or skip)
+if [[ "$repo_ok" == "1" ]] \
+  && [[ "$api_status" == "ok" ]] \
+  && ([[ "$server_status" == "ok" ]] || [[ "$server_status" == "skip" ]]) \
+  && ([[ "$admin_status" == "ok" ]] || [[ "$admin_status" == "skip" ]]); then
+  overall_ok=1
+fi
+
 if [[ "$JSON" == "1" ]]; then
-  TS="$TS" MINUTES="$MINUTES" \
+  TS="$TS" MINUTES="$MINUTES" STRICT="$STRICT" OVERALL_OK="$overall_ok" \
   REPO_OK="$repo_ok" REPO_LINE="$repo_line" \
   SERVER_STATUS="$server_status" SERVER_HOST="$server_host" \
   API_STATUS="$api_status" API_BASE_URL="$BASE_URL" \
@@ -115,6 +134,10 @@ def b(v: str) -> bool:
 obj = {
   "ts": os.environ.get("TS",""),
   "minutes": int(os.environ.get("MINUTES","15")),
+  "overall": {
+    "ok": b(os.environ.get("OVERALL_OK","0")),
+    "strict": b(os.environ.get("STRICT","0")),
+  },
   "repo": {
     "ok": b(os.environ.get("REPO_OK","0")),
     "last": os.environ.get("REPO_LINE", ""),
@@ -134,6 +157,9 @@ obj = {
 }
 print(json.dumps(obj, ensure_ascii=False))
 PY
+  if [[ "$STRICT" == "1" ]] && [[ "$overall_ok" != "1" ]]; then
+    exit 1
+  fi
   exit 0
 fi
 
@@ -175,4 +201,10 @@ elif [[ "$admin_status" == "skip" ]]; then
   echo "admin: SKIP (no local port-forward detected; run ./scripts/ssh-portforward-quota-proxy-admin.sh)"
 else
   echo "admin: WARN (healthz not OK; try running ./scripts/probe-quota-proxy-admin.sh for details)"
+fi
+
+if [[ "$STRICT" == "1" ]] && [[ "$overall_ok" != "1" ]]; then
+  echo
+  echo "strict: FAIL (see WARN/fail above)" >&2
+  exit 1
 fi
