@@ -1,8 +1,8 @@
-# quota-proxy v0.1（当前实现）：JSON 持久化 + Admin 管理接口
+# quota-proxy v1.0（当前实现）：SQLite 持久化 + Admin 管理接口
 
-> 目的：把“试用网关”的 **发 key / 查用量** 做成可运营、可验证的最小闭环。
+> 目的：把"试用网关"的 **发 key / 查用量** 做成可运营、可验证的最小闭环。
 >
-> 说明：历史文件名里写的是 v1/SQLite，但**当前线上实现为 v0.1：用 JSON 文件持久化**（环境变量仍沿用 `SQLITE_PATH` 这个名字，后续再切真正 SQLite 不破坏配置）。
+> 说明：当前线上实现为 **v1.0：使用 SQLite 数据库持久化**（环境变量 `SQLITE_PATH` 指向 `/data/quota.db`）。支持完整的增删查改操作，数据持久可靠。
 
 ## 运营发放流程（当前：人工发放）
 
@@ -54,10 +54,37 @@ ssh root@<SERVER_IP> "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' \
   http://127.0.0.1:8787/admin/usage"
 ```
 
+### 综合状态检查脚本
+
+新增 `scripts/check-quota-proxy-status.sh` 脚本，提供一站式状态检查：
+
+```bash
+# 检查本地开发环境
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/check-quota-proxy-status.sh --local
+
+# 检查远程服务器状态（自动读取/tmp/server.txt）
+./scripts/check-quota-proxy-status.sh --remote
+
+# 指定服务器IP和ADMIN_TOKEN
+./scripts/check-quota-proxy-status.sh --remote --ip 8.210.185.194 --token your_admin_token
+
+# 显示帮助信息
+./scripts/check-quota-proxy-status.sh --help
+```
+
+脚本功能：
+- 检查Docker服务状态
+- 验证健康端点
+- 检查SQLite数据库文件
+- 查询key数量和用量统计
+- 测试管理接口可用性
+- 彩色输出，便于快速识别问题
+
 
 ### label 推荐格式（便于运营统计）
 
-建议把 `label` 当作“发放备注”，采用可 grep 的半结构化格式，例如：
+建议把 `label` 当作"发放备注"，采用可 grep 的半结构化格式，例如：
 
 - `forum:<username>`（来源用户）
 - `purpose:<short>`（用途）
@@ -105,8 +132,8 @@ ssh root@<SERVER_IP> "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' \
   - 上游失败（例如 5xx/超时）也会计入次数。
   - 超过上限后返回 429 的那次请求也会计入次数（因为先 +1 再判断）。
 
-> 这套语义的好处是实现简单、能反映“网关承受的请求压力”。
-> 如需“只统计成功请求”或“区分成功/失败”，后续可扩展字段（如 `success_count`/`error_count`）。
+> 这套语义的好处是实现简单、能反映"网关承受的请求压力"。
+> 如需"只统计成功请求"或"区分成功/失败"，后续可扩展字段（如 `success_count`/`error_count`）。
 
 ---
 
@@ -160,8 +187,8 @@ ssh root@<SERVER_IP> "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' \
     - `memory`：纯内存（不推荐生产）
   - `items[]`：用量条目列表（默认按 `updated_at` 倒序）
     - `key`：trial key（外部展示建议脱敏，例如 `trial_abcd…wxyz`）
-    - `label`：签发时写入的备注（建议用“label 推荐格式”）
-    - `req_count`：当天累计请求次数（见“计数语义”）
+    - `label`：签发时写入的备注（建议用"label 推荐格式"）
+    - `req_count`：当天累计请求次数（见"计数语义"）
     - `updated_at`：最后一次更新用量的时间戳（毫秒）
 
 ### 3) 查询最近用量（兼容/运维排查用）
@@ -196,7 +223,7 @@ ssh root@<SERVER_IP> "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' \
 
 ## 验收/验证命令
 
-更完整的“可复制粘贴验收清单”见：`docs/quota-proxy-v1-admin-acceptance.md`。
+更完整的"可复制粘贴验收清单"见：`docs/quota-proxy-v1-admin-acceptance.md`。
 
 ```bash
 # 0) 基础健康检查
