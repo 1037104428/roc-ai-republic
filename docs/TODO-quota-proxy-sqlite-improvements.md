@@ -1,0 +1,77 @@
+# TODO: Quota-Proxy SQLite 持久化改进清单
+
+**创建时间**: 2026-02-10 00:21:53 CST  
+**优先级**: 中等  
+**状态**: 待处理  
+**负责人**: 阿爪推进循环
+
+## 背景
+当前 quota-proxy 已具备基础 SQLite 数据库功能，但需要进一步完善持久化、管理接口和验证机制，以支持生产环境使用。
+
+## 待办事项清单
+
+### 1. SQLite 数据库持久化增强 ✅ 部分完成
+- [x] 基础数据库连接和表结构 (server-sqlite.js)
+- [ ] 数据库连接池优化（防止连接泄漏）
+- [ ] 数据库备份和恢复机制
+- [ ] 数据库迁移脚本（版本管理）
+- [ ] 数据库性能监控（查询耗时统计）
+
+### 2. Admin API 端点完善 ✅ 部分完成
+- [x] `POST /admin/keys` - 生成试用密钥
+- [x] `GET /admin/usage` - 查看使用情况
+- [ ] `DELETE /admin/keys/:key` - 删除密钥
+- [ ] `PUT /admin/keys/:key` - 更新密钥标签
+- [ ] `GET /admin/keys` - 列出所有密钥
+- [ ] `POST /admin/reset-usage` - 重置使用统计
+
+### 3. 安全性增强
+- [x] ADMIN_TOKEN 基础验证
+- [ ] 请求频率限制（防止暴力破解）
+- [ ] IP 白名单支持
+- [ ] 操作日志记录（谁在何时做了什么）
+- [ ] 密钥过期时间支持
+
+### 4. 验证和测试
+- [ ] 单元测试覆盖核心功能
+- [ ] 集成测试（完整 API 流程）
+- [ ] 压力测试（高并发场景）
+- [ ] 数据库恢复测试
+- [ ] 安全渗透测试（基础）
+
+### 5. 部署和运维
+- [ ] Docker 容器数据卷持久化配置
+- [ ] 数据库自动备份脚本
+- [ ] 健康检查端点增强（包含数据库状态）
+- [ ] 监控指标导出（Prometheus 格式）
+- [ ] 日志结构化（JSON 格式）
+
+## 实施优先级
+1. **高优先级**: 数据库连接池优化、操作日志记录
+2. **中优先级**: 完整 Admin API 端点、安全性增强
+3. **低优先级**: 高级监控、压力测试
+
+## 验证命令
+```bash
+# 检查当前数据库状态
+ssh root@8.210.185.194 'cd /opt/roc/quota-proxy && sqlite3 /data/quota.db ".tables"'
+
+# 测试 Admin API 端点
+ADMIN_TOKEN=86107c4b19f1c2b7a4f67550752c4854dba8263eac19340d
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://8.210.185.194:8787/admin/usage
+curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"label":"测试密钥"}' http://8.210.185.194:8787/admin/keys
+
+# 检查容器状态
+ssh root@8.210.185.194 'cd /opt/roc/quota-proxy && docker compose ps'
+```
+
+## 相关文件
+- `quota-proxy/server-sqlite.js` - 主服务器文件
+- `quota-proxy/server-better-sqlite.js` - 优化版本
+- `scripts/check-admin-api-status.sh` - Admin API 验证脚本
+- `scripts/test-admin-api-basic.sh` - 基础测试脚本
+- `docs/admin-api-quick-guide.md` - API 使用指南
+
+## 更新记录
+- 2026-02-10 00:21:53 - 创建 TODO 清单，记录当前状态和待办事项
