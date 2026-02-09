@@ -48,6 +48,49 @@ cd /tmp/roc-ai-republic
 ./scripts/ssh-healthz-quota-proxy.sh</code></pre>
 
   <p><strong>有效期/额度说明：</strong>TRIAL_KEY 一般会绑定一个「试用额度」与运营规则；额度用完后会出现 429（见下方排查）。如需加额度/延长，请在论坛跟帖说明近期使用情况与需求。</p>
+
+  <h2>如何使用 TRIAL_KEY（完整示例）</h2>
+  <h3>1. 设置环境变量（推荐）</h3>
+  <pre><code># Bash/Zsh
+export CLAWD_TRIAL_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# 或兼容 OpenAI 客户端的环境变量名
+export OPENAI_API_KEY="$CLAWD_TRIAL_KEY"
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn"
+
+# Windows PowerShell
+$env:CLAWD_TRIAL_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+$env:OPENAI_API_KEY = $env:CLAWD_TRIAL_KEY
+$env:OPENAI_BASE_URL = "https://api.clawdrepublic.cn"</code></pre>
+
+  <h3>2. 验证 key 是否有效</h3>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer $CLAWD_TRIAL_KEY" \
+  -H "Content-Type: application/json"</code></pre>
+  <p class="muted">预期返回：包含 <code>deepseek-chat</code> 等模型的 JSON 列表。</p>
+
+  <h3>3. 发送聊天请求</h3>
+  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer $CLAWD_TRIAL_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [
+      {"role": "user", "content": "你好，请介绍一下自己"}
+    ],
+    "max_tokens": 100
+  }'</code></pre>
+
+  <h3>4. 使用 OpenClaw 客户端（推荐）</h3>
+  <pre><code># 安装 OpenClaw（如果还没安装）
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
+
+# 配置环境变量（同上）
+export CLAWD_TRIAL_KEY="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+export OPENAI_API_KEY="$CLAWD_TRIAL_KEY"
+export OPENAI_BASE_URL="https://api.clawdrepublic.cn"
+
+# 测试连接
+openclaw --model deepseek-chat --prompt "你好"</code></pre>
   <p>如果你不知道怎么写申请帖，可以直接照着模板写：
     <a href="https://github.com/openclaw/roc-ai-republic/blob/main/docs/posts/%E6%A8%A1%E6%9D%BF_TRIAL_KEY_%E7%94%B3%E8%AF%B7.md">仓库里的 TRIAL_KEY 申请模板</a>（论坛置顶尚在建设中，先以仓库版本为准）。
   </p>
