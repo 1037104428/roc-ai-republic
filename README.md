@@ -43,9 +43,13 @@ TRIAL_KEY 获取方式（临时）：
 
 ## 管理员/运维（quota-proxy）
 - Admin API 规格：`docs/quota-proxy-v1-admin-spec.md`
-- 本地生成 trial key（示例）：
+- 快速生成 TRIAL_KEY 脚本：`scripts/admin-quick-keygen.sh`
+  - 用法：`./scripts/admin-quick-keygen.sh "标签" 配额`
+  - 示例：`./scripts/admin-quick-keygen.sh "新手试用" 100000`
+- 详细指南：`docs/admin-quick-keygen.md`
+- 本地生成 trial key（curl 示例）：
   - `export ADMIN_TOKEN=...`
-  - `curl -fsS -X POST http://127.0.0.1:8787/admin/keys -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"note":"trial"}'`
+  - `curl -fsS -X POST http://127.0.0.1:8787/admin/keys -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"label":"试用","quota":100000}'`
 
 ## 相关链接
 - GitHub：<https://github.com/1037104428/roc-ai-republic>
