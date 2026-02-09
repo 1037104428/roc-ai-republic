@@ -99,57 +99,56 @@ main() {
     echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo ""
     
-    # 测试健康检查端点
-    echo "1. 健康检查端点 (/healthz):"
+    # 测试健康检查端点（通过SSH在服务器内部执行）
+    echo "1. 健康检查端点 (/healthz) - 通过SSH:"
     local healthz_start
     local healthz_end
     local healthz_duration
     
     healthz_start=$(date +%s%N)
-    if curl -fsS -m "$timeout" "http://${server_ip}:${port}/healthz" >/dev/null 2>&1; then
+    if ssh -o ConnectTimeout="$timeout" -o BatchMode=yes "root@${server_ip}" \
+        "curl -fsS -m $timeout http://127.0.0.1:${port}/healthz" >/dev/null 2>&1; then
         healthz_end=$(date +%s%N)
         healthz_duration=$(( (healthz_end - healthz_start) / 1000000 ))
-        echo "   ✓ 成功 - 响应时间: ${healthz_duration}ms"
+        echo "   ✓ 成功 - 总响应时间: ${healthz_duration}ms (包含SSH连接)"
     else
-        echo "   ✗ 失败 - 端点不可用或超时"
+        echo "   ✗ 失败 - SSH连接或端点不可用"
         return 1
     fi
     
-    # 测试验证端点（如果提供了TRIAL_KEY）
+    # 测试验证端点（如果提供了TRIAL_KEY，通过SSH）
     if [[ -n "$trial_key" ]]; then
         echo ""
-        echo "2. 验证端点 (/verify):"
+        echo "2. 验证端点 (/verify) - 通过SSH:"
         local verify_start
         local verify_end
         local verify_duration
         
         verify_start=$(date +%s%N)
-        if curl -fsS -m "$timeout" \
-            -H "Authorization: Bearer ${trial_key}" \
-            "http://${server_ip}:${port}/verify" >/dev/null 2>&1; then
+        if ssh -o ConnectTimeout="$timeout" -o BatchMode=yes "root@${server_ip}" \
+            "curl -fsS -m $timeout -H 'Authorization: Bearer ${trial_key}' http://127.0.0.1:${port}/verify" >/dev/null 2>&1; then
             verify_end=$(date +%s%N)
             verify_duration=$(( (verify_end - verify_start) / 1000000 ))
-            echo "   ✓ 成功 - 响应时间: ${verify_duration}ms"
+            echo "   ✓ 成功 - 总响应时间: ${verify_duration}ms (包含SSH连接)"
         else
             echo "   ✗ 失败 - 验证失败或超时"
         fi
     fi
     
-    # 测试管理员端点（如果提供了管理员令牌）
+    # 测试管理员端点（如果提供了管理员令牌，通过SSH）
     if [[ -n "$admin_token" ]]; then
         echo ""
-        echo "3. 管理员端点 (/admin/keys):"
+        echo "3. 管理员端点 (/admin/keys) - 通过SSH:"
         local admin_start
         local admin_end
         local admin_duration
         
         admin_start=$(date +%s%N)
-        if curl -fsS -m "$timeout" \
-            -H "X-Admin-Token: ${admin_token}" \
-            "http://${server_ip}:${port}/admin/keys" >/dev/null 2>&1; then
+        if ssh -o ConnectTimeout="$timeout" -o BatchMode=yes "root@${server_ip}" \
+            "curl -fsS -m $timeout -H 'X-Admin-Token: ${admin_token}' http://127.0.0.1:${port}/admin/keys" >/dev/null 2>&1; then
             admin_end=$(date +%s%N)
             admin_duration=$(( (admin_end - admin_start) / 1000000 ))
-            echo "   ✓ 成功 - 响应时间: ${admin_duration}ms"
+            echo "   ✓ 成功 - 总响应时间: ${admin_duration}ms (包含SSH连接)"
         else
             echo "   ✗ 失败 - 管理员端点不可用或令牌无效"
         fi
@@ -159,10 +158,11 @@ main() {
     echo "=== 检查完成 ==="
     echo "结束时间: $(date '+%Y-%m-%d %H:%M:%S')"
     echo ""
-    echo "建议:"
-    echo "  - 正常响应时间应 < 100ms"
-    echo "  - 100-500ms 为警告范围"
-    echo "  - > 500ms 需要调查"
+    echo "注意: 响应时间包含 SSH 连接开销"
+    echo "建议基准（包含SSH）:"
+    echo "  - 正常响应时间应 < 500ms"
+    echo "  - 500-1000ms 为警告范围"
+    echo "  - > 1000ms 需要调查"
     echo "  - 可结合 cron 定期监控"
 }
 
