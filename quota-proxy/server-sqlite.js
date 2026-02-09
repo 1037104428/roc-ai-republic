@@ -38,6 +38,97 @@ db.serialize(() => {
 // 中间件
 app.use(express.json());
 
+// 数据库性能监控中间件
+const queryPerformance = {
+    stats: {},
+    
+    // 记录查询耗时
+    recordQuery: function(query, duration) {
+        if (!this.stats[query]) {
+            this.stats[query] = {
+                count: 0,
+                totalTime: 0,
+                minTime: Infinity,
+                maxTime: 0,
+                lastExecuted: null
+            };
+        }
+        
+        const stat = this.stats[query];
+        stat.count++;
+        stat.totalTime += duration;
+        stat.minTime = Math.min(stat.minTime, duration);
+        stat.maxTime = Math.max(stat.maxTime, duration);
+        stat.lastExecuted = new Date().toISOString();
+        
+        // 如果查询耗时超过阈值，记录警告
+        if (duration > 100) { // 100ms 阈值
+            console.warn(`Slow query detected: ${query} took ${duration}ms`);
+        }
+    },
+    
+    // 包装数据库查询方法
+    wrapDatabase: function(db) {
+        const originalAll = db.all.bind(db);
+        const originalRun = db.run.bind(db);
+        const originalGet = db.get.bind(db);
+        
+        db.all = function(sql, params, callback) {
+            const start = Date.now();
+            return originalAll(sql, params, (err, rows) => {
+                const duration = Date.now() - start;
+                queryPerformance.recordQuery(sql, duration);
+                if (callback) callback(err, rows);
+            });
+        };
+        
+        db.run = function(sql, params, callback) {
+            const start = Date.now();
+            return originalRun(sql, params, function(err) {
+                const duration = Date.now() - start;
+                queryPerformance.recordQuery(sql, duration);
+                if (callback) callback.apply(this, arguments);
+            });
+        };
+        
+        db.get = function(sql, params, callback) {
+            const start = Date.now();
+            return originalGet(sql, params, (err, row) => {
+                const duration = Date.now() - start;
+                queryPerformance.recordQuery(sql, duration);
+                if (callback) callback(err, row);
+            });
+        };
+        
+        return db;
+    },
+    
+    // 获取性能统计
+    getStats: function() {
+        const statsArray = Object.entries(this.stats).map(([query, data]) => ({
+            query: query.length > 100 ? query.substring(0, 100) + '...' : query,
+            count: data.count,
+            avgTime: data.count > 0 ? Math.round(data.totalTime / data.count) : 0,
+            minTime: data.minTime === Infinity ? 0 : data.minTime,
+            maxTime: data.maxTime,
+            lastExecuted: data.lastExecuted
+        }));
+        
+        // 按执行次数排序
+        statsArray.sort((a, b) => b.count - a.count);
+        
+        return {
+            totalQueries: Object.values(this.stats).reduce((sum, stat) => sum + stat.count, 0),
+            uniqueQueries: Object.keys(this.stats).length,
+            slowQueries: statsArray.filter(stat => stat.avgTime > 50).length,
+            stats: statsArray.slice(0, 20) // 只返回前20个查询
+        };
+    }
+};
+
+// 包装数据库对象
+queryPerformance.wrapDatabase(db);
+
 // 静态文件服务 - 用于 /apply 页面
 app.use('/apply', express.static(path.join(__dirname, 'apply')));
 
@@ -213,6 +304,16 @@ app.delete('/admin/keys/:key', adminAuth, (req, res) => {
             message: `Key ${key} deleted successfully`,
             deleted: this.changes
         });
+    });
+});
+
+// 数据库性能统计
+app.get('/admin/performance', adminAuth, (req, res) => {
+    const stats = queryPerformance.getStats();
+    res.json({
+        success: true,
+        data: stats,
+        timestamp: new Date().toISOString()
     });
 });
 
