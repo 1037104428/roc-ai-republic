@@ -103,6 +103,17 @@ npm list -g openclaw
 ```
 验证 npm 全局安装是否成功
 
+### 5. API 连通性验证（新增）
+脚本会自动检查以下 API 连通性：
+
+1. **quota-proxy API**：如果配置中包含 `api.clawdrepublic.cn`，会自动测试 `/healthz` 端点
+2. **论坛连通性**：自动测试 `https://clawdrepublic.cn/forum/` 是否可访问
+
+**跳过 API 检查**：
+```bash
+SKIP_API_CHECK=1 curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
+```
+
 ## 故障排除
 
 ### 问题：`openclaw: command not found`

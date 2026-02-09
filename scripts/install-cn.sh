@@ -195,6 +195,33 @@ if [[ $DRY_RUN -eq 0 ]]; then
     # Additional diagnostics for troubleshooting
     echo "[cn-pack] Running additional diagnostics..."
     
+    # API connectivity check (optional, can be skipped with env var)
+    if [[ -z "${SKIP_API_CHECK:-}" ]] && command -v curl >/dev/null 2>&1; then
+      echo "[cn-pack] Checking API connectivity..."
+      
+      # Check quota-proxy API (if configured)
+      if [[ -f ~/.openclaw/openclaw.json ]] && grep -q "api.clawdrepublic.cn" ~/.openclaw/openclaw.json 2>/dev/null; then
+        echo "[cn-pack] Testing quota-proxy API connectivity..."
+        if curl -fsS -m 5 https://api.clawdrepublic.cn/healthz 2>/dev/null | grep -q '"ok":true'; then
+          echo "[cn-pack] ✓ quota-proxy API is reachable"
+        else
+          echo "[cn-pack] ℹ️ quota-proxy API not reachable (may need TRIAL_KEY)"
+        fi
+      fi
+      
+      # Check forum connectivity
+      echo "[cn-pack] Testing forum connectivity..."
+      if curl -fsS -m 5 https://clawdrepublic.cn/forum/ 2>/dev/null | grep -q "Clawd 国度论坛"; then
+        echo "[cn-pack] ✓ Forum is reachable"
+      else
+        echo "[cn-pack] ℹ️ Forum not reachable (check network or DNS)"
+      fi
+    elif [[ -n "${SKIP_API_CHECK:-}" ]]; then
+      echo "[cn-pack] ℹ️ API connectivity check skipped (SKIP_API_CHECK set)"
+    else
+      echo "[cn-pack] ℹ️ curl not found, skipping API connectivity check"
+    fi
+    
     # Check npm global installation
     if npm list -g openclaw 2>/dev/null | grep -q "openclaw@"; then
       echo "[cn-pack] ✓ OpenClaw is installed globally via npm"
