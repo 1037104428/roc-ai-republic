@@ -1,6 +1,6 @@
 # 验收 / 验证清单（小白可复制）
 
-> 目标：任何时候都能用最少的命令，确认“官网 / 下载脚本 / API 网关 / quota-proxy 现网”是否健康。
+> 目标：任何时候都能用最少的命令，确认“官网 / 下载脚本 / API 网关 / quota-proxy 现网 / 管理界面”是否健康。
 
 ## 0) 本地仓库（文档/脚本是否一致）
 
@@ -259,4 +259,43 @@ cat <<'EOF' | ./scripts/append-progress-log.sh --stdin \
   --file '/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md'
 - verify: BASE_URL=https://api.clawdrepublic.cn; curl -fsS "${BASE_URL}/healthz"
 EOF
+
+## 6) 管理界面部署验证
+
+### 6.1) 管理界面部署脚本验证
+
+```bash
+# 检查部署脚本语法
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+bash -n scripts/deploy-admin-interface.sh
+
+# 查看部署脚本帮助
+./scripts/deploy-admin-interface.sh --help
+
+# 模拟运行部署（不实际执行）
+./scripts/deploy-admin-interface.sh --dry-run
+```
+
+### 6.2) 重建脚本验证
+
+```bash
+# 检查重建脚本语法
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+bash -n scripts/rebuild-quota-proxy-with-admin.sh
+
+# 查看重建脚本帮助
+./scripts/rebuild-quota-proxy-with-admin.sh --help
+```
+
+### 6.3) 管理界面健康检查
+
+```bash
+# 检查管理界面健康端点（需要 ADMIN_TOKEN）
+ADMIN_TOKEN='<ADMIN_TOKEN>'
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \
+  http://127.0.0.1:8787/admin/health && echo 'admin health: OK'
+
+# 检查管理界面页面（无需 token，但需要部署）
+curl -fsS http://127.0.0.1:8787/admin && echo 'admin page: OK'
+```
 ```
