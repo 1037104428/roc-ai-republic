@@ -53,6 +53,42 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 
 ---
 
+## 1.1) 撤销/禁用一个 TRIAL_KEY（管理员）
+
+> 典型场景：Key 泄漏、滥用、用户已转正、或需要更换新 key。
+
+### 情况 A：纯内存模式（`mode=memory`）
+
+```bash
+export ADMIN_TOKEN='***'
+export TRIAL_KEY='trial_xxx'
+
+curl -fsS -X DELETE "http://127.0.0.1:8787/admin/keys/${TRIAL_KEY}" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+### 情况 B：SQLite 持久化模式（`mode=file`）
+
+当前版本在 `server-sqlite.js` 里**尚未提供** `DELETE /admin/keys/:key`；如需撤销，可以在服务器本机手动从数据库移除（可回滚前提：你先备份 db 文件）：
+
+```bash
+# ⚠️ 只在服务器本机执行；先备份
+cp -a /data/quota.db "/data/quota.db.bak.$(date +%F_%H%M%S)"
+
+sqlite3 /data/quota.db "DELETE FROM trial_keys WHERE key='trial_xxx';"
+```
+
+> 撤销后该 key 继续被使用时，网关应返回 401/403（取决于实现与鉴权模式）。
+
+## 1.2) 发放策略建议（运维口径）
+
+- **有效期**：建议在 label 里写明发放日 + 预期有效期（例如 `2026-02-09/7d`），方便人工巡检。
+- **权限边界**：TRIAL_KEY 仅用于试用调用，不保证稳定 SLA；可随时撤销。
+- **额度口径**：若当前只做“请求次数”限制，建议在发放时同步告知：一次请求≠一次成功（上游失败也可能计入）。
+- **最小暴露**：管理口永远只在 127.0.0.1；对外只暴露反代后的 API 口。
+
+---
+
 ## 2) 查询用量（按天聚合）
 
 > 推荐把 `day=YYYY-MM-DD` 作为唯一正式口径（可做报表）。
