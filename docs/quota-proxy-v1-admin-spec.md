@@ -90,6 +90,7 @@ ssh -o BatchMode=yes -o ConnectTimeout=8 root@<server_ip> \
 
 `POST /admin/keys`
 
+- 推荐脚本：`./scripts/curl-admin-create-key.sh`（减少 curl 参数拼错；便于贴给新人复现）
 - 鉴权：必须携带 `ADMIN_TOKEN`
 - 前置：必须开启持久化（设置 `SQLITE_PATH`），否则返回 400
 - body：
@@ -108,6 +109,7 @@ ssh -o BatchMode=yes -o ConnectTimeout=8 root@<server_ip> \
 
 `GET /admin/usage?day=YYYY-MM-DD&key=<optional>`
 
+- 推荐脚本：`./scripts/curl-admin-usage.sh`（支持 `--pretty/--mask/--base-url`，适合贴日志）
 - 鉴权：必须携带 `ADMIN_TOKEN`
 - 说明：
   - `day`：推荐必填（稳定、可报表化）
