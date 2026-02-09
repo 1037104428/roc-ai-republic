@@ -6,6 +6,7 @@
 - 背景：当前服务器上论坛容器内部可用（127.0.0.1:8081），但外部访问 `forum.clawdrepublic.cn` 仍是 502（反向代理/上游配置需要修复）。
 - 交付物：
   - 一份最小可复现的修复方案（Caddy 或 Nginx 二选一）：域名 → 反代到 127.0.0.1:8081
+  - 一键修复脚本：`scripts/fix-forum-502.sh`（自动检查并修复配置）
   - 验证命令（至少包含）：
     - `curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null`（或 https）
     - 服务器侧：`curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null`
@@ -34,6 +35,14 @@
     ```
     - 验证/重载（示例）：`nginx -t && systemctl reload nginx`
 - 验收标准：外网 HTTP 200（非 502），并在 `scripts/probe.sh` 的 forum 探活里能体现 ok。
+- 一键修复脚本用法：
+  ```bash
+  # 确保 /tmp/server.txt 包含服务器IP
+  echo "ip=8.210.185.194" > /tmp/server.txt
+  
+  # 运行修复脚本
+  ./scripts/fix-forum-502.sh
+  ```
 - 备注：论坛 MVP 的"选型/完整部署方案草案"仍见 `docs/forum-deployment-research.md`（偏 Discourse 方向，可后续继续完善）。
 
 ## T2 - 工程：内容导出/静态归档方案（防故障、防误删）
