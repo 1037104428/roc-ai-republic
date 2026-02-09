@@ -76,8 +76,26 @@ curl -fsS -X DELETE "http://127.0.0.1:8787/admin/keys/${TRIAL_KEY}" \
 
 ### 情况 B：SQLite 持久化模式（`mode=file`）
 
-当前版本在 `server-sqlite.js` 里**尚未提供** `DELETE /admin/keys/:key`；如需撤销，可以在服务器本机手动从数据库移除（可回滚前提：你先备份 db 文件）：
+当前版本在 `server-sqlite.js` 里**已提供** `DELETE /admin/keys/:key` 接口：
 
+```bash
+# 使用 HTTP DELETE 接口撤销 key
+curl -fsS -X DELETE \
+  "http://127.0.0.1:8787/admin/keys/sk-49fc7ef5b6c0c8c2c08fab4f9b21c302ad84ff4a24da4f03" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+成功响应：
+```json
+{"deleted":true}
+```
+
+如果 key 不存在：
+```json
+{"error":{"message":"Key not found"}}
+```
+
+**备选方案**（手动数据库操作，可回滚前提：先备份 db 文件）：
 ```bash
 # ⚠️ 只在服务器本机执行；先备份
 cp -a /data/quota.db "/data/quota.db.bak.$(date +%F_%H%M%S)"

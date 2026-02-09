@@ -167,9 +167,31 @@ curl -fsS http://127.0.0.1:8787/admin/keys \
 ```
 
 ### 4) 撤销 / 禁用某个 key（管理员）
-当前 v1（SQLite）实现**未提供**"撤销 key"的 HTTP 接口（避免误操作/需要更明确的审计与权限边界）。
+v1（SQLite）实现提供了 HTTP DELETE 接口来撤销 key：
 
-可回滚的做法（推荐先备份 DB）：
+```bash
+# 删除指定的 trial key（会级联删除 daily_usage 记录）
+curl -fsS -X DELETE \
+  "http://127.0.0.1:8787/admin/keys/sk-49fc7ef5b6c0c8c2c08fab4f9b21c302ad84ff4a24da4f03" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+成功响应：
+```json
+{"deleted":true}
+```
+
+如果 key 不存在：
+```json
+{"error":{"message":"Key not found"}}
+```
+
+**安全建议**：
+1. 操作前建议先备份数据库
+2. 删除操作不可逆（会同时删除用量记录）
+3. 建议在管理界面中集成二次确认
+
+手动数据库操作（备选方案）：
 ```bash
 # 1) 进入服务器（示例：compose 运行目录）
 cd /opt/roc/quota-proxy
