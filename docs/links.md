@@ -17,3 +17,8 @@
 ## 平台
 - Clawd 国度（本站）：https://clawdrepublic.cn
 - API：https://api.clawdrepublic.cn
+
+## 服务
+- quota-proxy（试用网关）
+  - 说明：docs/quota-proxy_TRIAL_KEY_发放与使用.md
+  - 健康检查：https://api.clawdrepublic.cn/healthz
