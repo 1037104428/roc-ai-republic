@@ -85,11 +85,27 @@ if need_cmd curl; then
   fi
 fi
 
+# --- local admin probe (optional; expects SSH port-forward) ---
+ADMIN_BASE_URL_DEFAULT="http://127.0.0.1:8788"
+ADMIN_BASE_URL="${ADMIN_BASE_URL:-$ADMIN_BASE_URL_DEFAULT}"
+admin_status="skip"
+if need_cmd curl; then
+  code=$(curl -sS -m 2 -o /dev/null -w '%{http_code}' "${ADMIN_BASE_URL%/}/healthz" 2>/dev/null || true)
+  if [[ "$code" == "200" ]]; then
+    admin_status="ok"
+  elif [[ "$code" == "000" ]]; then
+    admin_status="skip" # probably no port-forward
+  else
+    admin_status="fail"
+  fi
+fi
+
 if [[ "$JSON" == "1" ]]; then
   TS="$TS" MINUTES="$MINUTES" \
   REPO_OK="$repo_ok" REPO_LINE="$repo_line" \
   SERVER_STATUS="$server_status" SERVER_HOST="$server_host" \
   API_STATUS="$api_status" API_BASE_URL="$BASE_URL" \
+  ADMIN_STATUS="$admin_status" ADMIN_BASE_URL="$ADMIN_BASE_URL" \
   python3 - <<'PY'
 import json, os
 
@@ -110,6 +126,10 @@ obj = {
   "api": {
     "status": os.environ.get("API_STATUS","skip"),
     "baseUrl": os.environ.get("API_BASE_URL",""),
+  },
+  "admin": {
+    "status": os.environ.get("ADMIN_STATUS","skip"),
+    "baseUrl": os.environ.get("ADMIN_BASE_URL",""),
   },
 }
 print(json.dumps(obj, ensure_ascii=False))
@@ -144,4 +164,15 @@ if need_cmd curl; then
   ./scripts/probe-roc-api.sh
 else
   echo "api: SKIP (curl not available)"
+fi
+
+echo
+
+echo "admin: probing ${ADMIN_BASE_URL} (optional; expects SSH port-forward)"
+if [[ "$admin_status" == "ok" ]]; then
+  ./scripts/probe-quota-proxy-admin.sh
+elif [[ "$admin_status" == "skip" ]]; then
+  echo "admin: SKIP (no local port-forward detected; run ./scripts/ssh-portforward-quota-proxy-admin.sh)"
+else
+  echo "admin: WARN (healthz not OK; try running ./scripts/probe-quota-proxy-admin.sh for details)"
 fi
