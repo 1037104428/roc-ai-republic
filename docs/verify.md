@@ -260,9 +260,45 @@ cat <<'EOF' | ./scripts/append-progress-log.sh --stdin \
 - verify: BASE_URL=https://api.clawdrepublic.cn; curl -fsS "${BASE_URL}/healthz"
 EOF
 
-## 6) 管理界面部署验证
+## 6) 论坛 502 修复验证
 
-### 6.1) 管理界面部署脚本验证
+### 6.1) 论坛 502 修复脚本验证
+
+```bash
+# 检查修复脚本语法
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+bash -n scripts/fix-forum-502.sh
+
+# 查看修复脚本帮助
+./scripts/fix-forum-502.sh --help
+
+# 生成 Caddy 配置（预览）
+./scripts/fix-forum-502.sh --caddy
+
+# 生成 Nginx 配置（预览）
+./scripts/fix-forum-502.sh --nginx
+
+# 验证论坛是否可访问（本地检查）
+./scripts/fix-forum-502.sh --verify
+```
+
+### 6.2) 论坛状态检查
+
+```bash
+# 检查论坛外网可访问性（期望 502 错误）
+curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null && echo "论坛可访问" || echo "论坛502错误（预期）"
+
+# 检查论坛内网服务是否运行（需要 SSH 访问）
+ssh root@<SERVER_IP> 'curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null && echo "Flarum 内网服务正常" || echo "Flarum 内网服务异常"'
+
+# 使用仓库脚本检查
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/fix-forum-502.sh --verify
+```
+
+## 7) 管理界面部署验证
+
+### 7.1) 管理界面部署脚本验证
 
 ```bash
 # 检查部署脚本语法
