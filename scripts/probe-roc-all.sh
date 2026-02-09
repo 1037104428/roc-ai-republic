@@ -24,7 +24,7 @@ API_HEALTHZ_URL="${API_HEALTHZ_URL:-https://api.clawdrepublic.cn/healthz}"
 INSTALL_URL="${INSTALL_URL:-https://clawdrepublic.cn/install-cn.sh}"
 QUOTA_PROXY_PAGE="${QUOTA_PROXY_PAGE:-https://clawdrepublic.cn/quota-proxy.html}"
 
-log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$*"; }
+log() { printf -- '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$*"; }
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -90,7 +90,7 @@ if [[ "$MODE" == "json" ]]; then
   all_ok=0
   if [[ $home_ok -eq 1 && $api_ok -eq 1 && $install_ok -eq 1 && $quota_page_ok -eq 1 && $server_ok -eq 1 ]]; then all_ok=1; fi
 
-  printf '{"ts":"%s","home_ok":%s,"api_ok":%s,"install_ok":%s,"quota_page_ok":%s,"server_ok":%s,"all_ok":%s}\n' \
+  printf -- '{"ts":"%s","home_ok":%s,"api_ok":%s,"install_ok":%s,"quota_page_ok":%s,"server_ok":%s,"all_ok":%s}\n' \
     "$ts" \
     "$([[ $home_ok -eq 1 ]] && echo true || echo false)" \
     "$([[ $api_ok -eq 1 ]] && echo true || echo false)" \

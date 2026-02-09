@@ -47,7 +47,7 @@ SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519_roc_server}"
 curl_flags=( -fsS -m 8 )
 ssh_flags=( -i "$SSH_KEY" -o BatchMode=yes -o ConnectTimeout=8 )
 
-log() { printf '[%s] %s\n' "$(date '+%F %T')" "$*"; }
+log() { printf -- '[%s] %s\n' "$(date '+%F %T')" "$*"; }
 
 log "web:  ${WEB_URL}/"
 curl "${curl_flags[@]}" "${WEB_URL}/" >/dev/null
@@ -59,7 +59,7 @@ log "api:  ${API_URL}/v1/models (optional; should return JSON)"
 if ! curl "${curl_flags[@]}" "${API_URL}/v1/models" | head -c 200; then
   log "warn: /v1/models not available (ok for older deployments)"
 fi
-printf '\n'
+printf -- '\n'
 
 log "forum: ${WEB_URL}${FORUM_PATH}"
 # Prefer status-code probe (stable). Optionally print a short hint from HTML title.
