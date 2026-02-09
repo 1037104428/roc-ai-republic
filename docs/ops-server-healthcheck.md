@@ -47,6 +47,53 @@ ssh -o BatchMode=yes root@<server-ip> 'echo ok'
 
 ## 维护工具
 
+### 站点部署工具
+
+新增了两个脚本用于部署和验证 landing page：
+
+#### 1. 部署脚本 (`scripts/deploy-landing-page.sh`)
+
+将静态站点文件部署到服务器：
+
+```bash
+# 基本用法
+./scripts/deploy-landing-page.sh
+
+# 指定服务器文件
+SERVER_FILE=/path/to/server.txt ./scripts/deploy-landing-page.sh
+
+# 干运行（只显示命令不执行）
+./scripts/deploy-landing-page.sh --dry-run
+
+# 指定远程目录
+./scripts/deploy-landing-page.sh --remote-dir /opt/roc/web
+```
+
+#### 2. 验证脚本 (`scripts/verify-landing-page.sh`)
+
+验证 landing page 所有关键组件是否正常工作：
+
+```bash
+# 运行完整验证
+./scripts/verify-landing-page.sh
+
+# 输出示例：
+# [INFO] Starting landing page verification...
+# [INFO] Checking Main site: https://clawdrepublic.cn/
+# [INFO]   ✓ Main site is accessible
+# ...
+# [INFO] Verification complete!
+# [INFO] Pass: 8, Fail: 0
+# [INFO] ✓ All checks passed! Landing page is fully operational.
+```
+
+验证内容包括：
+- 主站点可访问性
+- 关键页面（quickstart、quota-proxy、downloads）
+- API 网关健康状态
+- 论坛可访问性
+- 安装脚本可用性
+
 ### 清理旧备份文件
 
 quota-proxy 部署过程中可能会产生多个备份文件。使用以下脚本清理旧备份：
