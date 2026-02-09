@@ -11,3 +11,13 @@ tmp_*.sh
 *.swp
 *.swo
 *~
+
+# OpenClaw agent identity/config (local)
+AGENTS.md
+SOUL.md
+TOOLS.md
+USER.md
+HEARTBEAT.md
+IDENTITY.md
+MEMORY.md
+memory/
