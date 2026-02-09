@@ -92,14 +92,31 @@ if need_cmd curl; then
 fi
 
 # --- local admin probe (optional; expects SSH port-forward) ---
+# Goal: if port-forward exists, confirm (a) /healthz is reachable and (b) admin endpoints are not accidentally public.
 ADMIN_BASE_URL_DEFAULT="http://127.0.0.1:8788"
 ADMIN_BASE_URL="${ADMIN_BASE_URL:-$ADMIN_BASE_URL_DEFAULT}"
 admin_status="skip"
 if need_cmd curl; then
-  code=$(curl -sS -m 2 -o /dev/null -w '%{http_code}' "${ADMIN_BASE_URL%/}/healthz" 2>/dev/null || true)
-  if [[ "$code" == "200" ]]; then
-    admin_status="ok"
-  elif [[ "$code" == "000" ]]; then
+  healthz_code=$(curl -sS -m 2 -o /dev/null -w '%{http_code}' "${ADMIN_BASE_URL%/}/healthz" 2>/dev/null || true)
+  if [[ "$healthz_code" == "200" ]]; then
+    # Without token, admin endpoints should refuse (401/403). If they return 200, that's a security bug.
+    unauth_code=$(curl -sS -m 2 -o /dev/null -w '%{http_code}' "${ADMIN_BASE_URL%/}/admin/usage" 2>/dev/null || true)
+    if [[ "$unauth_code" == "401" || "$unauth_code" == "403" ]]; then
+      admin_status="ok"
+      # If an admin token is provided, also verify the happy-path works.
+      token="${CLAWD_ADMIN_TOKEN:-${ADMIN_TOKEN:-}}"
+      if [[ -n "$token" ]]; then
+        auth_code=$(curl -sS -m 2 -H "Authorization: Bearer ${token}" -o /dev/null -w '%{http_code}' "${ADMIN_BASE_URL%/}/admin/usage" 2>/dev/null || true)
+        if [[ "$auth_code" != "200" ]]; then
+          admin_status="fail"
+        fi
+      fi
+    elif [[ "$unauth_code" == "000" ]]; then
+      admin_status="fail" # healthz OK but admin endpoint not reachable? weird; flag it.
+    else
+      admin_status="fail"
+    fi
+  elif [[ "$healthz_code" == "000" ]]; then
     admin_status="skip" # probably no port-forward
   else
     admin_status="fail"
