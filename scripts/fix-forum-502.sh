@@ -1,216 +1,212 @@
-#!/bin/bash
-# fix-forum-502.sh - 修复论坛 forum.clawdrepublic.cn 502 错误
-# 中等落地：修复 Caddy 配置，使论坛子域名可访问
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+# 修复 forum.clawdrepublic.cn 502 错误
+# 问题：Flarum 运行在 127.0.0.1:8081，但外网反向代理未正确配置
+# 此脚本提供 Caddy/Nginx 配置修复方案
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SERVER_FILE="/tmp/server.txt"
+usage() {
+  cat <<EOF
+修复 forum.clawdrepublic.cn 502 错误
 
-# 颜色输出
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+用法:
+  $0 --caddy     # 生成 Caddyfile 配置
+  $0 --nginx     # 生成 nginx.conf 配置
+  $0 --deploy    # 部署修复配置到服务器（需要 SSH 访问）
+  $0 --verify    # 验证论坛是否可访问
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-
-# 读取服务器信息
-if [ ! -f "$SERVER_FILE" ]; then
-    log_error "服务器文件不存在: $SERVER_FILE"
-    exit 1
-fi
-
-SERVER_IP=$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' "$SERVER_FILE" | head -1)
-if [ -z "$SERVER_IP" ]; then
-    SERVER_IP=$(grep -E '^ip=' "$SERVER_FILE" | cut -d= -f2 | head -1)
-fi
-
-if [ -z "$SERVER_IP" ]; then
-    log_error "无法从 $SERVER_FILE 中提取服务器IP"
-    exit 1
-fi
-
-log_info "目标服务器: $SERVER_IP"
-
-# 1. 检查当前状态
-log_info "1. 检查当前论坛状态..."
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP << 'EOF'
-echo "=== 论坛内部状态 (127.0.0.1:8081) ==="
-curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null && echo "✓ 内部论坛运行正常" || echo "✗ 内部论坛访问失败"
-echo ""
-echo "=== 论坛外部状态 (forum.clawdrepublic.cn) ==="
-curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null && echo "✓ 外部论坛访问正常" || echo "✗ 外部论坛访问失败 (502)"
-echo ""
-echo "=== 当前 Caddy 配置 ==="
-cat /etc/caddy/Caddyfile
+环境变量:
+  SERVER_IP      服务器 IP（默认从 /tmp/server.txt 读取）
+  FORUM_PORT     Flarum 端口（默认 8081）
 EOF
-
-# 2. 创建修复的 Caddy 配置
-log_info "2. 创建修复的 Caddy 配置..."
-
-cat > /tmp/Caddyfile-fixed << 'EOF'
-clawdrepublic.cn, www.clawdrepublic.cn {
-	root * /opt/roc/web/site
-
-	# Forum mounted under /forum
-	handle_path /forum* {
-		reverse_proxy 127.0.0.1:8081
-	}
-
-	# Flarum currently emits /assets + /api at the domain root.
-	# Proxy those to the forum backend so JS/CSS load correctly.
-	handle /assets* {
-		reverse_proxy 127.0.0.1:8081
-	}
-	handle /api* {
-		reverse_proxy 127.0.0.1:8081
-	}
-	handle /admin* {
-		reverse_proxy 127.0.0.1:8081
-	}
-
-	file_server
+  exit 1
 }
 
-api.clawdrepublic.cn {
-	reverse_proxy 127.0.0.1:8787
-}
-
-# Dedicated forum subdomain - FIXED
-forum.clawdrepublic.cn {
-	reverse_proxy 127.0.0.1:8081
-}
-EOF
-
-# 3. 备份原配置并上传修复配置
-log_info "3. 备份原配置并上传修复配置..."
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP << 'EOF'
-# 备份原配置
-cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup.$(date +%Y%m%d-%H%M%S)
-EOF
-
-scp -i ~/.ssh/id_ed25519_roc_server /tmp/Caddyfile-fixed root@$SERVER_IP:/etc/caddy/Caddyfile
-
-# 4. 验证配置
-log_info "4. 验证 Caddy 配置..."
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP << 'EOF'
-caddy validate --config /etc/caddy/Caddyfile
-EOF
-
-# 5. 重启 Caddy
-log_info "5. 重启 Caddy 服务..."
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP << 'EOF'
-systemctl restart caddy
-sleep 3
-systemctl status caddy --no-pager -l
-EOF
-
-# 6. 验证修复
-log_info "6. 验证论坛 502 修复..."
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP << 'EOF'
-echo "=== 等待 Caddy 启动 (5秒) ==="
-sleep 5
-echo ""
-echo "=== 论坛内部状态 (127.0.0.1:8081) ==="
-curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null && echo "✓ 内部论坛运行正常" || echo "✗ 内部论坛访问失败"
-echo ""
-echo "=== 论坛外部状态 (forum.clawdrepublic.cn) ==="
-for i in {1..3}; do
-    if curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null; then
-        echo "✓ 外部论坛访问正常 (尝试 $i/3)"
-        break
+# 读取服务器 IP
+read_server_ip() {
+  if [[ -f "/tmp/server.txt" ]]; then
+    local content
+    content=$(cat /tmp/server.txt | head -1)
+    if [[ "$content" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "$content"
+    elif [[ "$content" =~ ^ip=([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+      echo "${BASH_REMATCH[1]}"
     else
-        echo "✗ 尝试 $i/3: 外部论坛访问失败，等待 2 秒..."
-        sleep 2
+      echo "8.210.185.194"  # 默认值
     fi
-done
-echo ""
-echo "=== 论坛子域名直接访问 ==="
-curl -s -m 5 http://forum.clawdrepublic.cn/ | grep -o '<title>[^<]*</title>' || echo "无法获取页面标题"
+  else
+    echo "8.210.185.194"  # 默认值
+  fi
+}
+
+generate_caddy() {
+  cat <<'EOF'
+# Caddyfile for forum.clawdrepublic.cn
+forum.clawdrepublic.cn {
+    # 反向代理到 Flarum
+    reverse_proxy 127.0.0.1:8081 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # 日志
+    log {
+        output file /var/log/caddy/forum.log
+        format json
+    }
+}
+
+# 如果同时需要 HTTPS（自动证书）
+# forum.clawdrepublic.cn {
+#     tls {
+#         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+#     }
+#     reverse_proxy 127.0.0.1:8081
+# }
 EOF
+}
 
-# 7. 创建验证脚本
-log_info "7. 创建验证脚本..."
-cat > /tmp/verify-forum-fix.sh << 'EOF'
-#!/bin/bash
-# verify-forum-fix.sh - 验证论坛 502 修复
+generate_nginx() {
+  cat <<'EOF'
+# nginx.conf for forum.clawdrepublic.cn
+server {
+    listen 80;
+    listen [::]:80;
+    server_name forum.clawdrepublic.cn;
+    
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # 超时设置
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+    
+    access_log /var/log/nginx/forum.access.log;
+    error_log /var/log/nginx/forum.error.log;
+}
 
-SERVER_IP="$1"
-if [ -z "$SERVER_IP" ]; then
-    echo "用法: $0 <服务器IP>"
-    exit 1
+# HTTPS 配置（需要证书）
+# server {
+#     listen 443 ssl http2;
+#     listen [::]:443 ssl http2;
+#     server_name forum.clawdrepublic.cn;
+#     
+#     ssl_certificate /etc/ssl/certs/forum.clawdrepublic.cn.crt;
+#     ssl_certificate_key /etc/ssl/private/forum.clawdrepublic.cn.key;
+#     
+#     location / {
+#         proxy_pass http://127.0.0.1:8081;
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#     }
+# }
+EOF
+}
+
+deploy_fix() {
+  local server_ip
+  server_ip=$(read_server_ip)
+  
+  echo "部署论坛 502 修复到服务器 $server_ip..."
+  
+  # 生成 Caddy 配置
+  local caddy_config
+  caddy_config=$(generate_caddy)
+  
+  # 上传并应用配置
+  ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 "root@$server_ip" <<EOF
+set -e
+echo "检查 Flarum 服务状态..."
+if ! docker ps | grep -q flarum; then
+  echo "警告: Flarum 容器未运行"
+  echo "检查 /opt/roc/forum 目录..."
+  ls -la /opt/roc/forum/ 2>/dev/null || echo "论坛目录不存在"
 fi
 
-echo "验证论坛 502 修复到 $SERVER_IP..."
-echo "1. 内部论坛状态:"
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-    'curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null && echo "✓ 内部论坛运行正常" || echo "✗ 内部论坛访问失败"'
+echo "检查端口 8081..."
+netstat -tlnp | grep :8081 || echo "端口 8081 未监听"
 
-echo ""
-echo "2. 外部论坛状态:"
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-    'curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null && echo "✓ 外部论坛访问正常" || echo "✗ 外部论坛访问失败"'
+echo "生成 Caddy 配置..."
+cat > /tmp/forum-caddy.conf <<'CADDY_EOF'
+$caddy_config
+CADDY_EOF
 
-echo ""
-echo "3. Caddy 配置:"
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-    'grep -n "forum.clawdrepublic.cn" /etc/caddy/Caddyfile && echo "✓ 论坛子域名配置存在" || echo "✗ 论坛子域名配置缺失"'
+echo "配置内容:"
+cat /tmp/forum-caddy.conf
 
-echo ""
-echo "4. Caddy 服务状态:"
-ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-    'systemctl is-active caddy && echo "✓ Caddy 服务运行中" || echo "✗ Caddy 服务未运行"'
+echo "注意: 需要将上述配置添加到 Caddy 主配置并重启 Caddy"
+echo "或者运行: caddy reload --config /etc/caddy/Caddyfile"
 EOF
-
-chmod +x /tmp/verify-forum-fix.sh
-scp -i ~/.ssh/id_ed25519_roc_server /tmp/verify-forum-fix.sh root@$SERVER_IP:/opt/roc/verify-forum-fix.sh
-
-# 8. 更新文档
-log_info "8. 更新文档..."
-cat > /tmp/forum-fix-docs.md << 'EOF'
-# 论坛 502 修复记录
-
-## 问题
-- 论坛内部运行正常 (127.0.0.1:8081)
-- 外部访问 forum.clawdrepublic.cn 返回 502
-- Caddy 配置缺少 forum.clawdrepublic.cn 的反向代理定义
-
-## 修复方案
-在 `/etc/caddy/Caddyfile` 中添加：
-
-```caddy
-forum.clawdrepublic.cn {
-	reverse_proxy 127.0.0.1:8081
+  
+  echo "部署完成。请手动将配置添加到 Caddy 并重启服务。"
 }
-```
 
-## 验证命令
-```bash
-# 内部论坛
-curl -fsS http://127.0.0.1:8081/
+verify_forum() {
+  echo "验证论坛可访问性..."
+  
+  # 检查外网访问
+  echo "1. 检查 forum.clawdrepublic.cn (外网):"
+  if curl -fsS -m 10 "http://forum.clawdrepublic.cn/" >/dev/null 2>&1; then
+    echo "   ✅ 论坛可访问"
+    return 0
+  else
+    echo "   ❌ 论坛返回 502 或其他错误"
+    
+    # 检查服务器本地访问
+    local server_ip
+    server_ip=$(read_server_ip)
+    echo "2. 检查服务器 $server_ip 本地访问:"
+    if ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 "root@$server_ip" \
+       "curl -fsS -m 5 'http://127.0.0.1:8081/'" >/dev/null 2>&1; then
+      echo "   ✅ 服务器本地 Flarum 运行正常"
+      echo "   🔧 问题: 反向代理配置缺失"
+      return 1
+    else
+      echo "   ❌ 服务器本地 Flarum 未运行"
+      echo "   🔧 问题: Flarum 服务未启动"
+      return 2
+    fi
+  fi
+}
 
-# 外部论坛
-curl -fsS http://forum.clawdrepublic.cn/
+main() {
+  if [[ $# -eq 0 ]]; then
+    usage
+  fi
+  
+  case "$1" in
+    --caddy)
+      generate_caddy
+      ;;
+    --nginx)
+      generate_nginx
+      ;;
+    --deploy)
+      deploy_fix
+      ;;
+    --verify)
+      verify_forum
+      ;;
+    --help|-h)
+      usage
+      ;;
+    *)
+      echo "未知选项: $1"
+      usage
+      ;;
+  esac
+}
 
-# Caddy 配置验证
-caddy validate --config /etc/caddy/Caddyfile
-
-# 重启 Caddy
-systemctl restart caddy
-```
-
-## 部署脚本
-使用 `scripts/fix-forum-502.sh` 一键修复。
-EOF
-
-log_success "论坛 502 修复完成！"
-log_info "服务器: $SERVER_IP"
-log_info "论坛地址: http://forum.clawdrepublic.cn/"
-log_info "验证脚本: ssh root@$SERVER_IP 'cd /opt/roc && ./verify-forum-fix.sh localhost'"
-log_info "Git提交: 请将修复脚本和文档提交到仓库"
+main "$@"
