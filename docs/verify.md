@@ -152,3 +152,23 @@ echo
 > 3) 必要时轮换 `ADMIN_TOKEN`
 >
 > 后续若新增 `DELETE /admin/keys/:key`、`POST /admin/usage/reset` 等接口，会在《quota-proxy 管理接口规范》中更新，并同步补齐这里的验收命令。
+
+## 5) 进度日志：安全追加一条记录（避免 printf 报错）
+
+> 一些 cron/脚本环境里，如果要写入的文本以 `-` 开头，直接 `printf` 可能会报：`printf: invalid option`。
+> 仓库提供了一个轻量封装脚本，建议统一用它向周报/进度文件追加记录。
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 直接追加文本
+./scripts/append-progress-log.sh \
+  --file '/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md' \
+  --text "note: 验收记录示例（commit=XXXXXXX; verify=见 docs/verify.md）"
+
+# 或从 stdin 追加（适合多行）
+cat <<'EOF' | ./scripts/append-progress-log.sh --stdin \
+  --file '/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md'
+- verify: BASE_URL=https://api.clawdrepublic.cn; curl -fsS "${BASE_URL}/healthz"
+EOF
+```
