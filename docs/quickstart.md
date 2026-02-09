@@ -194,6 +194,19 @@ openclaw models status
 
 如果正常，你会看到默认模型指向 `clawd-gateway/...`。
 
+## 7) 故障排除快速参考
+
+| 问题 | 可能原因 | 解决方法 |
+|------|----------|----------|
+| `openclaw` 命令找不到 | Node.js 路径问题 | 重新打开终端，或运行 `source ~/.bashrc` |
+| 安装脚本下载失败 | 网络问题 | 检查网络，或手动下载：`curl -O https://clawdrepublic.cn/install-cn.sh` |
+| TRIAL_KEY 无效 | Key 过期或格式错误 | 重新申请：https://clawdrepublic.cn/forum/t/trial-key |
+| API 连接失败 | 网关维护或网络问题 | 检查：`curl -fsS https://api.clawdrepublic.cn/healthz` |
+| 模型下载慢 | 国内网络限制 | 耐心等待，或检查是否有代理干扰 |
+| 配置文件错误 | JSON 格式问题 | 验证配置：`cat ~/.openclaw/openclaw.json \| python3 -m json.tool` |
+
+**一键诊断**：运行 `curl -fsSL https://clawdrepublic.cn/verify-quickstart.sh \| bash` 检查所有环节。
+
 ---
 
 - API 健康检查：https://api.clawdrepublic.cn/healthz
