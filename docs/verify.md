@@ -166,6 +166,18 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 
 然后在**另一个终端**里跑管理接口（目标换成本机 `http://127.0.0.1:8788`）：
 
+推荐：先跑一个“不会发 key”的安全探活脚本（确认管理接口确实被 token 保护）：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/probe-quota-proxy-admin.sh
+
+#（可选）带上 token，验证 /admin/usage 可访问
+CLAWD_ADMIN_TOKEN='<ADMIN_TOKEN>' ./scripts/probe-quota-proxy-admin.sh
+```
+
+然后再手动发放 key：
+
 ```bash
 ADMIN_TOKEN='<ADMIN_TOKEN>'
 
