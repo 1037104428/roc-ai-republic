@@ -133,3 +133,27 @@ cat <<'TXT'
 3) Start gateway: openclaw gateway start
 4) Verify: openclaw status && openclaw models status
 TXT
+
+# Optional health check
+if [[ $DRY_RUN -eq 0 ]]; then
+  echo "[cn-pack] Running post-install health check..."
+  if command -v openclaw >/dev/null 2>&1; then
+    echo "[cn-pack] ✓ openclaw command found: $(openclaw --version 2>/dev/null || echo 'version check failed')"
+    
+    # Check if gateway is running
+    if openclaw gateway status 2>/dev/null | grep -q "running\|active"; then
+      echo "[cn-pack] ✓ OpenClaw gateway is running"
+    else
+      echo "[cn-pack] ℹ️ Gateway not running. Start with: openclaw gateway start"
+    fi
+    
+    # Quick config check
+    if [[ -f ~/.openclaw/openclaw.json ]]; then
+      echo "[cn-pack] ✓ Config file exists: ~/.openclaw/openclaw.json"
+    else
+      echo "[cn-pack] ℹ️ Config file not found. Create with: openclaw config init"
+    fi
+  else
+    echo "[cn-pack] ⚠️ openclaw command not in PATH. Try reopening your terminal or adding npm global bin to PATH"
+  fi
+fi
