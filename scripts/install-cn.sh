@@ -25,6 +25,8 @@ Options:
   --version <ver>          Install a specific OpenClaw version (default: latest)
   --registry-cn <url>      CN npm registry (default: https://registry.npmmirror.com)
   --registry-fallback <u>  Fallback npm registry (default: https://registry.npmjs.org)
+  --network-test           Run network connectivity test before install
+  --force-cn               Force using CN registry (skip fallback)
   --dry-run                Print commands without executing
   -h, --help               Show help
 
@@ -34,6 +36,8 @@ TXT
 }
 
 DRY_RUN=0
+NETWORK_TEST=0
+FORCE_CN=0
 VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
 REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
 REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
@@ -46,6 +50,10 @@ while [[ $# -gt 0 ]]; do
       REG_CN="${2:-}"; shift 2 ;;
     --registry-fallback)
       REG_FALLBACK="${2:-}"; shift 2 ;;
+    --network-test)
+      NETWORK_TEST=1; shift ;;
+    --force-cn)
+      FORCE_CN=1; shift ;;
     --dry-run)
       DRY_RUN=1; shift ;;
     -h|--help)
@@ -71,6 +79,64 @@ run() {
     "$@"
   fi
 }
+
+# Network test function
+run_network_test() {
+  echo "[cn-pack] Running network connectivity test..."
+  echo "[cn-pack] Testing CN registry: $REG_CN"
+  
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsS -m 5 "$REG_CN/-/ping" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ CN registry reachable"
+      CN_OK=1
+    else
+      echo "[cn-pack] ⚠️ CN registry not reachable"
+      CN_OK=0
+    fi
+    
+    echo "[cn-pack] Testing fallback registry: $REG_FALLBACK"
+    if curl -fsS -m 5 "$REG_FALLBACK/-/ping" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ Fallback registry reachable"
+      FALLBACK_OK=1
+    else
+      echo "[cn-pack] ⚠️ Fallback registry not reachable"
+      FALLBACK_OK=0
+    fi
+    
+    # Test GitHub/Gitee for script sources
+    echo "[cn-pack] Testing script sources..."
+    if curl -fsS -m 5 "https://raw.githubusercontent.com/openclaw/openclaw/main/package.json" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ GitHub raw reachable"
+    else
+      echo "[cn-pack] ⚠️ GitHub raw may be slow"
+    fi
+    
+    if curl -fsS -m 5 "https://gitee.com/junkaiWang324/roc-ai-republic/raw/main/README.md" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ Gitee raw reachable"
+    else
+      echo "[cn-pack] ⚠️ Gitee raw not reachable"
+    fi
+    
+    echo ""
+    echo "[cn-pack] === Network Test Summary ==="
+    if [[ "$CN_OK" -eq 1 ]]; then
+      echo "[cn-pack] ✅ Recommended: Use CN registry ($REG_CN)"
+    elif [[ "$FALLBACK_OK" -eq 1 ]]; then
+      echo "[cn-pack] ⚠️ Use fallback registry ($REG_FALLBACK)"
+    else
+      echo "[cn-pack] ❌ No registry reachable. Check network."
+      exit 1
+    fi
+    echo ""
+  else
+    echo "[cn-pack] ℹ️ curl not found, skipping detailed network test"
+  fi
+}
+
+if [[ "$NETWORK_TEST" == "1" ]]; then
+  run_network_test
+  exit 0
+fi
 
 if command -v node >/dev/null 2>&1; then
   NODE_VER_RAW="$(node -v || true)"
@@ -124,24 +190,38 @@ install_openclaw() {
 }
 
 # 尝试CN源
-if install_openclaw "$REG_CN" "CN-registry"; then
-  echo "[cn-pack] ✅ Install OK via CN registry."
-else
-  echo "[cn-pack] ⚠️ Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
-  echo "[cn-pack] This may be due to network issues, registry mirror sync delay, or package availability." >&2
-  echo "[cn-pack] Retrying with fallback registry in 2 seconds..." >&2
-  sleep 2
-  
-  if install_openclaw "$REG_FALLBACK" "fallback-registry"; then
-    echo "[cn-pack] ✅ Install OK via fallback registry."
+if [[ "$FORCE_CN" == "1" ]]; then
+  echo "[cn-pack] Force using CN registry (--force-cn flag)"
+  if install_openclaw "$REG_CN" "CN-registry"; then
+    echo "[cn-pack] ✅ Install OK via CN registry."
   else
-    echo "[cn-pack] ❌ Both registry attempts failed." >&2
-    echo "[cn-pack] Troubleshooting steps:" >&2
-    echo "[cn-pack] 1. Check network connectivity: curl -fsS https://registry.npmjs.org" >&2
-    echo "[cn-pack] 2. Verify Node.js version: node -v (requires >=20)" >&2
-    echo "[cn-pack] 3. Try manual install: npm i -g openclaw@${VERSION}" >&2
-    echo "[cn-pack] 4. Report issue: https://github.com/openclaw/openclaw/issues" >&2
+    echo "[cn-pack] ❌ Install failed via CN registry (force mode)." >&2
+    echo "[cn-pack] Troubleshooting:" >&2
+    echo "[cn-pack] 1. Check CN registry: curl -fsS $REG_CN/-/ping" >&2
+    echo "[cn-pack] 2. Try without --force-cn to use fallback" >&2
     exit 1
+  fi
+else
+  # Normal mode with fallback
+  if install_openclaw "$REG_CN" "CN-registry"; then
+    echo "[cn-pack] ✅ Install OK via CN registry."
+  else
+    echo "[cn-pack] ⚠️ Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
+    echo "[cn-pack] This may be due to network issues, registry mirror sync delay, or package availability." >&2
+    echo "[cn-pack] Retrying with fallback registry in 2 seconds..." >&2
+    sleep 2
+    
+    if install_openclaw "$REG_FALLBACK" "fallback-registry"; then
+      echo "[cn-pack] ✅ Install OK via fallback registry."
+    else
+      echo "[cn-pack] ❌ Both registry attempts failed." >&2
+      echo "[cn-pack] Troubleshooting steps:" >&2
+      echo "[cn-pack] 1. Check network connectivity: curl -fsS https://registry.npmjs.org" >&2
+      echo "[cn-pack] 2. Verify Node.js version: node -v (requires >=20)" >&2
+      echo "[cn-pack] 3. Try manual install: npm i -g openclaw@${VERSION}" >&2
+      echo "[cn-pack] 4. Report issue: https://github.com/openclaw/openclaw/issues" >&2
+      exit 1
+    fi
   fi
 fi
 
