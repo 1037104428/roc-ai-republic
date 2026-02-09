@@ -41,6 +41,15 @@ curl -fsS http://127.0.0.1:8787/healthz
 
 ## 2) 生成 1 个 trial key
 
+推荐用脚本（更不容易粘贴错）：
+
+```bash
+ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+  ./scripts/curl-admin-create-key.sh --label 'forum-user:alice' --pretty
+```
+
+等价的原始 curl：
+
 ```bash
 curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
