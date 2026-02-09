@@ -151,6 +151,10 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ./scripts/ssh-portforward-quota-proxy-admin.sh
 ```
 
+说明：
+- 默认把服务器 `127.0.0.1:8787` 转发到你本机 `127.0.0.1:8788`；脚本会显式绑定到 `127.0.0.1`（避免误暴露到局域网）。
+- 保持该命令运行不退出；结束时按 `Ctrl+C` 即可断开转发。
+
 然后在**另一个终端**里跑管理接口（目标换成本机 `http://127.0.0.1:8788`）：
 
 ```bash
