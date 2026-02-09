@@ -39,6 +39,23 @@ curl -fsS http://127.0.0.1:8787/healthz
 
 ---
 
+## 1.5) 常见坑（3 条）
+
+1) **不要把 admin 端口暴露到公网**：compose 端口绑定必须是 `127.0.0.1:8787:8787`。
+2) **admin curl 一律带 token**：
+   - 推荐：`-H "Authorization: Bearer $ADMIN_TOKEN"`
+   - 若 `ADMIN_TOKEN` 没有 export，curl 会变成空 token，表现为一直 401。
+3) **远程验收时用 SSH 转发**（不用开公网端口）：
+
+```bash
+# 本机执行：把服务器的 127.0.0.1:8787 转到你本机 18787
+ssh -N -L 18787:127.0.0.1:8787 root@<SERVER_IP>
+
+# 另开一个终端：指向本机转发端口验收
+ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:18787 \
+  ./scripts/curl-admin-usage.sh --day "$(date +%F)" --mask --pretty
+```
+
 ## 2) 生成 1 个 trial key
 
 推荐用脚本（更不容易粘贴错）。如果服务器目录 `/opt/roc/quota-proxy` 里**没有** `scripts/`，建议在任意目录先 clone 本仓库再运行脚本（脚本只依赖 curl）：
