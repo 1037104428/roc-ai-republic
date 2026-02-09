@@ -83,8 +83,7 @@ BASE_URL_DEFAULT="https://api.clawdrepublic.cn"
 BASE_URL="${BASE_URL:-$BASE_URL_DEFAULT}"
 api_status="skip"
 if need_cmd curl; then
-  if curl -fsS "${BASE_URL%/}/healthz" >/dev/null 2>&1 \
-    && curl -fsS "${BASE_URL%/}/v1/models" >/dev/null 2>&1; then
+  if curl -fsS "${BASE_URL%/}/healthz" >/dev/null 2>&1; then
     api_status="ok"
   else
     api_status="fail"
