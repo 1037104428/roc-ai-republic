@@ -2,48 +2,56 @@
 
 目标：让加入者"来了就能干活"，不空聊。
 
-## T1 - 站务/运维：论坛现网 502 修复（反向代理/HTTPS）
-- 背景：当前服务器上论坛容器内部可用（127.0.0.1:8081），但外部访问 `forum.clawdrepublic.cn` 仍是 502（反向代理/上游配置需要修复）。
-- 交付物：
-  - 一份最小可复现的修复方案（Caddy 或 Nginx 二选一）：域名 → 反代到 127.0.0.1:8081
-  - 一键修复脚本：`scripts/fix-forum-502.sh`（自动检查并修复配置）
-  - 验证命令（至少包含）：
-    - `curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null`（或 https）
-    - 服务器侧：`curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null`
-  - 配置示例（可直接复制粘贴改域名）：
-
-    Caddy（推荐，自动 HTTPS）：
-    ```caddyfile
-    forum.clawdrepublic.cn {
-      reverse_proxy 127.0.0.1:8081
-    }
-    ```
-    - 验证/重载（示例）：`caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy`
-
-    Nginx：
-    ```nginx
-    server {
-      listen 80;
-      server_name forum.clawdrepublic.cn;
-      location / {
-        proxy_pass http://127.0.0.1:8081;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-      }
-    }
-    ```
-    - 验证/重载（示例）：`nginx -t && systemctl reload nginx`
-- 验收标准：外网 HTTP 200（非 502），并在 `scripts/probe.sh` 的 forum 探活里能体现 ok。
-- 一键修复脚本用法：
-  ```bash
-  # 确保 /tmp/server.txt 包含服务器IP
-  echo "ip=8.210.185.194" > /tmp/server.txt
-  
-  # 运行修复脚本
-  ./scripts/fix-forum-502.sh
+## T1 - 站务/运维：论坛现网 502 修复（DNS 记录缺失）
+- **状态**：✅ 已诊断，待决策
+- **背景**：当前服务器上论坛容器内部可用（127.0.0.1:8081），但外部访问 `forum.clawdrepublic.cn` 返回 502。
+- **根本原因**：`forum.clawdrepublic.cn` 缺少 DNS A 记录，Caddy 无法获取 SSL 证书（Let's Encrypt 验证失败）。
+- **诊断日志**：
   ```
-- 备注：论坛 MVP 的"选型/完整部署方案草案"仍见 `docs/forum-deployment-research.md`（偏 Discourse 方向，可后续继续完善）。
+  DNS problem: NXDOMAIN looking up A for forum.clawdrepublic.cn - check that a DNS record exists for this domain
+  ```
+- **交付物**：
+  - 诊断脚本：`scripts/fix-forum-502-dns.sh`（分析问题并提供解决方案）
+  - 临时修复脚本：`scripts/apply-forum-subpath-fix.sh`（将论坛移到主域名子路径）
+  - 验证命令：
+    - 内网验证：`curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null`
+    - 外网验证（临时方案）：`curl -fsS -m 5 https://clawdrepublic.cn/forum/ >/dev/null`
+- **解决方案（三选一）**：
+  
+  **A) 添加 DNS 记录（推荐长期方案）**
+  ```
+  forum.clawdrepublic.cn A 8.210.185.194
+  forum.clawdrepublic.cn AAAA (如有 IPv6)
+  ```
+  - 优点：独立子域名，符合常规部署
+  - 缺点：需要 DNS 配置权限
+  
+  **B) 使用主域名子路径（临时方案）**
+  - 修改 Caddy 配置，将论坛放在 `/forum/` 路径下
+  - 优点：无需 DNS 配置，立即可用
+  - 缺点：URL 结构变化，可能需要论坛配置调整
+  
+  **C) 禁用 HTTPS（仅测试用）**
+  - 修改 Caddy 配置，对 forum.clawdrepublic.cn 使用 HTTP
+  - 优点：简单快速
+  - 缺点：不安全，不推荐生产环境
+  
+- **验收标准**：
+  - 方案 A：`curl -fsS -m 5 https://forum.clawdrepublic.cn/` 返回 HTTP 200
+  - 方案 B：`curl -fsS -m 5 https://clawdrepublic.cn/forum/` 返回 HTTP 200
+- **一键修复脚本用法**：
+  ```bash
+  # 诊断问题
+  ./scripts/fix-forum-502-dns.sh
+  
+  # 应用临时方案 B（子路径）
+  ./scripts/apply-forum-subpath-fix.sh
+  
+  # 验证修复
+  curl -fsS -m 5 https://clawdrepublic.cn/forum/ | grep -o '<title>[^<]*</title>'
+  ```
+- **决策需求**：需要域名管理员添加 `forum.clawdrepublic.cn` 的 DNS A 记录
+- **备注**：论坛 MVP 的"选型/完整部署方案草案"仍见 `docs/forum-deployment-research.md`（偏 Discourse 方向，可后续继续完善）。
 
 ## T2 - 工程：内容导出/静态归档方案（防故障、防误删）
 - 交付物：
