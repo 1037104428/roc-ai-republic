@@ -36,6 +36,44 @@
     <li>管理员私信/回复发放 <code>trial_...</code> 格式的 key</li>
   </ol>
 
+  <h3>🎯 一键验证：拿到 key 后立即测试</h3>
+  <p>拿到 TRIAL_KEY 后，复制以下命令到终端（bash/zsh），替换 <code>YOUR_TRIAL_KEY</code>：</p>
+  <pre><code># 1. 设置环境变量（推荐持久化到 ~/.bashrc 或 ~/.zshrc）
+export CLAWD_TRIAL_KEY="YOUR_TRIAL_KEY"
+
+# 2. 验证 API 网关可达性（不消耗额度）
+curl -fsS https://api.clawdrepublic.cn/healthz
+
+# 3. 验证 key 是否有效（消耗 1 次额度）
+curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer $CLAWD_TRIAL_KEY" \
+  | head -c 200
+
+# 4. 验证 OpenClaw 配置（如果已安装）
+openclaw config get --key openai.baseUrl
+openclaw config get --key openai.apiKey</code></pre>
+
+  <h3>📋 完整使用流程</h3>
+  <ol>
+    <li><strong>申请 key</strong>：论坛发帖 → 管理员发放</li>
+    <li><strong>环境配置</strong>：
+      <pre><code># Linux/macOS
+echo 'export CLAWD_TRIAL_KEY="YOUR_TRIAL_KEY"' >> ~/.bashrc
+echo 'export OPENAI_API_KEY="$CLAWD_TRIAL_KEY"' >> ~/.bashrc
+echo 'export OPENAI_BASE_URL="https://api.clawdrepublic.cn"' >> ~/.bashrc
+source ~/.bashrc
+
+# Windows PowerShell
+$env:CLAWD_TRIAL_KEY = "YOUR_TRIAL_KEY"
+$env:OPENAI_API_KEY = $env:CLAWD_TRIAL_KEY
+$env:OPENAI_BASE_URL = "https://api.clawdrepublic.cn"
+# 持久化：添加到 $PROFILE</code></pre>
+    </li>
+    <li><strong>安装 OpenClaw</strong>：<a href="/install-cn.sh">一键安装脚本</a></li>
+    <li><strong>验证可用性</strong>：运行上方的一键验证命令</li>
+    <li><strong>开始使用</strong>：配置客户端（OpenAI SDK、OpenClaw、其他兼容工具）</li>
+  </ol>
+
   <h3>管理员（发放方）自检清单</h3>
   <p>如果你是管理员/运营侧，建议在发放 key 前后做一次最小自检，避免“用户拿到 key 但服务挂了/网关域名指错”。</p>
   <pre><code># 在一台有 bash+curl+git 的机器上，一键自检：repo + server + api
