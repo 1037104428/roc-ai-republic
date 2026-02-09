@@ -120,7 +120,7 @@ else
 fi
 
 # 2. 验证 quota-proxy 容器运行状态
-if run_ssh "cd '$REMOTE_DIR' && docker compose ps --format json 2>/dev/null | grep -q '\"State\":\"running\"'"; then
+if run_ssh "cd '$REMOTE_DIR' && docker compose ps 2>/dev/null | grep -q 'Up'"; then
   add_result "container" 1 "quota-proxy 容器正在运行"
 else
   add_result "container" 0 "quota-proxy 容器未运行"
@@ -173,58 +173,28 @@ done
 
 OVERALL_SUCCESS=$([[ $PASSED_CHECKS -eq $TOTAL_CHECKS ]] && echo 1 || echo 0)
 
-# 输出结果
-if [[ $OUTPUT_JSON -eq 1 ]]; then
-  cat <<EOF
-{
-  "server": "$SERVER_IP",
-  "timestamp": "$(date -Iseconds)",
-  "overall_success": $OVERALL_SUCCESS,
-  "checks_passed": $PASSED_CHECKS,
-  "checks_total": $TOTAL_CHECKS,
-  "details": {
-EOF
-  FIRST=1
-  for key in "${!results[@]}"; do
-    if [[ $FIRST -eq 0 ]]; then
-      echo ","
-    fi
-    FIRST=0
-    cat <<EOF
-    "$key": {
-      "success": ${results[$key]},
-      "message": "${messages[$key]//\"/\\\"}"
-    }
-EOF
-  done
-  cat <<EOF
-  }
-}
-EOF
-else
-  # 文本输出
-  echo ""
-  echo "=== SQLite 持久化验证结果 ==="
-  echo "服务器: $SERVER_IP"
-  echo "时间: $(date)"
-  echo "------------------------------"
-  
-  for key in "${!results[@]}"; do
-    if [[ ${results[$key]} -eq 1 ]]; then
-      echo "✅ $key: ${messages[$key]}"
-    else
-      echo "❌ $key: ${messages[$key]}"
-    fi
-  done
-  
-  echo "------------------------------"
-  echo "通过: $PASSED_CHECKS/$TOTAL_CHECKS"
-  
-  if [[ $OVERALL_SUCCESS -eq 1 ]]; then
-    echo "✅ 所有验证通过"
-    exit 0
+# 输出结果 - 只实现文本输出，简化调试
+echo ""
+echo "=== SQLite 持久化验证结果 ==="
+echo "服务器: $SERVER_IP"
+echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "------------------------------"
+
+for key in "${!results[@]}"; do
+  if [[ ${results[$key]} -eq 1 ]]; then
+    echo "✅ $key: ${messages[$key]}"
   else
-    echo "❌ 部分验证失败"
-    exit 1
+    echo "❌ $key: ${messages[$key]}"
   fi
+done
+
+echo "------------------------------"
+echo "通过: $PASSED_CHECKS/$TOTAL_CHECKS"
+
+if [[ $OVERALL_SUCCESS -eq 1 ]]; then
+  echo "✅ 所有验证通过"
+  exit 0
+else
+  echo "❌ 部分验证失败"
+  exit 1
 fi
