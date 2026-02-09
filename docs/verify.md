@@ -113,6 +113,15 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ./scripts/verify-install-cn.sh --dry-run
 ```
 
+### 3.1) 验证 OpenClaw CLI 是否已正确安装（不要求 gateway）
+
+> 适合用户装完后第一时间自查：能否找到 `openclaw`、版本是多少、npm 全局 bin 是否在 PATH。
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-openclaw-install.sh
+```
+
 ## 4) quota-proxy（服务器本机 /healthz）
 
 > 需要你能 SSH 到服务器 root（或具备等价权限）。
