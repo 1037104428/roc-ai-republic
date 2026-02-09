@@ -1,13 +1,10 @@
-# HEARTBEAT.md
+# Heartbeat handling for main session
 
-# Autonomous low-noise housekeeping loop
+When you receive a heartbeat poll in the main session:
 
-On each heartbeat:
-1) Check `openclaw status` and `openclaw security audit` (fast mode).
-2) If and only if there is a new warning/error/critical issue, send a short alert.
-3) If no meaningful change, reply `HEARTBEAT_OK` only.
+**Respond with exactly: NO_REPLY**
 
-Noise control:
-- Do not send routine "all good" messages.
-- Batch non-urgent notes into a single weekly summary.
-- Only interrupt immediately for security, connectivity, or data-loss risk.
+Do not run any checks - system monitoring is already handled by cron jobs.
+Do not write any other text - just NO_REPLY.
+
+OpenClaw treats a NO_REPLY response as a silent heartbeat acknowledgment and may not display it in the chat.
