@@ -4,11 +4,12 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  verify-trial-key.sh [--base-url URL] [--key TRIAL_KEY] [--chat]
+  verify-trial-key.sh [--base-url URL] [--key TRIAL_KEY] [--chat] [--model MODEL]
 
 Defaults:
   --base-url https://api.clawdrepublic.cn
   --key      from $CLAWD_TRIAL_KEY (or $TRIAL_KEY)
+  --model    deepseek-chat
 
 What it does:
   1) GET  /healthz
@@ -19,13 +20,14 @@ Examples:
   export CLAWD_TRIAL_KEY='trial_xxx'
   ./scripts/verify-trial-key.sh
 
-  ./scripts/verify-trial-key.sh --base-url https://api.clawdrepublic.cn --chat
+  ./scripts/verify-trial-key.sh --base-url https://api.clawdrepublic.cn --chat --model deepseek-chat
 EOF
 }
 
 BASE_URL="https://api.clawdrepublic.cn"
 KEY="${CLAWD_TRIAL_KEY:-${TRIAL_KEY:-}}"
 DO_CHAT=0
+MODEL="deepseek-chat"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     --base-url) BASE_URL="$2"; shift 2 ;;
     --key) KEY="$2"; shift 2 ;;
     --chat) DO_CHAT=1; shift ;;
+    --model) MODEL="$2"; shift 2 ;;
     *)
       echo "Unknown arg: $1" >&2
       usage
@@ -59,7 +62,7 @@ chat() {
   curl -fsS -m 30 "$BASE_URL/v1/chat/completions" \
     -H "Authorization: Bearer $KEY" \
     -H 'content-type: application/json' \
-    -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"你好"}]}' >/dev/null
+    -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"你好\"}]}" >/dev/null
 }
 
 echo "[1/3] healthz..." >&2
