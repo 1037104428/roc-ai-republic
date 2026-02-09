@@ -1,242 +1,191 @@
 #!/bin/bash
-# deploy-quota-proxy-sqlite.sh - 部署 SQLite 版本的 quota-proxy 服务
-# 用法: ./scripts/deploy-quota-proxy-sqlite.sh [--test] [--help]
+# deploy-quota-proxy-sqlite.sh - 一键部署 quota-proxy SQLite 版本（带管理员API）
+# 适用于新服务器部署或现有服务器升级到SQLite版本
 
 set -e
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SERVER_INFO="$REPO_ROOT/scripts/server-info.txt"
 
 # 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+echo -e "${GREEN}=== quota-proxy SQLite 版本一键部署脚本 ===${NC}"
+echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
 
-show_help() {
-    cat << EOF
-部署 SQLite 版本的 quota-proxy 服务
+# 检查参数
+SERVER_IP=""
+ADMIN_TOKEN=""
+FORCE_DEPLOY=false
 
-用法: $0 [选项]
-
-选项:
-  --test     测试模式（不实际部署，只检查）
-  --help     显示此帮助信息
-
-说明:
-  1. 读取服务器信息 (scripts/server-info.txt)
-  2. 构建 SQLite 版本的 Docker 镜像
-  3. 部署到服务器并启动服务
-  4. 验证部署结果
-
-环境变量:
-  DEEPSEEK_API_KEY    - DeepSeek API 密钥（必需）
-  ADMIN_TOKEN         - 管理令牌（可选，建议设置）
-  DAILY_REQ_LIMIT     - 每日请求限制（默认: 200）
-  SQLITE_PATH         - SQLite 数据库路径（默认: /data/quota.db）
-
-示例:
-  $0 --test
-  DEEPSEEK_API_KEY=sk-xxx ADMIN_TOKEN=secret $0
-EOF
-}
-
-# 解析参数
-TEST_MODE=false
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        --test) TEST_MODE=true; shift ;;
-        --help) show_help; exit 0 ;;
-        *) log_error "未知参数: $1"; show_help; exit 1 ;;
-    esac
+  case $1 in
+    --server)
+      SERVER_IP="$2"
+      shift 2
+      ;;
+    --admin-token)
+      ADMIN_TOKEN="$2"
+      shift 2
+      ;;
+    --force)
+      FORCE_DEPLOY=true
+      shift
+      ;;
+    --help)
+      echo "用法: $0 --server <IP地址> [--admin-token <令牌>] [--force]"
+      echo ""
+      echo "选项:"
+      echo "  --server <IP>        服务器IP地址（必需）"
+      echo "  --admin-token <令牌> 管理员API令牌（可选，自动生成）"
+      echo "  --force              强制重新部署（即使服务已运行）"
+      echo "  --help               显示此帮助信息"
+      echo ""
+      echo "示例:"
+      echo "  $0 --server 8.210.185.194"
+      echo "  $0 --server 8.210.185.194 --admin-token my-secret-token"
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}错误: 未知参数: $1${NC}"
+      exit 1
+      ;;
+  esac
 done
 
-# 检查必需文件
-if [[ ! -f "$SERVER_INFO" ]]; then
-    log_error "服务器信息文件不存在: $SERVER_INFO"
-    log_info "请先创建服务器信息文件:"
-    log_info "  echo 'ip:8.210.185.194' > scripts/server-info.txt"
-    exit 1
-fi
-
-# 读取服务器信息
-SERVER_IP=$(grep -E '^ip:' "$SERVER_INFO" | cut -d: -f2 | tr -d '[:space:]')
+# 验证参数
 if [[ -z "$SERVER_IP" ]]; then
-    log_error "无法从 $SERVER_INFO 读取服务器 IP"
-    exit 1
+  echo -e "${RED}错误: 必须指定服务器IP地址（使用 --server 参数）${NC}"
+  exit 1
 fi
 
-log_info "目标服务器: $SERVER_IP"
-log_info "测试模式: $TEST_MODE"
-
-# 检查必需环境变量
-if [[ -z "$DEEPSEEK_API_KEY" ]]; then
-    log_error "必需环境变量 DEEPSEEK_API_KEY 未设置"
-    log_info "请设置: export DEEPSEEK_API_KEY=sk-xxx"
-    exit 1
+# 生成管理员令牌（如果未提供）
+if [[ -z "$ADMIN_TOKEN" ]]; then
+  ADMIN_TOKEN=$(openssl rand -hex 16 2>/dev/null || echo "default-admin-token-$(date +%s)")
+  echo -e "${YELLOW}提示: 使用自动生成的管理员令牌: $ADMIN_TOKEN${NC}"
+  echo -e "${YELLOW}      请妥善保存此令牌，用于管理员API访问${NC}"
 fi
 
-# 设置默认值
-ADMIN_TOKEN=${ADMIN_TOKEN:-"$(openssl rand -hex 24)"}
-DAILY_REQ_LIMIT=${DAILY_REQ_LIMIT:-200}
-SQLITE_PATH=${SQLITE_PATH:-"/data/quota.db"}
+echo -e "${GREEN}[1/6] 检查服务器连接...${NC}"
+if ! ssh root@$SERVER_IP "echo '连接成功'" &>/dev/null; then
+  echo -e "${RED}错误: 无法连接到服务器 $SERVER_IP${NC}"
+  echo "请确保:"
+  echo "  1. 服务器IP地址正确"
+  echo "  2. SSH密钥已配置（无需密码）"
+  echo "  3. 防火墙允许SSH连接"
+  exit 1
+fi
+echo -e "${GREEN}✓ 服务器连接正常${NC}"
 
-log_info "配置:"
-log_info "  DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:0:10}..."
-log_info "  ADMIN_TOKEN: ${ADMIN_TOKEN:0:10}..."
-log_info "  DAILY_REQ_LIMIT: $DAILY_REQ_LIMIT"
-log_info "  SQLITE_PATH: $SQLITE_PATH"
+echo -e "${GREEN}[2/6] 检查现有服务状态...${NC}"
+if ssh root@$SERVER_IP "cd /opt/roc/quota-proxy && docker compose ps 2>/dev/null | grep -q 'Up'" &>/dev/null; then
+  echo -e "${YELLOW}⚠  quota-proxy 服务已在运行${NC}"
+  if [[ "$FORCE_DEPLOY" == "true" ]]; then
+    echo -e "${YELLOW}⚠  强制重新部署，将停止现有服务${NC}"
+    ssh root@$SERVER_IP "cd /opt/roc/quota-proxy && docker compose down" &>/dev/null || true
+  else
+    echo -e "${YELLOW}提示: 使用 --force 参数强制重新部署${NC}"
+    echo -e "${GREEN}现有服务状态:${NC}"
+    ssh root@$SERVER_IP "cd /opt/roc/quota-proxy && docker compose ps"
+    exit 0
+  fi
+else
+  echo -e "${GREEN}✓  无运行中的quota-proxy服务${NC}"
+fi
 
-# 构建 Docker 镜像
-log_info "构建 Docker 镜像..."
-if [[ "$TEST_MODE" == "false" ]]; then
-    cd "$REPO_ROOT/quota-proxy"
-    
-    # 创建 Dockerfile-sqlite
-    cat > Dockerfile-sqlite << EOF
-FROM node:20-alpine
+echo -e "${GREEN}[3/6] 准备部署文件...${NC}"
+LOCAL_DIR="/home/kai/.openclaw/workspace/roc-ai-republic/quota-proxy"
+if [[ ! -d "$LOCAL_DIR" ]]; then
+  echo -e "${RED}错误: 本地目录不存在: $LOCAL_DIR${NC}"
+  exit 1
+fi
 
-WORKDIR /app
+# 创建临时目录
+TEMP_DIR=$(mktemp -d)
+cp -r "$LOCAL_DIR"/* "$TEMP_DIR/"
 
-# 安装依赖
-COPY package*.json ./
-RUN npm ci --only=production
-
-# 复制源代码
-COPY server-sqlite.js ./
-COPY server.js ./  # 保留原版本用于参考
-COPY admin.html ./  # 管理界面
-
-# 创建数据目录
-RUN mkdir -p /data && chown node:node /data
-
-USER node
-
-# 环境变量
-ENV DEEPSEEK_API_KEY=\${DEEPSEEK_API_KEY}
-ENV ADMIN_TOKEN=\${ADMIN_TOKEN}
-ENV DAILY_REQ_LIMIT=\${DAILY_REQ_LIMIT}
-ENV SQLITE_PATH=\${SQLITE_PATH}
-ENV PORT=8787
-
-EXPOSE 8787
-
-CMD ["node", "server-sqlite.js"]
+# 更新环境文件
+cat > "$TEMP_DIR/.env" << EOF
+# quota-proxy SQLite 版本环境配置
+PORT=8787
+ADMIN_TOKEN=$ADMIN_TOKEN
+SQLITE_DB_PATH=/data/quota.db
+LOG_LEVEL=info
 EOF
 
-    docker build -f Dockerfile-sqlite -t quota-proxy-sqlite:latest .
-    log_success "Docker 镜像构建完成"
-else
-    log_info "[测试] 跳过 Docker 构建"
-fi
+echo -e "${GREEN}✓  部署文件准备完成${NC}"
 
-# 准备部署脚本
-DEPLOY_SCRIPT=$(cat << EOF
-#!/bin/bash
-set -e
+echo -e "${GREEN}[4/6] 传输文件到服务器...${NC}"
+ssh root@$SERVER_IP "mkdir -p /opt/roc/quota-proxy" &>/dev/null
+scp -r "$TEMP_DIR"/* root@$SERVER_IP:/opt/roc/quota-proxy/ &>/dev/null
 
-echo "=== 部署 SQLite 版本 quota-proxy ==="
+# 清理临时目录
+rm -rf "$TEMP_DIR"
 
-# 创建目录
-sudo mkdir -p /opt/roc/quota-proxy-sqlite
-cd /opt/roc/quota-proxy-sqlite
+echo -e "${GREEN}✓  文件传输完成${NC}"
 
-# 创建 docker-compose.yml
-cat > docker-compose.yml << DOCKER_COMPOSE
-version: '3.8'
+echo -e "${GREEN}[5/6] 启动服务...${NC}"
+ssh root@$SERVER_IP "cd /opt/roc/quota-proxy && docker compose up -d" &>/dev/null
 
-services:
-  quota-proxy:
-    image: quota-proxy-sqlite:latest
-    container_name: quota-proxy-sqlite
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8788:8787"
-    environment:
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - ADMIN_TOKEN=${ADMIN_TOKEN}
-      - DAILY_REQ_LIMIT=${DAILY_REQ_LIMIT}
-      - SQLITE_PATH=${SQLITE_PATH}
-    volumes:
-      - quota-data:/data
-
-volumes:
-  quota-data:
-    driver: local
-
-DOCKER_COMPOSE
-
-# 停止并移除旧容器（如果存在）
-docker compose down 2>/dev/null || true
-
-# 加载镜像（需要提前传输）
-if [[ -f quota-proxy-sqlite.tar ]]; then
-    docker load -i quota-proxy-sqlite.tar
-fi
-
-# 启动服务
-docker compose up -d
-
-echo "等待服务启动..."
-sleep 5
-
-# 验证服务
-if curl -fsS http://127.0.0.1:8788/healthz > /dev/null 2>&1; then
-    echo "✓ 服务健康检查通过"
-    echo "✓ SQLite 版本 quota-proxy 已启动"
-    echo "✓ 监听端口: 127.0.0.1:8788"
-    echo "✓ 数据库路径: ${SQLITE_PATH}"
-else
-    echo "✗ 服务健康检查失败"
-    docker compose logs
+# 等待服务启动
+echo -n "等待服务启动..."
+for i in {1..30}; do
+  if ssh root@$SERVER_IP "curl -fsS http://127.0.0.1:8787/healthz 2>/dev/null | grep -q 'ok'" &>/dev/null; then
+    echo -e "${GREEN} ✓${NC}"
+    break
+  fi
+  echo -n "."
+  sleep 1
+  if [[ $i -eq 30 ]]; then
+    echo -e "${RED} ✗${NC}"
+    echo -e "${RED}错误: 服务启动超时${NC}"
+    echo "检查日志: ssh root@$SERVER_IP 'cd /opt/roc/quota-proxy && docker compose logs'"
     exit 1
-fi
-EOF
-)
+  fi
+done
 
-# 执行部署
-if [[ "$TEST_MODE" == "false" ]]; then
-    log_info "部署到服务器 $SERVER_IP..."
-    
-    # 保存镜像为 tar 文件
-    docker save quota-proxy-sqlite:latest -o /tmp/quota-proxy-sqlite.tar
-    
-    # 传输到服务器
-    scp -i "$REPO_ROOT/scripts/roc-key.pem" /tmp/quota-proxy-sqlite.tar "root@$SERVER_IP:/tmp/"
-    
-    # 执行部署脚本
-    ssh -i "$REPO_ROOT/scripts/roc-key.pem" "root@$SERVER_IP" "bash -s" <<< "$DEPLOY_SCRIPT"
-    
-    log_success "部署完成"
-    
-    # 验证部署
-    log_info "验证部署..."
-    if curl -fsS "http://$SERVER_IP:8788/healthz" > /dev/null 2>&1; then
-        log_success "✓ 服务可访问: http://$SERVER_IP:8788/healthz"
-    else
-        log_warn "⚠ 服务暂时不可访问，可能需要等待几秒钟"
-    fi
-    
-    # 清理
-    rm -f /tmp/quota-proxy-sqlite.tar
+echo -e "${GREEN}[6/6] 验证部署...${NC}"
+
+# 验证健康检查
+if ssh root@$SERVER_IP "curl -fsS http://127.0.0.1:8787/healthz" &>/dev/null; then
+  echo -e "${GREEN}✓  健康检查通过${NC}"
 else
-    log_info "[测试] 部署脚本内容:"
-    echo "----------------------------------------"
-    echo "$DEPLOY_SCRIPT"
-    echo "----------------------------------------"
-    log_info "[测试] 完成"
+  echo -e "${RED}✗  健康检查失败${NC}"
 fi
 
-log_success "SQLite 版本 quota-proxy 部署准备完成"
-log_info "下一步:"
-log_info "  1. 设置环境变量: export DEEPSEEK_API_KEY=sk-xxx"
-log_info "  2. 运行部署: $0"
-log_info "  3. 验证: curl http://$SERVER_IP:8788/healthz"
-log_info "  4. 获取试用密钥: curl -H 'Authorization: Bearer \$ADMIN_TOKEN' -X POST http://$SERVER_IP:8788/admin/keys"
+# 验证管理员API（如果提供了令牌）
+if [[ -n "$ADMIN_TOKEN" ]]; then
+  if ssh root@$SERVER_IP "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' http://127.0.0.1:8787/admin/keys" &>/dev/null; then
+    echo -e "${GREEN}✓  管理员API访问正常${NC}"
+  else
+    echo -e "${YELLOW}⚠  管理员API访问失败（可能是令牌问题）${NC}"
+  fi
+fi
+
+# 显示服务状态
+echo ""
+echo -e "${GREEN}=== 部署完成 ===${NC}"
+echo "服务器: $SERVER_IP"
+echo "服务端口: 8787"
+echo "管理员令牌: $ADMIN_TOKEN"
+echo "SQLite数据库: /opt/roc/quota-proxy/data/quota.db"
+echo ""
+echo -e "${GREEN}服务状态:${NC}"
+ssh root@$SERVER_IP "cd /opt/roc/quota-proxy && docker compose ps"
+
+echo ""
+echo -e "${GREEN}验证命令:${NC}"
+echo "  健康检查: curl -fsS http://$SERVER_IP:8787/healthz"
+echo "  管理员API: curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' http://$SERVER_IP:8787/admin/keys"
+echo "  模型列表: curl -fsS http://$SERVER_IP:8787/v1/models"
+echo ""
+echo -e "${YELLOW}重要: 请确保防火墙已开放8787端口${NC}"
+echo -e "${YELLOW}      管理员令牌请妥善保管${NC}"
+
+# 保存部署记录
+DEPLOY_LOG="/home/kai/.openclaw/workspace/roc-ai-republic/deployments/sqlite-deployments.log"
+mkdir -p "$(dirname "$DEPLOY_LOG")"
+echo "$(date '+%Y-%m-%d %H:%M:%S') | $SERVER_IP | $ADMIN_TOKEN | SQLite版本部署完成" >> "$DEPLOY_LOG"
+
+exit 0
