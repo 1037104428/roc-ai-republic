@@ -745,3 +745,96 @@ SERVER_IP=你的服务器IP ./scripts/quick-server-status.sh
 - 日常监控检查
 - CI/CD流水线中的健康检查
 - 故障排查的第一步
+
+## 9) 落地页部署验证
+
+> 检查落地页（官网）部署状态，包括本地文件、服务器部署、Web服务器配置和域名可访问性。
+
+### 9.1) 一键验证落地页
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-landing-page.sh
+```
+
+### 9.2) 详细验证选项
+
+```bash
+# 详细输出模式
+./scripts/verify-landing-page.sh --verbose
+
+# 仅检查本地文件（不连接服务器）
+./scripts/verify-landing-page.sh --local-only
+
+# 指定服务器配置文件
+SERVER_FILE=/path/to/server.txt ./scripts/verify-landing-page.sh
+
+# 指定域名
+LANDING_DOMAIN=your-domain.com ./scripts/verify-landing-page.sh
+```
+
+### 9.3) 验证内容说明
+
+脚本检查以下项目：
+
+1. **本地文件结构**
+   - Web目录 (`web/`, `web/site/`)
+   - 配置文件 (`web/caddy/Caddyfile`, `web/nginx/nginx.conf`)
+
+2. **服务器部署状态**
+   - SSH连接
+   - 远程Web目录 (`/opt/roc/web`)
+   - 部署的文件完整性
+
+3. **Web服务器配置**
+   - Caddy/Nginx配置包含域名
+   - Web服务器服务运行状态
+
+4. **域名可访问性**
+   - HTTP访问测试
+   - HTTPS访问测试
+
+5. **服务器本地访问**
+   - 服务器本机HTTP访问测试
+
+### 9.4) 手动验证命令
+
+如果脚本失败，可以手动运行以下命令：
+
+```bash
+# 检查本地文件
+ls -la web/site/
+ls -la web/caddy/
+ls -la web/nginx/
+
+# 检查服务器文件
+ssh root@8.210.185.194 "ls -la /opt/roc/web/"
+
+# 检查Web服务器
+ssh root@8.210.185.194 "systemctl status caddy || systemctl status nginx"
+
+# 检查域名访问
+curl -I http://clawdrepublic.cn/
+curl -I https://clawdrepublic.cn/
+
+# 检查服务器本地访问
+ssh root@8.210.185.194 "curl -fsS http://localhost/"
+```
+
+### 9.5) 部署脚本
+
+落地页部署使用 `deploy-landing-page.sh`:
+
+```bash
+# 部署落地页
+./scripts/deploy-landing-page.sh
+
+# 干运行（预览）
+./scripts/deploy-landing-page.sh --dry-run
+```
+
+### 9.6) 相关文档
+
+- [落地页部署验证详细说明](./verify-landing-page.md)
+- [部署指南](./deploy-landing-page.md)
+- [Web服务器配置](./web-server-config.md)
