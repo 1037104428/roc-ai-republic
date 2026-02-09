@@ -335,3 +335,44 @@ curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \
 curl -fsS http://127.0.0.1:8787/admin && echo 'admin page: OK'
 ```
 ```
+
+## 8) 管理 API 接口验证
+
+### 8.1) 管理 API 测试脚本验证
+
+```bash
+# 测试管理 API 接口
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 检查测试脚本语法
+bash -n scripts/test-admin-api.sh
+
+# 查看测试脚本帮助
+./scripts/test-admin-api.sh --help
+
+# 测试本地管理接口（需要 ADMIN_TOKEN）
+./scripts/test-admin-api.sh --local --token "$ADMIN_TOKEN"
+
+# 测试远程管理接口
+./scripts/test-admin-api.sh --remote 8.210.185.194 --token "$ADMIN_TOKEN"
+```
+
+### 8.2) 手动管理 API 接口验证
+
+```bash
+# 手动测试管理接口
+ADMIN_TOKEN="your_admin_token_here"
+BASE_URL="http://127.0.0.1:8787"
+
+# 1. 创建试用密钥
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  -H "Content-Type: application/json" \n  -X POST "${BASE_URL}/admin/keys" \n  -d '{"label":"test-key"}'
+
+# 2. 列出所有密钥
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  "${BASE_URL}/admin/keys"
+
+# 3. 查看使用情况
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  "${BASE_URL}/admin/usage"
+
+# 4. 删除密钥（替换 {key} 为实际密钥）
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  -X DELETE "${BASE_URL}/admin/keys/{key}"
+```
