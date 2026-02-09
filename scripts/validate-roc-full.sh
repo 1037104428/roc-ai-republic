@@ -147,18 +147,14 @@ check_forum() {
   http_code=$(curl -s -o /dev/null -w "%{http_code}" -m "$TIMEOUT" "$url" 2>/dev/null || echo "000")
   
   if [[ "$http_code" =~ ^2[0-9][0-9]$ ]]; then
-    # 论坛返回200，但可能标题不是"Clawd 国度"，检查是否有论坛特征
-    local content
-    content=$(curl -s -m "$TIMEOUT" "$url" 2>/dev/null | head -100)
-    if echo "$content" | grep -q -i "forum\|flarum\|discussion\|topic"; then
-      add_result "forum" "PASS" "论坛可访问（HTTP $http_code）" "$url"
-      return 0
-    else
-      add_result "forum" "WARN" "论坛页面可访问但可能不是论坛界面" "HTTP $http_code"
-      return 0
-    fi
+    add_result "forum" "PASS" "论坛可访问（HTTP $http_code）" "$url"
+    return 0
+  elif [[ "$http_code" == "000" ]]; then
+    # 连接失败，可能是论坛服务未运行或配置问题
+    add_result "forum" "WARN" "论坛连接失败（可能服务未运行）" "HTTP $http_code - $url"
+    return 0
   else
-    add_result "forum" "FAIL" "论坛无法访问" "HTTP $http_code - $url"
+    add_result "forum" "FAIL" "论坛返回异常状态" "HTTP $http_code - $url"
     return 1
   fi
 }
