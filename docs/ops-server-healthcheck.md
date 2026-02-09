@@ -127,6 +127,12 @@ password:YOUR_PASSWORD
 # JSON 单行摘要（适合 cron/CI 收集）
 ./scripts/ssh-healthz-quota-proxy.sh --json | python3 -m json.tool
 
+# 一键组合状态（healthz + compose + 端口暴露审计）
+# - 默认：人类可读
+# - --json：单行 JSON + 严格退出码（overall_ok=1 才 exit 0）
+./scripts/ssh-quota-proxy-status.sh
+./scripts/ssh-quota-proxy-status.sh --json | python3 -m json.tool
+
 # 一键远端拉取日志（排障时用；默认 tail=200；也支持 --follow / --service）
 ./scripts/ssh-logs-quota-proxy.sh --since 10m
 ./scripts/ssh-logs-quota-proxy.sh --service quota-proxy --since 10m
