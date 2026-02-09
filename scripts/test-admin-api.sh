@@ -1,6 +1,6 @@
 #!/bin/bash
 # 测试 quota-proxy 管理员 API 端点
-# 用法: ./test-admin-api.sh [--server SERVER_IP] [--token ADMIN_TOKEN]
+# 用法: ./test-admin-api.sh [--server SERVER_IP] [--token ADMIN_TOKEN] [--generate-token]
 
 set -e
 
@@ -8,6 +8,20 @@ set -e
 SERVER_IP="8.210.185.194"
 ADMIN_TOKEN="${QUOTA_PROXY_ADMIN_TOKEN:-test_admin_token_123}"
 BASE_URL="http://${SERVER_IP}:8787"
+GENERATE_TOKEN=false
+
+# 生成随机安全令牌
+generate_random_token() {
+    # 生成32字节的随机十六进制字符串
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -hex 32
+    elif command -v uuidgen >/dev/null 2>&1; then
+        uuidgen | tr -d '-'
+    else
+        # 回退方案：使用日期和随机数
+        date +%s%N | sha256sum | cut -d' ' -f1
+    fi
+}
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
@@ -21,16 +35,28 @@ while [[ $# -gt 0 ]]; do
             ADMIN_TOKEN="$2"
             shift 2
             ;;
+        --generate-token)
+            GENERATE_TOKEN=true
+            shift
+            ;;
         --help)
-            echo "用法: $0 [--server SERVER_IP] [--token ADMIN_TOKEN]"
+            echo "用法: $0 [--server SERVER_IP] [--token ADMIN_TOKEN] [--generate-token]"
             echo ""
             echo "测试 quota-proxy 管理员 API 端点:"
             echo "  1. 健康检查 /healthz"
             echo "  2. 生成试用密钥 /admin/keys (POST)"
             echo "  3. 查看使用情况 /admin/usage (GET)"
             echo ""
+            echo "选项:"
+            echo "  --generate-token   自动生成随机安全令牌（避免使用默认令牌）"
+            echo ""
             echo "环境变量:"
             echo "  QUOTA_PROXY_ADMIN_TOKEN  管理员令牌 (默认: test_admin_token_123)"
+            echo ""
+            echo "安全建议:"
+            echo "  1. 生产环境不要使用默认令牌"
+            echo "  2. 使用 --generate-token 生成随机令牌"
+            echo "  3. 通过环境变量 QUOTA_PROXY_ADMIN_TOKEN 设置安全令牌"
             exit 0
             ;;
         *)
@@ -39,6 +65,19 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# 如果请求生成令牌，则生成随机令牌
+if [[ "$GENERATE_TOKEN" == "true" ]]; then
+    if [[ "$ADMIN_TOKEN" == "test_admin_token_123" ]]; then
+        ADMIN_TOKEN=$(generate_random_token)
+        echo "⚠️  已生成随机安全令牌: ${ADMIN_TOKEN:0:20}..."
+        echo "   完整令牌: ${ADMIN_TOKEN}"
+        echo "   请设置环境变量: export QUOTA_PROXY_ADMIN_TOKEN=\"${ADMIN_TOKEN}\""
+        echo ""
+    else
+        echo "⚠️  已指定自定义令牌，跳过随机生成"
+    fi
+fi
 
 echo "=== 测试 quota-proxy 管理员 API ==="
 echo "服务器: ${SERVER_IP}"
@@ -112,3 +151,12 @@ echo ""
 echo "=== 测试完成 ==="
 echo "注意: 如果管理员API端点尚未实现，这些测试会显示警告而非错误。"
 echo "这是预期的，因为API正在开发中。脚本主要用于验证API端点的基础连通性。"
+echo ""
+echo "=== 安全警告 ==="
+if [[ "$ADMIN_TOKEN" == "test_admin_token_123" ]]; then
+    echo "⚠️  ⚠️  ⚠️  正在使用默认管理员令牌！"
+    echo "   生产环境请使用 --generate-token 生成随机令牌或通过环境变量设置安全令牌。"
+    echo "   示例: QUOTA_PROXY_ADMIN_TOKEN=\$(openssl rand -hex 32) ./test-admin-api.sh"
+else
+    echo "✅ 使用自定义/生成的令牌，安全性较好"
+fi
