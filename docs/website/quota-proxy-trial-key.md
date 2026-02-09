@@ -10,20 +10,22 @@
 
 ## 验证 Key 是否可用（用户 / curl）
 
-把 `YOUR_TRIAL_KEY` 替换成你拿到的 Key：
+把 `YOUR_TRIAL_KEY` 替换成你拿到的 Key（或先导出到环境变量，避免反复复制）：
 
 ```bash
+export TRIAL_KEY="YOUR_TRIAL_KEY"
+
 # 0) 不需要 key 的健康检查（不消耗额度）
 curl -fsS https://api.clawdrepublic.cn/healthz
 
 # 1) 需要 key：查看可用模型（用于确认 key 生效）
 curl -fsS https://api.clawdrepublic.cn/v1/models \
-  -H "Authorization: Bearer YOUR_TRIAL_KEY" \
+  -H "Authorization: Bearer $TRIAL_KEY" \
   | head
 
 # 2) 需要 key：最小对话测试
 curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
-  -H "Authorization: Bearer YOUR_TRIAL_KEY" \
+  -H "Authorization: Bearer $TRIAL_KEY" \
   -H 'content-type: application/json' \
   -d '{
     "model": "deepseek-chat",
