@@ -196,12 +196,20 @@ check_key_pages() {
     local expected="${page_spec#*:}"
     local url="https://clawdrepublic.cn/$page_name"
     
-    if curl -fsS -m "$TIMEOUT" "$url" 2>/dev/null | grep -i -q "$expected"; then
-      add_result "page_$page_name" "PASS" "页面包含预期内容" "$url: 找到 '$expected'"
+    local temp_file
+    temp_file=$(mktemp)
+    if curl -fsS -m "$TIMEOUT" "$url" 2>/dev/null > "$temp_file"; then
+      if grep -i -q "$expected" "$temp_file"; then
+        add_result "page_$page_name" "PASS" "页面包含预期内容" "$url: 找到 '$expected'"
+      else
+        add_result "page_$page_name" "FAIL" "页面缺少预期内容" "$url: 未找到 '$expected'"
+        all_pass=0
+      fi
     else
-      add_result "page_$page_name" "FAIL" "页面缺少预期内容" "$url: 未找到 '$expected'"
+      add_result "page_$page_name" "FAIL" "页面无法下载" "$url"
       all_pass=0
     fi
+    rm -f "$temp_file" 2>/dev/null || true
   done
   
   return $all_pass
