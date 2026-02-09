@@ -123,6 +123,9 @@ export OPENAI_BASE_URL="${BASE_URL}/v1"</code></pre>
 
   <h2>（运维/管理员）发放 TRIAL_KEY 与 /admin/usage 说明</h2>
   <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
+  <p>更完整的管理员置顶帖（可直接复制到论坛置顶区）：
+    <a href="https://github.com/openclaw/roc-ai-republic/blob/main/docs/posts/%E7%BD%AE%E9%A1%B6_quota-proxy_TRIAL_KEY_%E5%8F%91%E6%94%BE%E4%B8%8E%E7%94%A8%E9%87%8F_%E7%AE%A1%E7%90%86%E5%91%98.md">置顶_quota-proxy_TRIAL_KEY_发放与用量_管理员.md</a>
+  </p>
 
   <h3>0) 一键探活 / 验收脚本（推荐）</h3>
   <p>仓库提供了一个验收脚本，帮助你在服务器上一条命令完成：healthz、（可选）签发 key、以及用 key 验证 <code>/v1/models</code>。</p>
