@@ -103,6 +103,48 @@ app.get('/healthz', (req, res) => {
   }
 });
 
+// Database health check with detailed status
+app.get('/healthz/db', (req, res) => {
+  try {
+    const startTime = Date.now();
+    
+    // Check database connection
+    const dbCheck = db.prepare('SELECT 1 as ok').get();
+    
+    // Get table statistics
+    const trialKeysCount = db.prepare('SELECT COUNT(*) as count FROM trial_keys').get().count;
+    const dailyUsageCount = db.prepare('SELECT COUNT(*) as count FROM daily_usage').get().count;
+    
+    // Get database file info
+    const dbStats = db.prepare('PRAGMA database_list').all();
+    const mainDb = dbStats.find(d => d.name === 'main');
+    
+    const responseTime = Date.now() - startTime;
+    
+    res.json({
+      ok: true,
+      database: {
+        path: mainDb ? mainDb.file : DB_PATH,
+        connection: 'healthy',
+        responseTime: `${responseTime}ms`
+      },
+      tables: {
+        trial_keys: trialKeysCount,
+        daily_usage: dailyUsageCount
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[quota-proxy] Database health check failed:', err.message);
+    res.status(500).json({ 
+      ok: false, 
+      error: 'Database health check failed',
+      details: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // DeepSeek proxy
 app.all('/v1/*', async (req, res) => {
   const trialKey = getTrialKey(req);
