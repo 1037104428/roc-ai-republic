@@ -26,7 +26,9 @@ TXT
 DRY_RUN=0
 VERSION="latest"
 NO_CLEANUP=0
-TEST_DIR="/tmp/openclaw-cn-install-test-$(date +%s)"
+
+# Use mktemp for safety (avoid collisions)
+TEST_DIR="$(mktemp -d -t openclaw-cn-install-test-XXXXXXXX)"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -49,7 +51,11 @@ done
 cleanup() {
   if [[ "$NO_CLEANUP" == "0" ]]; then
     echo "[cn-pack] Cleaning up test directory: $TEST_DIR"
-    rm -rf "$TEST_DIR" 2>/dev/null || true
+    # Guard against accidental deletion of non-/tmp paths
+    case "$TEST_DIR" in
+      /tmp/openclaw-cn-install-test-*) rm -rf "$TEST_DIR" 2>/dev/null || true ;;
+      *) echo "[cn-pack] Refuse to cleanup unexpected TEST_DIR: $TEST_DIR" >&2 ;;
+    esac
   else
     echo "[cn-pack] Test directory kept: $TEST_DIR"
   fi
@@ -59,9 +65,12 @@ trap cleanup EXIT
 
 echo "[cn-pack] Starting OpenClaw CN installer verification"
 echo "[cn-pack] Test directory: $TEST_DIR"
-mkdir -p "$TEST_DIR"
 
 # Copy install script to test directory
+if [[ ! -f scripts/install-cn.sh ]]; then
+  echo "[cn-pack] ❌ Missing scripts/install-cn.sh (run from repo root)" >&2
+  exit 2
+fi
 cp scripts/install-cn.sh "$TEST_DIR/"
 
 # Test 1: Help output
