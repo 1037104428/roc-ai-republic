@@ -67,9 +67,11 @@ cd "$REPO_ROOT"
 if ./scripts/status-monitor.sh --help 2>&1 | grep -q "服务状态检查"; then
     echo "✓ 脚本基本功能正常"
 else
-    # 运行脚本查看输出
+    # 运行脚本查看输出（使用临时输出文件）
     echo "运行状态检查（仅检查本地可访问的服务）..."
-    SERVER_FILE="" ./scripts/status-monitor.sh 2>&1 | head -20
+    OUTPUT_TEMP=$(mktemp)
+    SERVER_FILE="" OUTPUT_FILE="$OUTPUT_TEMP" ./scripts/status-monitor.sh 2>&1 | head -20
+    rm -f "$OUTPUT_TEMP"
 fi
 
 echo ""
