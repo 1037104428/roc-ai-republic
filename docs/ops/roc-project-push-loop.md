@@ -17,6 +17,15 @@
 
 ## 本地检查清单（单次 tick）
 
+### 一键自检（推荐）
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/check-artifact-window.sh --minutes 15
+```
+
+### 手动检查
+
 ```bash
 # 时间戳（Asia/Shanghai）
 TZ=Asia/Shanghai date -Iseconds
