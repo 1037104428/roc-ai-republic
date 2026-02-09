@@ -185,16 +185,16 @@ check_install_script() {
 # 6. 关键页面内容检查
 check_key_pages() {
   local pages=(
-    "https://clawdrepublic.cn/quota-proxy.html:TRIAL_KEY"
-    "https://clawdrepublic.cn/quickstart.html:CLAWD_TRIAL_KEY"
-    "https://clawdrepublic.cn/downloads.html:install-cn.sh"
+    "quota-proxy.html:TRIAL_KEY"
+    "quickstart.html:CLAWD_TRIAL_KEY"
+    "downloads.html:install-cn.sh"
   )
   
   local all_pass=1
   for page_spec in "${pages[@]}"; do
-    local url="${page_spec%%:*}"
+    local page_name="${page_spec%%:*}"
     local expected="${page_spec#*:}"
-    local page_name="${url##*/}"
+    local url="https://clawdrepublic.cn/$page_name"
     
     if curl -fsS -m "$TIMEOUT" "$url" 2>/dev/null | grep -q "$expected"; then
       add_result "page_$page_name" "PASS" "页面包含预期内容" "$url: 找到 '$expected'"
