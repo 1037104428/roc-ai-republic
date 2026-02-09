@@ -129,6 +129,7 @@ docker compose logs -f
 
 ### 1. 获取试用密钥
 
+#### 自动申请（推荐）
 ```bash
 # 申请试用密钥
 curl -X POST http://localhost:8787/trial \
@@ -138,6 +139,34 @@ curl -X POST http://localhost:8787/trial \
 # 响应示例
 # {"key": "trial_xxx", "expires_at": "2026-02-10T23:59:59Z", "quota": 100}
 ```
+
+#### 手动发放（管理员）
+```bash
+# 1. 访问管理员界面
+# 浏览器打开：http://localhost:8787/admin
+# 输入 ADMIN_TOKEN 进行认证
+
+# 2. 或者通过 API 手动创建密钥
+curl -X POST http://localhost:8787/admin/keys \
+  -H "Authorization: Bearer your-secret-admin-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "手动发放给用户A",
+    "quota": 500,
+    "expires_in_days": 7
+  }'
+
+# 响应示例
+# {"key": "trial_admin_xxx", "label": "手动发放给用户A", "quota": 500, "expires_at": "2026-02-17T23:59:59Z"}
+```
+
+#### 手动发放流程说明
+1. **部署服务**：先按照"快速开始"部署 quota-proxy
+2. **获取 ADMIN_TOKEN**：在 `.env` 文件中设置的令牌
+3. **访问管理界面**：浏览器打开 `http://localhost:8787/admin`
+4. **创建密钥**：在界面中输入标签和配额，点击"创建密钥"
+5. **分发密钥**：将生成的密钥发送给用户
+6. **用户使用**：用户使用 `Authorization: Bearer trial_xxx` 头访问 API
 
 ### 2. 使用 API 密钥访问
 
