@@ -3,454 +3,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quota Proxy 管理界面</title>
+    <title>quota-proxy 管理界面</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        
-        header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-        
-        main {
-            padding: 30px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-        }
-        
-        @media (max-width: 768px) {
-            main {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .card {
-            background: #f8fafc;
             border-radius: 8px;
-            padding: 25px;
-            border: 1px solid #e2e8f0;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        
-        .card h2 {
-            color: #4f46e5;
-            margin-bottom: 20px;
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
             padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #475569;
-        }
-        
-        input, textarea, select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #cbd5e1;
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
             border-radius: 6px;
-            font-size: 16px;
-            transition: border-color 0.2s;
+            background: #fafafa;
         }
-        
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        .section h2 {
+            margin-top: 0;
+            color: #555;
         }
-        
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
         button {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            background: #4CAF50;
             color: white;
             border: none;
-            padding: 14px 28px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            width: 100%;
+            font-weight: bold;
         }
-        
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+            background: #45a049;
         }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
         .result {
-            margin-top: 20px;
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 4px;
             padding: 15px;
-            background: #f0f9ff;
-            border-radius: 6px;
-            border: 1px solid #bae6fd;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
+            margin-top: 15px;
             white-space: pre-wrap;
-            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
             max-height: 300px;
             overflow-y: auto;
         }
-        
-        .result.success {
-            background: #f0fdf4;
-            border-color: #86efac;
+        .error {
+            background: #ffebee;
+            border-color: #ffcdd2;
+            color: #c62828;
         }
-        
-        .result.error {
-            background: #fef2f2;
-            border-color: #fca5a5;
+        .info {
+            background: #e3f2fd;
+            border-color: #bbdefb;
+            color: #1565c0;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
         }
-        
-        .usage-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        .usage-table th, .usage-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .usage-table th {
-            background: #f1f5f9;
-            font-weight: 600;
-            color: #475569;
-        }
-        
-        .usage-table tr:hover {
-            background: #f8fafc;
-        }
-        
-        .key-display {
-            background: #1e293b;
-            color: #f1f5f9;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            word-break: break-all;
-            margin-top: 10px;
-        }
-        
-        .copy-btn {
-            background: #475569;
-            width: auto;
-            padding: 8px 16px;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        
-        .copy-btn:hover {
-            background: #334155;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #64748b;
-        }
-        
-        .health-status {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        
-        .health-status.ok {
-            background: #dcfce7;
-            color: #166534;
-        }
-        
-        .health-status.error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: #64748b;
-            font-size: 14px;
-            border-top: 1px solid #e2e8f0;
+        .code {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Quota Proxy 管理界面</h1>
-            <p class="subtitle">中华AI共和国 API 网关配额管理系统</p>
-            <div id="health-status" class="health-status">检查中...</div>
-        </header>
+        <h1>quota-proxy 管理界面</h1>
         
-        <main>
-            <div class="card">
-                <h2>📊 系统状态</h2>
-                <div class="form-group">
-                    <label for="admin-token">管理员令牌 (ADMIN_TOKEN)</label>
-                    <input type="password" id="admin-token" placeholder="输入管理员令牌">
-                </div>
-                <button onclick="checkHealth()">检查系统健康</button>
-                <div id="health-result" class="result"></div>
-            </div>
-            
-            <div class="card">
-                <h2>🔑 生成试用密钥</h2>
-                <div class="form-group">
-                    <label for="key-label">密钥标签 (可选)</label>
-                    <input type="text" id="key-label" placeholder="例如: 用户_张三_20250209">
-                </div>
-                <button onclick="generateKey()">生成试用密钥</button>
-                <div id="key-result" class="result"></div>
-            </div>
-            
-            <div class="card">
-                <h2>📈 查看使用情况</h2>
-                <div class="form-group">
-                    <label for="limit">显示条数</label>
-                    <select id="limit">
-                        <option value="10">10条</option>
-                        <option value="20">20条</option>
-                        <option value="50">50条</option>
-                        <option value="100">100条</option>
-                    </select>
-                </div>
-                <button onclick="getUsage()">获取使用情况</button>
-                <div id="usage-result" class="result"></div>
-            </div>
-            
-            <div class="card">
-                <h2>🗑️ 管理密钥</h2>
-                <div class="form-group">
-                    <label for="delete-key">要删除的密钥</label>
-                    <input type="text" id="delete-key" placeholder="输入要删除的密钥">
-                </div>
-                <button onclick="deleteKey()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">删除密钥</button>
-                <div id="delete-result" class="result"></div>
-            </div>
-        </main>
+        <div class="info">
+            <strong>使用说明：</strong> 此界面仅供管理员在服务器本机使用（127.0.0.1:8787）。请勿暴露到公网。
+        </div>
         
-        <footer>
-            <p>© 2026 中华AI共和国 | 仅供管理员使用 | 请妥善保管管理员令牌</p>
-            <p>API 地址: <code id="api-url">http://127.0.0.1:8787</code></p>
-        </footer>
+        <div class="section">
+            <h2>1. 配置</h2>
+            <label for="adminToken">ADMIN_TOKEN:</label>
+            <input type="password" id="adminToken" placeholder="输入管理员令牌">
+            <label for="baseUrl">quota-proxy 地址:</label>
+            <input type="text" id="baseUrl" value="http://127.0.0.1:8787" placeholder="http://127.0.0.1:8787">
+            <button onclick="testConnection()">测试连接</button>
+            <div id="connectionResult" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>2. 创建试用密钥</h2>
+            <label for="keyLabel">标签（可选，用于标识用途）:</label>
+            <input type="text" id="keyLabel" placeholder="例如：用户申请-2025-02-09">
+            <label for="dailyLimit">每日请求限制:</label>
+            <input type="number" id="dailyLimit" value="200" min="1" max="1000">
+            <button onclick="createKey()">创建试用密钥</button>
+            <div id="createKeyResult" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>3. 查看使用情况</h2>
+            <button onclick="getUsage()">获取所有密钥使用情况</button>
+            <div id="usageResult" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>4. 重置密钥用量</h2>
+            <label for="resetKey">要重置的密钥:</label>
+            <input type="text" id="resetKey" placeholder="输入要重置用量的密钥">
+            <button onclick="resetUsage()">重置用量</button>
+            <div id="resetResult" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>5. 删除密钥</h2>
+            <label for="deleteKey">要删除的密钥:</label>
+            <input type="text" id="deleteKey" placeholder="输入要删除的密钥">
+            <button onclick="deleteKey()">删除密钥</button>
+            <div id="deleteResult" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>快速命令参考</h2>
+            <div class="code">
+# 健康检查
+curl -fsS http://127.0.0.1:8787/healthz
+
+# 创建密钥（需要 ADMIN_TOKEN）
+curl -X POST http://127.0.0.1:8787/admin/keys \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"label":"测试用户"}'
+
+# 查看用量
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+  http://127.0.0.1:8787/admin/usage
+
+# 重置用量
+curl -X POST http://127.0.0.1:8787/admin/usage/reset \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key":"trial_..."}'
+
+# 删除密钥
+curl -X DELETE http://127.0.0.1:8787/admin/keys/trial_... \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+            </div>
+        </div>
     </div>
 
     <script>
-        const API_BASE = window.location.hostname === 'localhost' 
-            ? 'http://127.0.0.1:8787' 
-            : window.location.protocol + '//' + window.location.hostname + ':8787';
-        
-        document.getElementById('api-url').textContent = API_BASE;
-        
-        async function makeRequest(endpoint, method = 'GET', data = null) {
-            const token = document.getElementById('admin-token').value;
-            if (!token) {
-                alert('请输入管理员令牌');
-                return null;
-            }
-            
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+        function getConfig() {
+            return {
+                token: document.getElementById('adminToken').value,
+                baseUrl: document.getElementById('baseUrl').value
             };
-            
-            const options = {
-                method,
-                headers
-            };
-            
-            if (data && (method === 'POST' || method === 'PUT')) {
-                options.body = JSON.stringify(data);
+        }
+        
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            element.className = 'result ' + (isError ? 'error' : '');
+        }
+        
+        async function testConnection() {
+            const config = getConfig();
+            if (!config.token) {
+                showResult('connectionResult', '请先输入 ADMIN_TOKEN', true);
+                return;
             }
             
             try {
-                const response = await fetch(`${API_BASE}${endpoint}`, options);
-                const result = await response.json();
-                
-                return {
-                    ok: response.ok,
-                    status: response.status,
-                    data: result
-                };
+                const response = await fetch(`${config.baseUrl}/healthz`);
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('connectionResult', { status: '连接成功', healthz: data });
+                } else {
+                    showResult('connectionResult', `连接失败: ${response.status} ${response.statusText}`, true);
+                }
             } catch (error) {
-                return {
-                    ok: false,
-                    status: 0,
-                    error: error.message
-                };
+                showResult('connectionResult', `连接错误: ${error.message}`, true);
             }
         }
         
-        async function checkHealth() {
-            const resultDiv = document.getElementById('health-result');
-            resultDiv.innerHTML = '<div class="loading">检查中...</div>';
-            
-            const response = await makeRequest('/healthz');
-            
-            if (response.ok) {
-                resultDiv.className = 'result success';
-                resultDiv.innerHTML = `<strong>✅ 系统健康</strong>\n${JSON.stringify(response.data, null, 2)}`;
-                
-                const healthStatus = document.getElementById('health-status');
-                healthStatus.className = 'health-status ok';
-                healthStatus.textContent = '✅ 系统正常';
-            } else {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `<strong>❌ 系统异常</strong>\n状态码: ${response.status}\n错误: ${response.error || JSON.stringify(response.data)}`;
-                
-                const healthStatus = document.getElementById('health-status');
-                healthStatus.className = 'health-status error';
-                healthStatus.textContent = '❌ 系统异常';
+        async function createKey() {
+            const config = getConfig();
+            if (!config.token) {
+                showResult('createKeyResult', '请先输入 ADMIN_TOKEN', true);
+                return;
             }
-        }
-        
-        async function generateKey() {
-            const label = document.getElementById('key-label').value;
-            const resultDiv = document.getElementById('key-result');
-            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
             
-            const response = await makeRequest('/admin/keys', 'POST', { label });
+            const label = document.getElementById('keyLabel').value;
+            const dailyLimit = parseInt(document.getElementById('dailyLimit').value);
             
-            if (response.ok) {
-                resultDiv.className = 'result success';
-                const key = response.data.key;
-                resultDiv.innerHTML = `
-                    <strong>✅ 密钥生成成功</strong>
-                    <div class="key-display">${key}</div>
-                    <button class="copy-btn" onclick="copyToClipboard('${key}')">📋 复制密钥</button>
-                    <p><strong>使用示例:</strong></p>
-                    <pre>export CLAWD_TRIAL_KEY="${key}"
-curl -H "Authorization: Bearer ${key}" \\
-  ${API_BASE}/v1/models</pre>
-                `;
-            } else {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `<strong>❌ 生成失败</strong>\n状态码: ${response.status}\n错误: ${JSON.stringify(response.data)}`;
+            const payload = {};
+            if (label) payload.label = label;
+            if (dailyLimit && dailyLimit > 0) payload.dailyLimit = dailyLimit;
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/admin/keys`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showResult('createKeyResult', {
+                        message: '密钥创建成功',
+                        key: data.key,
+                        label: data.label,
+                        dailyLimit: data.dailyLimit,
+                        createdAt: data.createdAt
+                    });
+                } else {
+                    showResult('createKeyResult', `创建失败: ${response.status} ${JSON.stringify(data)}`, true);
+                }
+            } catch (error) {
+                showResult('createKeyResult', `请求错误: ${error.message}`, true);
             }
         }
         
         async function getUsage() {
-            const limit = document.getElementById('limit').value;
-            const resultDiv = document.getElementById('usage-result');
-            resultDiv.innerHTML = '<div class="loading">加载中...</div>';
+            const config = getConfig();
+            if (!config.token) {
+                showResult('usageResult', '请先输入 ADMIN_TOKEN', true);
+                return;
+            }
             
-            const response = await makeRequest(`/admin/usage?limit=${limit}`);
-            
-            if (response.ok) {
-                resultDiv.className = 'result success';
+            try {
+                const response = await fetch(`${config.baseUrl}/admin/usage`, {
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`
+                    }
+                });
                 
-                if (response.data.items && response.data.items.length > 0) {
-                    let html = `<strong>📊 使用情况 (共 ${response.data.items.length} 条)</strong>`;
-                    html += '<table class="usage-table">';
-                    html += '<tr><th>密钥标签</th><th>今日请求</th><th>总请求</th><th>创建时间</th></tr>';
-                    
-                    response.data.items.forEach(item => {
-                        const date = new Date(item.created_at * 1000).toLocaleString('zh-CN');
-                        html += `<tr>
-                            <td><code>${item.label || '无标签'}</code></td>
-                            <td>${item.today_requests || 0}</td>
-                            <td>${item.total_requests || 0}</td>
-                            <td>${date}</td>
-                        </tr>`;
+                const data = await response.json();
+                if (response.ok) {
+                    showResult('usageResult', {
+                        message: '使用情况获取成功',
+                        items: data.items,
+                        total: data.total,
+                        limit: data.limit
                     });
-                    
-                    html += '</table>';
-                    resultDiv.innerHTML = html;
                 } else {
-                    resultDiv.innerHTML = '<strong>📭 暂无使用数据</strong>';
+                    showResult('usageResult', `获取失败: ${response.status} ${JSON.stringify(data)}`, true);
                 }
-            } else {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `<strong>❌ 获取失败</strong>\n状态码: ${response.status}\n错误: ${JSON.stringify(response.data)}`;
+            } catch (error) {
+                showResult('usageResult', `请求错误: ${error.message}`, true);
+            }
+        }
+        
+        async function resetUsage() {
+            const config = getConfig();
+            if (!config.token) {
+                showResult('resetResult', '请先输入 ADMIN_TOKEN', true);
+                return;
+            }
+            
+            const key = document.getElementById('resetKey').value;
+            if (!key) {
+                showResult('resetResult', '请输入要重置的密钥', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${config.baseUrl}/admin/usage/reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ key })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showResult('resetResult', {
+                        message: '用量重置成功',
+                        key: data.key,
+                        resetAt: data.resetAt
+                    });
+                } else {
+                    showResult('resetResult', `重置失败: ${response.status} ${JSON.stringify(data)}`, true);
+                }
+            } catch (error) {
+                showResult('resetResult', `请求错误: ${error.message}`, true);
             }
         }
         
         async function deleteKey() {
-            const key = document.getElementById('delete-key').value.trim();
+            const config = getConfig();
+            if (!config.token) {
+                showResult('deleteResult', '请先输入 ADMIN_TOKEN', true);
+                return;
+            }
+            
+            const key = document.getElementById('deleteKey').value;
             if (!key) {
-                alert('请输入要删除的密钥');
+                showResult('deleteResult', '请输入要删除的密钥', true);
                 return;
             }
             
-            if (!confirm(`确定要删除密钥吗？\n${key.substring(0, 20)}...`)) {
-                return;
-            }
-            
-            const resultDiv = document.getElementById('delete-result');
-            resultDiv.innerHTML = '<div class="loading">删除中...</div>';
-            
-            const response = await makeRequest(`/admin/keys/${encodeURIComponent(key)}`, 'DELETE');
-            
-            if (response.ok) {
-                resultDiv.className = 'result success';
-                resultDiv.innerHTML = `<strong>✅ 密钥删除成功</strong>\n${JSON.stringify(response.data, null, 2)}`;
-            } else {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `<strong>❌ 删除失败</strong>\n状态码: ${response.status}\n错误: ${JSON.stringify(response.data)}`;
+            try {
+                const response = await fetch(`${config.baseUrl}/admin/keys/${encodeURIComponent(key)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('deleteResult', {
+                        message: '密钥删除成功',
+                        key: data.key,
+                        deleted: data.deleted
+                    });
+                } else {
+                    const data = await response.json();
+                    showResult('deleteResult', `删除失败: ${response.status} ${JSON.stringify(data)}`, true);
+                }
+            } catch (error) {
+                showResult('deleteResult', `请求错误: ${error.message}`, true);
             }
         }
-        
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('密钥已复制到剪贴板！');
-            }).catch(err => {
-                console.error('复制失败:', err);
-                alert('复制失败，请手动复制');
-            });
-        }
-        
-        // 页面加载时自动检查健康状态
-        window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(checkHealth, 1000);
-        });
     </script>
 </body>
 </html>
