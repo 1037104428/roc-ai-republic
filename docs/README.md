@@ -14,31 +14,73 @@
 
 > 适合在网络不稳定/需要国内可达源时使用：优先 `npmmirror`，失败自动回退 `npmjs`；不会修改你本机的 npm registry 配置。
 
+#### 核心特性
+
+1. **国内源优先**：默认使用 `https://registry.npmmirror.com`（淘宝 NPM 镜像）
+2. **智能回退**：如果国内源不可达或安装失败，自动切换到 `https://registry.npmjs.org`
+3. **网络自检**：安装前检查网络连通性（可跳过）
+4. **安装自检**：安装后自动运行 `openclaw --version` 验证
+5. **环境友好**：不永久修改用户的 npm registry 配置
+
+#### 快速使用
+
 - 直接安装（latest）：
-  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash`
+  ```bash
+  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
+  ```
 - 指定版本安装：
-  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12`
+  ```bash
+  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12
+  ```
 - 仅打印命令（不执行）：
-  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --dry-run`
+  ```bash
+  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --dry-run
+  ```
 
-脚本位置：`scripts/install-cn.sh`（自检：`openclaw --version`；要求 Node.js >= 20）
+#### 回退策略详解
 
-常见问题 / 选项：
-- 想换国内源（例如腾讯云 npm 镜像）：
-  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-cn https://mirrors.cloud.tencent.com/npm/`
-- 想显式设置回退源：
-  - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-fallback https://registry.npmjs.org`
-- 跳过网络连通性检查（如果curl不可用或网络环境特殊）：
-  - `SKIP_NET_CHECK=1 curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash`
+脚本执行流程：
+1. 检查 Node.js >= 20（必需）
+2. 测试国内源网络连通性（可跳过）
+3. 尝试通过国内源安装
+4. 如果国内源安装失败（网络超时、包不存在等）：
+   - 等待 2 秒
+   - 自动切换到回退源（npmjs.org）重试
+5. 安装成功后运行 `openclaw --version` 自检
+
+#### 高级选项
+
+- 更换国内源（例如腾讯云 npm 镜像）：
+  ```bash
+  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-cn https://mirrors.cloud.tencent.com/npm/
+  ```
+- 显式设置回退源：
+  ```bash
+  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-fallback https://registry.npmjs.org
+  ```
+- 强制使用国内源（跳过回退）：
+  ```bash
+  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --force-cn
+  ```
+- 跳过网络连通性检查：
+  ```bash
+  SKIP_NET_CHECK=1 curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
+  ```
+
+#### 验证与测试
+
 - 脚本自测（不改系统，不安装）：
-  - `cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/verify-install-cn.sh --dry-run`
+  ```bash
+  cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/verify-install-cn.sh --dry-run
+  ```
 - 安装后快速验证：
-  - `./scripts/quick-verify-openclaw.sh`（检查命令、版本、状态、网络）
-  - 指南：`docs/quick-verify-guide.md`
-- 完整使用指南：
-  - `docs/install-cn-guide.md`（参数说明、回退策略、自检功能、故障排除）
-- 故障排除指南：
-  - `docs/install-cn-troubleshooting.md`（Node.js版本、权限、网络等问题）
+  ```bash
+  ./scripts/quick-verify-openclaw.sh
+  ```
+- 完整使用指南：`docs/install-cn-guide.md`
+- 故障排除指南：`docs/install-cn-troubleshooting.md`
+
+脚本位置：`scripts/install-cn.sh`（要求 Node.js >= 20）
 
 ## quota-proxy（试用网关）
 
