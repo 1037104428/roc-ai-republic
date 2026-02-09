@@ -241,6 +241,15 @@ curl -fsS https://forum.clawdrepublic.cn/health-check
 
 # 备份验证
 ls -la /backup/forum-*.sql | head -5
+
+# 快速验证脚本（本地开发/测试）
+./scripts/quick-verify-forum.sh --url http://127.0.0.1:8081 --timeout 10
+
+# 外网访问验证
+./scripts/verify-forum-access.sh --url https://forum.clawdrepublic.cn --timeout 15
+
+# MVP 功能验证
+./scripts/verify-forum-mvp.sh --check-posts --check-registration
 ```
 
 ## 故障排除
