@@ -68,8 +68,10 @@ echo "Forwarding: 127.0.0.1:${LOCAL_PORT} -> ${HOST} 127.0.0.1:${REMOTE_PORT}" >
 echo "Press Ctrl+C to stop." >&2
 
 exec ssh \
+  -N \
+  -T \
   -o ExitOnForwardFailure=yes \
   -o ServerAliveInterval=30 \
   -o ServerAliveCountMax=3 \
-  -L "${LOCAL_PORT}:127.0.0.1:${REMOTE_PORT}" \
+  -L "127.0.0.1:${LOCAL_PORT}:127.0.0.1:${REMOTE_PORT}" \
   "$HOST"

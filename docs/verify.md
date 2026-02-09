@@ -141,7 +141,7 @@ ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS 
 先把服务器本机 `127.0.0.1:8787` 转发到你本机 `127.0.0.1:8788`：
 
 ```bash
-ssh -o BatchMode=yes -o ConnectTimeout=8 -L 8788:127.0.0.1:8787 root@<SERVER_IP>
+ssh -N -T -o BatchMode=yes -o ConnectTimeout=8 -L 127.0.0.1:8788:127.0.0.1:8787 root@<SERVER_IP>
 ```
 
 或直接用仓库脚本（会自动读 `/tmp/server.txt` 的 `ip:<HOST>`）：
