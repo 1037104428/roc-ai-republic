@@ -24,10 +24,17 @@
 
 ### 方式 A：用脚本（推荐）
 
+> 说明：生产服务器的 `/opt/roc/quota-proxy` 目录通常只有运行所需文件（未必包含 `scripts/`）。
+> 管理脚本在仓库里：`roc-ai-republic/scripts/quota-proxy-admin.sh`。
+>
+> 你可以在任意一台能访问 **服务器本机 127.0.0.1:8787** 的环境使用它：
+> - 直接在服务器上（把脚本复制过去），或
+> - 在本机通过 SSH 转发/远程执行（更推荐直接用下方 curl，最不容易出环境差异）。
+
 ```bash
-cd /opt/roc/quota-proxy
+cd /home/kai/.openclaw/workspace/roc-ai-republic
 export ADMIN_TOKEN='***'
-./scripts/quota-proxy-admin.sh keys-create --label 'forum-user:alice'
+./scripts/quota-proxy-admin.sh --host http://127.0.0.1:8787 keys-create --label 'forum-user:alice'
 ```
 
 ### 方式 B：直接 curl
@@ -96,10 +103,18 @@ sqlite3 /data/quota.db "DELETE FROM trial_keys WHERE key='trial_xxx';"
 
 ### 2.1 查询某一天所有 key 的用量
 
+curl 方式：
 ```bash
 export ADMIN_TOKEN='***'
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
+```
+
+脚本方式（仓库内置，参数更不容易写错）：
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+export ADMIN_TOKEN='***'
+./scripts/quota-proxy-admin.sh --host http://127.0.0.1:8787 usage --day "$(date +%F)"
 ```
 
 ### 2.2 查询某一天某个 key 的用量
