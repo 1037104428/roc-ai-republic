@@ -258,3 +258,14 @@ curl -fsSI https://<your-domain>/ | head
 # 如果文本里包含引号/反斜杠等，建议用 --stdin 避免 shell 转义坑
 printf '%s' "blocker: can't append due to quoting" | ./scripts/append-progress-log.sh --stdin
 ```
+
+## Port binding exposure quick-audit (recommended)
+
+Make sure quota-proxy is **not** bound to 0.0.0.0 / :: (public exposure risk). Expected:
+`127.0.0.1:8787->8787/tcp`
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/ssh-audit-quota-proxy-exposure.sh
+./scripts/ssh-audit-quota-proxy-exposure.sh --json | python3 -m json.tool
+```
