@@ -35,6 +35,18 @@
     <li>正文写 1-2 句话：你要做什么、预计每天大概多少次调用</li>
     <li>管理员私信/回复发放 <code>trial_...</code> 格式的 key</li>
   </ol>
+
+  <h3>管理员（发放方）自检清单</h3>
+  <p>如果你是管理员/运营侧，建议在发放 key 前后做一次最小自检，避免“用户拿到 key 但服务挂了/网关域名指错”。</p>
+  <pre><code># 在一台有 bash+curl+git 的机器上，一键自检：repo + server + api
+cd /tmp
+git clone https://github.com/openclaw/roc-ai-republic.git
+cd roc-ai-republic
+./scripts/check-artifact-window.sh --minutes 15</code></pre>
+  <pre><code># 或仅探活服务器 quota-proxy（会读 /tmp/server.txt，格式：ip:&lt;HOST&gt;）
+cd /tmp/roc-ai-republic
+./scripts/ssh-healthz-quota-proxy.sh</code></pre>
+
   <p><strong>有效期/额度说明：</strong>TRIAL_KEY 一般会绑定一个「试用额度」与运营规则；额度用完后会出现 429（见下方排查）。如需加额度/延长，请在论坛跟帖说明近期使用情况与需求。</p>
   <p>如果你不知道怎么写申请帖，可以直接照着模板写：
     <a href="https://github.com/openclaw/roc-ai-republic/blob/main/docs/posts/%E6%A8%A1%E6%9D%BF_TRIAL_KEY_%E7%94%B3%E8%AF%B7.md">仓库里的 TRIAL_KEY 申请模板</a>（论坛置顶尚在建设中，先以仓库版本为准）。
@@ -113,11 +125,10 @@ export OPENAI_BASE_URL="${BASE_URL}/v1"</code></pre>
 
   <h2>可选：列出可用模型（OpenAI-compatible）</h2>
   <p>如果你想先确认网关端暴露了哪些模型（通常需要带 key，否则会 401/403）：</p>
-  <pre><code>curl -fsS https://api.clawdrepublic.cn/v1/models \
+  <pre><code>curl -fsS "${BASE_URL}/v1/models" \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
 
   <h2>健康检查（不调用模型，不消耗额度）</h2>
-  <p>建议复用上文的 <code>BASE_URL</code>：</p>
   <pre><code>curl -fsS "${BASE_URL}/healthz"</code></pre>
 
   <h2>常见错误排查</h2>
@@ -130,6 +141,9 @@ export OPENAI_BASE_URL="${BASE_URL}/v1"</code></pre>
 
   <h2>（运维/管理员）发放 TRIAL_KEY 与 /admin/usage 说明</h2>
   <p>管理接口不应暴露公网；一般在服务器本机（或内网）执行 curl。</p>
+  <p>更完整的管理员置顶帖（可直接复制到论坛置顶区）：
+    <a href="https://github.com/openclaw/roc-ai-republic/blob/main/docs/posts/%E7%BD%AE%E9%A1%B6_quota-proxy_TRIAL_KEY_%E5%8F%91%E6%94%BE%E4%B8%8E%E7%94%A8%E9%87%8F_%E7%AE%A1%E7%90%86%E5%91%98.md">置顶_quota-proxy_TRIAL_KEY_发放与用量_管理员.md</a>
+  </p>
 
   <h3>0) 一键探活 / 验收脚本（推荐）</h3>
   <p>仓库提供了一个验收脚本，帮助你在服务器上一条命令完成：healthz、（可选）签发 key、以及用 key 验证 <code>/v1/models</code>。</p>
@@ -161,13 +175,6 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
   -H 'content-type: application/json' \
   -d '{"label":"forum-user:alice"}'</code></pre>
-
-  <h4>可选：用仓库脚本快速签发（更不容易写错）</h4>
-  <pre><code>cd /home/kai/.openclaw/workspace/roc-ai-republic
-ADMIN_TOKEN='***' \
-  bash scripts/quick-gen-trial-key.sh --base-url http://127.0.0.1:8787 --days 7</code></pre>
-  <p>脚本会输出一行 <code>trial_...</code> key；如服务器没有 <code>jq</code> 也能工作（会用轻量方式从 JSON 里提取 <code>key</code> 字段）。</p>
-
   <p>返回示例：</p>
   <pre><code>{"key":"trial_xxx","label":"forum-user:alice","created_at":1700000000000}</code></pre>
   <p><strong>当前发放流程（人工）：</strong>把返回的 <code>key</code> 通过论坛私信/工单发给用户即可。<strong>不要</strong>在公开帖子里粘贴完整 key（如必须展示，请先脱敏）。</p>
@@ -184,14 +191,6 @@ export OPENAI_BASE_URL='https://api.clawdrepublic.cn/v1'
 curl -fsS "${OPENAI_BASE_URL}/models" \
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
   <p>如需在论坛里贴日志，建议把 key 脱敏成类似 <code>trial_abcd...wxyz</code> 再发送。</p>
-
-  <h4>发放时建议同步说明：有效期 / 额度 / 权限边界</h4>
-  <ul>
-    <li><strong>有效期</strong>：试用 key 往往有有效期（或随运营策略调整）。如需延长请在论坛跟帖说明使用情况。</li>
-    <li><strong>额度</strong>：通常按“每日请求数/总请求数”等口径控制；超限一般返回 <code>429</code>。</li>
-    <li><strong>权限边界</strong>：TRIAL_KEY 只能调用公开的 OpenAI 兼容接口（如 <code>/v1/models</code>、<code>/v1/chat/completions</code>），<strong>不具备</strong>任何管理权限，不能访问 <code>/admin/*</code>。</li>
-    <li><strong>安全提醒</strong>：不要把 key 写进公开仓库/截图；建议用环境变量注入（如 <code>CLAWD_TRIAL_KEY</code>）。</li>
-  </ul>
 
   <h3>2) 查询用量（按天聚合，推荐）</h3>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
@@ -314,6 +313,6 @@ cd /path/to/roc-ai-republic
 curl -fsS -m 10 https://clawdrepublic.cn/forum/ | grep -o 'Clawd 国度论坛'</code></pre>
 
   <hr />
-  <p>仓库文档：<a href="https://github.com/openclaw/roc-ai-republic">openclaw/roc-ai-republic</a>（docs/quota-proxy*）</p>
+  <p>仓库文档：<a href="https://github.com/1037104428/roc-ai-republic">roc-ai-republic</a>（docs/quota-proxy*）</p>
 </body>
 </html>

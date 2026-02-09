@@ -21,9 +21,9 @@
   <p>Clawd 国度提供一个 <strong>OpenAI 兼容</strong> 的模型网关（DeepSeek 上游由服务器端持有，不下发给客户端）。你拿到的 <code>TRIAL_KEY</code> 用于领取/消耗试用额度。</p>
   <h3>你需要记住的 3 个地址</h3>
   <ul>
-    <li><strong>API Base URL</strong>：<code>https://api.clawdrepublic.cn</code>（OpenAI 兼容接口：<code>${BASE_URL}/v1/*</code>）</li>
-    <li><strong>健康检查</strong>：<code>${BASE_URL}/healthz</code>（不消耗额度）</li>
-    <li><strong>最小鉴权验证</strong>：<code>${BASE_URL}/v1/models</code>（需要 <code>Authorization: Bearer ${CLAWD_TRIAL_KEY}</code>）</li>
+    <li><strong>API Base URL</strong>：<code>https://api.clawdrepublic.cn</code>（OpenAI 兼容接口：<code>https://api.clawdrepublic.cn/v1/*</code>）</li>
+    <li><strong>健康检查</strong>：<code>https://api.clawdrepublic.cn/healthz</code>（不消耗额度）</li>
+    <li><strong>最小鉴权验证</strong>：<code>https://api.clawdrepublic.cn/v1/models</code>（需要 <code>Authorization: Bearer &lt;CLAWD_TRIAL_KEY&gt;</code>）</li>
   </ul>
 
   <h2>如何获取 TRIAL_KEY（当前：人工发放）</h2>
