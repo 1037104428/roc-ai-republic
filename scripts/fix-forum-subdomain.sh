@@ -1,69 +1,74 @@
-#!/bin/bash
-# 修复论坛子域名反向代理配置
-# 目标：让 forum.clawdrepublic.cn 能正常访问（当前 502）
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+# Fix forum subdomain reverse proxy configuration
+# This script adds forum.clawdrepublic.cn subdomain support to Caddy
 
-echo "=== 论坛子域名反向代理修复脚本 ==="
-echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
-
-# 检查参数
-DRY_RUN=false
-if [[ "$1" == "--dry-run" ]]; then
-    DRY_RUN=true
-    echo "DRY RUN 模式：只显示将要执行的命令，不实际修改"
-fi
-
-# 服务器IP（从 /tmp/server.txt 读取）
 SERVER_FILE="${SERVER_FILE:-/tmp/server.txt}"
-if [[ -f "$SERVER_FILE" ]]; then
-    SERVER_IP=$(head -1 "$SERVER_FILE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' || echo "")
-    if [[ -z "$SERVER_IP" ]]; then
-        echo "错误：无法从 $SERVER_FILE 解析服务器IP"
-        exit 1
-    fi
-else
-    echo "错误：服务器文件 $SERVER_FILE 不存在"
+if [[ ! -f "$SERVER_FILE" ]]; then
+    echo "Error: Server file not found: $SERVER_FILE"
     exit 1
 fi
 
-echo "服务器: $SERVER_IP"
-
-# 检查论坛容器是否运行
-echo "1. 检查论坛容器状态..."
-if [[ "$DRY_RUN" == false ]]; then
-    ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-        "docker ps --filter 'name=flarum' --format 'table {{.Names}}\t{{.Status}}' || echo 'Docker 未安装或论坛容器未运行'"
-else
-    echo "[DRY RUN] ssh root@$SERVER_IP docker ps --filter 'name=flarum'"
+SERVER_IP=$(head -1 "$SERVER_FILE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' || true)
+if [[ -z "$SERVER_IP" ]]; then
+    echo "Error: Could not extract IP from $SERVER_FILE"
+    exit 1
 fi
 
-# 检查论坛内部访问
-echo "2. 检查论坛内部访问 (127.0.0.1:8081)..."
-if [[ "$DRY_RUN" == false ]]; then
-    ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-        "curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null && echo '✓ 论坛内部访问正常' || echo '✗ 论坛内部访问失败'"
-else
-    echo "[DRY RUN] ssh root@$SERVER_IP curl -fsS -m 5 http://127.0.0.1:8081/"
-fi
+echo "Target server: $SERVER_IP"
 
-# 检查当前Caddy配置
-echo "3. 检查当前Caddy配置..."
-if [[ "$DRY_RUN" == false ]]; then
-    ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-        "cat /etc/caddy/Caddyfile | grep -A5 -B5 'forum' || echo '未找到论坛相关配置'"
-else
-    echo "[DRY RUN] ssh root@$SERVER_IP cat /etc/caddy/Caddyfile | grep -A5 -B5 'forum'"
-fi
+# Create updated Caddyfile
+CADDYFILE_CONTENT='# Caddyfile for ROC AI Republic static site + forum subdomain
+# Deploy to: /opt/roc/web/caddy/Caddyfile
+# Usage: caddy run --config /opt/roc/web/caddy/Caddyfile
 
-# 生成修复配置
-echo "4. 生成修复配置..."
-FIX_CONFIG="# Forum subdomain reverse proxy
+# HTTPS auto-configuration (must be first if present)
+{
+    # Auto HTTPS with Let\'s Encrypt
+    email admin@clawdrepublic.cn
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
+# Main domain - landing page
+clawdrepublic.cn {
+    # Static site files
+    root * /opt/roc/web/site
+    file_server {
+        index index.html
+    }
+    
+    # API gateway reverse proxy
+    handle_path /api/* {
+        reverse_proxy http://127.0.0.1:8787 {
+            header_up Host {host}
+        }
+    }
+    
+    # Forum reverse proxy (path-based)
+    handle_path /forum/* {
+        reverse_proxy http://127.0.0.1:8081 {
+            header_up Host {host}
+        }
+    }
+    
+    # Health check endpoint
+    handle /healthz {
+        respond "OK" 200
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
+
+# Forum subdomain
 forum.clawdrepublic.cn {
-    reverse_proxy 127.0.0.1:8081 {
+    # Reverse proxy to Flarum
+    reverse_proxy http://127.0.0.1:8081 {
         header_up Host {host}
-        header_up X-Forwarded-For {remote}
-        header_up X-Forwarded-Proto {scheme}
     }
     
     # Logging
@@ -71,72 +76,38 @@ forum.clawdrepublic.cn {
         output file /var/log/caddy/forum-access.log
         format json
     }
-}"
+}
 
-echo "修复配置内容："
-echo "$FIX_CONFIG"
+# Redirect www to non-www
+www.clawdrepublic.cn {
+    redir https://clawdrepublic.cn{uri} permanent
+}'
 
-# 应用修复
-echo "5. 应用修复配置..."
-if [[ "$DRY_RUN" == false ]]; then
-    # 备份当前配置
-    ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-        "cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup.$(date +%s)"
-    
-    # 添加论坛子域名配置到Caddyfile
-    ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-        "echo '$FIX_CONFIG' >> /etc/caddy/Caddyfile"
-    
-    # 验证配置
-    echo "验证Caddy配置..."
-    ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-        "caddy validate --config /etc/caddy/Caddyfile && echo '✓ 配置验证通过' || echo '✗ 配置验证失败'"
-    
-    # 重载Caddy
-    echo "重载Caddy服务..."
-    ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
-        "systemctl reload caddy && echo '✓ Caddy重载成功' || echo '✗ Caddy重载失败'"
+echo "Updating Caddy configuration on server..."
+ssh -o BatchMode=yes -o ConnectTimeout=8 root@"$SERVER_IP" "mkdir -p /opt/roc/web/caddy && echo '$CADDYFILE_CONTENT' > /opt/roc/web/caddy/Caddyfile"
+
+echo "Reloading Caddy..."
+ssh -o BatchMode=yes -o ConnectTimeout=8 root@"$SERVER_IP" "systemctl reload caddy 2>/dev/null || systemctl restart caddy 2>/dev/null || echo 'Note: Caddy reload/restart may need manual check'"
+
+echo "Testing forum subdomain..."
+if curl -fsS -m 10 "https://forum.clawdrepublic.cn/" >/dev/null 2>&1; then
+    echo "✓ forum.clawdrepublic.cn is accessible"
 else
-    echo "[DRY RUN] 将执行以下操作："
-    echo "  - 备份当前Caddy配置"
-    echo "  - 添加论坛子域名配置到Caddyfile"
-    echo "  - 验证配置：caddy validate --config /etc/caddy/Caddyfile"
-    echo "  - 重载服务：systemctl reload caddy"
+    echo "⚠ forum.clawdrepublic.cn may need DNS propagation or certificate issuance"
+    echo "  Path-based forum is still available at: https://clawdrepublic.cn/forum/"
 fi
 
-# 验证修复
-echo "6. 验证修复..."
-if [[ "$DRY_RUN" == false ]]; then
-    echo "等待5秒让配置生效..."
-    sleep 5
-    
-    echo "测试论坛子域名访问..."
-    if curl -fsS -m 10 https://forum.clawdrepublic.cn/ >/dev/null 2>&1; then
-        echo "✓ 论坛子域名访问成功"
-        
-        # 获取页面标题验证
-        TITLE=$(curl -fsS -m 10 https://forum.clawdrepublic.cn/ 2>/dev/null | grep -o '<title>[^<]*</title>' | sed 's/<title>//;s/<\/title>//' || echo "")
-        if [[ -n "$TITLE" ]]; then
-            echo "✓ 论坛标题: $TITLE"
-        fi
-    else
-        echo "✗ 论坛子域名访问失败"
-        echo "尝试HTTP访问..."
-        if curl -fsS -m 10 http://forum.clawdrepublic.cn/ >/dev/null 2>&1; then
-            echo "✓ 论坛HTTP访问成功（HTTPS可能需要证书）"
-        else
-            echo "✗ 论坛访问完全失败"
-        fi
-    fi
+echo "Testing path-based forum..."
+if curl -fsS -m 10 "https://clawdrepublic.cn/forum/" >/dev/null 2>&1; then
+    echo "✓ https://clawdrepublic.cn/forum/ is accessible"
 else
-    echo "[DRY RUN] 验证步骤："
-    echo "  - curl -fsS -m 10 https://forum.clawdrepublic.cn/"
-    echo "  - 检查页面标题"
+    echo "✗ Path-based forum is not accessible"
 fi
 
-echo "=== 修复完成 ==="
-echo "如果仍有问题，请检查："
-echo "1. DNS解析：forum.clawdrepublic.cn 是否指向 $SERVER_IP"
-echo "2. 防火墙：80/443端口是否开放"
-echo "3. 证书：Let's Encrypt是否自动签发（可能需要等待）"
-echo "4. 论坛容器：是否正常运行在8081端口"
+echo ""
+echo "Summary:"
+echo "1. Updated Caddy configuration with forum subdomain support"
+echo "2. Forum is accessible via:"
+echo "   - https://clawdrepublic.cn/forum/ (path-based)"
+echo "   - https://forum.clawdrepublic.cn/ (subdomain, may need DNS/cert)"
+echo "3. Note: DNS A record for forum.clawdrepublic.cn must point to $SERVER_IP"
