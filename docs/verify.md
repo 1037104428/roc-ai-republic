@@ -593,3 +593,48 @@ fi
 
 echo "✅ TRIAL_KEY 生命周期验证完成"
 ```
+
+## 快速服务器状态检查
+
+对于日常运维和监控，可以使用快速状态检查脚本：
+
+```bash
+# 使用默认服务器
+./scripts/quick-server-status.sh
+
+# 指定服务器IP
+SERVER_IP=你的服务器IP ./scripts/quick-server-status.sh
+```
+
+脚本检查内容：
+1. SSH连接可用性
+2. Docker容器运行状态
+3. 健康检查端点 (http://127.0.0.1:8787/healthz)
+4. SQLite数据库文件存在性
+
+输出示例：
+```
+🔍 快速服务器状态检查 - 2026-02-09 16:20:52 CST
+服务器: 8.210.185.194
+
+1. SSH 连接测试...
+   ✅ SSH 连接正常
+2. Docker 容器状态...
+   running quota-proxy-quota-proxy-1 (quota-proxy)
+3. 健康检查端点...
+   ✅ 健康检查通过
+4. SQLite 数据库文件...
+   -rw-r--r-- 1 root root 8192 Feb  9 14:30 quota.db
+
+📊 状态摘要:
+   - SSH连接: ✅
+   - Docker容器: 运行中
+   - 健康端点: ✅
+   - SQLite持久化: 已配置
+```
+
+此脚本适合用于：
+- 部署后的快速验证
+- 日常监控检查
+- CI/CD流水线中的健康检查
+- 故障排查的第一步
