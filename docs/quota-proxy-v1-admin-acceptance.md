@@ -47,13 +47,29 @@ curl -fsS http://127.0.0.1:8787/healthz
    - 若 `ADMIN_TOKEN` 没有 export，curl 会变成空 token，表现为一直 401。
 3) **远程验收时用 SSH 转发**（不用开公网端口）：
 
-```bash
-# 本机执行：把服务器的 127.0.0.1:8787 转到你本机 18787
-ssh -N -L 18787:127.0.0.1:8787 root@<SERVER_IP>
+推荐用一键脚本（自动读 `/tmp/server.txt`，默认把服务器 `127.0.0.1:8787` 转发到本机 `127.0.0.1:8788`）：
 
-# 另开一个终端：指向本机转发端口验收
-ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:18787 \
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/ssh-portforward-quota-proxy-admin.sh
+```
+
+另开一个终端做验收：
+
+```bash
+BASE_URL=http://127.0.0.1:8788 CLAWD_ADMIN_TOKEN=*** \
   ./scripts/curl-admin-usage.sh --day "$(date +%F)" --mask --pretty
+
+# 兼容旧变量名：ADMIN_TOKEN
+BASE_URL=http://127.0.0.1:8788 ADMIN_TOKEN=*** \
+  ./scripts/curl-admin-usage.sh --day "$(date +%F)" --mask --pretty
+```
+
+（不用脚本也可以手工写：）
+
+```bash
+# 本机执行：把服务器的 127.0.0.1:8787 转到你本机 8788
+ssh -N -L 8788:127.0.0.1:8787 root@<SERVER_IP>
 ```
 
 ## 2) 生成 1 个 trial key
@@ -66,12 +82,16 @@ cd /opt/roc
 [ -d roc-ai-republic ] || git clone https://github.com/openclaw/roc-ai-republic.git
 cd roc-ai-republic
 
-ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+CLAWD_ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
   ./scripts/curl-admin-create-key.sh --label 'forum-user:alice' --pretty
 
 # 想先确认将发送的请求内容（不实际发请求）：
-ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+CLAWD_ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
   ./scripts/curl-admin-create-key.sh --label 'forum-user:alice' --dry-run
+
+# 兼容旧变量名：ADMIN_TOKEN
+ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+  ./scripts/curl-admin-create-key.sh --label 'forum-user:alice' --pretty
 ```
 
 等价的原始 curl：
@@ -94,6 +114,10 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 推荐用脚本（支持 `--mask` 脱敏，适合贴日志；也支持 `--base-url` 覆盖环境变量）。同上：如果当前目录没有 `scripts/`，请先 clone 本仓库再执行。
 
 ```bash
+CLAWD_ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+  ./scripts/curl-admin-usage.sh --day "$(date +%F)" --mask --pretty
+
+# 兼容旧变量名：ADMIN_TOKEN
 ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
   ./scripts/curl-admin-usage.sh --day "$(date +%F)" --mask --pretty
 ```
