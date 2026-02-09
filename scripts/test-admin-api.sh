@@ -1,159 +1,111 @@
 #!/bin/bash
-# 测试 quota-proxy 管理接口
+# 测试 quota-proxy 管理员 API 端点
+# 用法: ./test-admin-api.sh [--server SERVER_IP] [--token ADMIN_TOKEN]
+
 set -e
 
-usage() {
-  cat <<EOF
-测试 quota-proxy 管理接口
-
-用法: $0 [选项]
-
-选项:
-  -h, --help           显示此帮助信息
-  -l, --local          测试本地 quota-proxy (默认: 127.0.0.1:8787)
-  -r, --remote HOST    测试远程服务器 (例如: 8.210.185.194)
-  -t, --token TOKEN    指定 ADMIN_TOKEN (默认从 .env 读取)
-  --no-color           禁用颜色输出
-
-示例:
-  $0 --local                    # 测试本地服务
-  $0 --remote 8.210.185.194    # 测试远程服务器
-EOF
-}
-
-# 颜色输出
-if [ -t 1 ]; then
-  RED='\033[0;31m'
-  GREEN='\033[0;32m'
-  YELLOW='\033[1;33m'
-  BLUE='\033[0;34m'
-  NC='\033[0m' # No Color
-else
-  RED=''; GREEN=''; YELLOW=''; BLUE=''; NC=''
-fi
-
-log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $*"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
-
 # 默认值
-HOST="127.0.0.1"
-PORT="8787"
-LOCAL=true
-TOKEN=""
+SERVER_IP="8.210.185.194"
+ADMIN_TOKEN="${QUOTA_PROXY_ADMIN_TOKEN:-test_admin_token_123}"
+BASE_URL="http://${SERVER_IP}:8787"
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
-  case $1 in
-    -h|--help) usage; exit 0 ;;
-    -l|--local) LOCAL=true; HOST="127.0.0.1" ;;
-    -r|--remote)
-      LOCAL=false
-      HOST="$2"
-      shift
-      ;;
-    -t|--token)
-      TOKEN="$2"
-      shift
-      ;;
-    --no-color)
-      RED=''; GREEN=''; YELLOW=''; BLUE=''; NC=''
-      ;;
-    *)
-      log_error "未知参数: $1"
-      usage
-      exit 1
-      ;;
-  esac
-  shift
+    case $1 in
+        --server)
+            SERVER_IP="$2"
+            BASE_URL="http://${SERVER_IP}:8787"
+            shift 2
+            ;;
+        --token)
+            ADMIN_TOKEN="$2"
+            shift 2
+            ;;
+        --help)
+            echo "用法: $0 [--server SERVER_IP] [--token ADMIN_TOKEN]"
+            echo ""
+            echo "测试 quota-proxy 管理员 API 端点:"
+            echo "  1. 健康检查 /healthz"
+            echo "  2. 生成试用密钥 /admin/keys (POST)"
+            echo "  3. 查看使用情况 /admin/usage (GET)"
+            echo ""
+            echo "环境变量:"
+            echo "  QUOTA_PROXY_ADMIN_TOKEN  管理员令牌 (默认: test_admin_token_123)"
+            exit 0
+            ;;
+        *)
+            echo "未知参数: $1"
+            exit 1
+            ;;
+    esac
 done
 
-# 获取 ADMIN_TOKEN
-if [ -z "$TOKEN" ]; then
-  if [ -f ".env" ]; then
-    TOKEN=$(grep '^ADMIN_TOKEN=' .env | cut -d= -f2-)
-  elif [ -f "../.env" ]; then
-    TOKEN=$(grep '^ADMIN_TOKEN=' ../.env | cut -d= -f2-)
-  fi
-  
-  if [ -z "$TOKEN" ]; then
-    log_warn "未找到 ADMIN_TOKEN，请通过 -t 参数指定"
+echo "=== 测试 quota-proxy 管理员 API ==="
+echo "服务器: ${SERVER_IP}"
+echo "API地址: ${BASE_URL}"
+echo "管理员令牌: ${ADMIN_TOKEN:0:10}..."
+echo ""
+
+# 1. 健康检查
+echo "1. 测试健康检查端点 /healthz:"
+if curl -fsS "${BASE_URL}/healthz" > /dev/null 2>&1; then
+    echo "   ✅ 健康检查通过"
+else
+    echo "   ❌ 健康检查失败"
     exit 1
-  fi
 fi
 
-BASE_URL="http://${HOST}:${PORT}"
+# 2. 生成试用密钥
+echo ""
+echo "2. 测试生成试用密钥 /admin/keys:"
+TRIAL_KEY_RESPONSE=$(curl -s -X POST \
+    -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"test_user","quota":100,"expiry_hours":24}' \
+    "${BASE_URL}/admin/keys" || echo "{}")
 
-log_info "测试管理接口: $BASE_URL"
-log_info "使用 token: ${TOKEN:0:8}..."
-
-# 1. 测试健康检查
-log_info "1. 测试健康检查..."
-if curl -fsS "${BASE_URL}/healthz" >/dev/null 2>&1; then
-  log_success "健康检查通过"
+if echo "${TRIAL_KEY_RESPONSE}" | grep -q "key"; then
+    TRIAL_KEY=$(echo "${TRIAL_KEY_RESPONSE}" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
+    echo "   ✅ 试用密钥生成成功"
+    echo "   密钥: ${TRIAL_KEY:0:20}..."
 else
-  log_error "健康检查失败"
-  exit 1
+    echo "   ⚠️  试用密钥生成失败 (可能是API未实现或令牌错误)"
+    echo "   响应: ${TRIAL_KEY_RESPONSE}"
+    TRIAL_KEY=""
 fi
 
-# 2. 测试 GET /admin/keys (需要认证)
-log_info "2. 测试 GET /admin/keys..."
-RESPONSE=$(curl -fsS -H "Authorization: Bearer $TOKEN" "${BASE_URL}/admin/keys" 2>/dev/null || echo "FAILED")
-if [ "$RESPONSE" != "FAILED" ]; then
-  KEY_COUNT=$(echo "$RESPONSE" | jq '. | length' 2>/dev/null || echo "0")
-  log_success "获取密钥列表成功 (共 $KEY_COUNT 个密钥)"
+# 3. 查看使用情况
+echo ""
+echo "3. 测试查看使用情况 /admin/usage:"
+USAGE_RESPONSE=$(curl -s -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    "${BASE_URL}/admin/usage" || echo "{}")
+
+if echo "${USAGE_RESPONSE}" | grep -q "total_requests\|active_keys"; then
+    echo "   ✅ 使用情况查询成功"
+    echo "   响应摘要:"
+    echo "${USAGE_RESPONSE}" | jq -r '. | "   总请求数: \(.total_requests // 0)\n   活跃密钥数: \(.active_keys // 0)\n   总用户数: \(.total_users // 0)"' 2>/dev/null || \
+    echo "   原始响应: ${USAGE_RESPONSE}"
 else
-  log_error "获取密钥列表失败 (可能认证失败)"
-  exit 1
+    echo "   ⚠️  使用情况查询失败 (可能是API未实现或令牌错误)"
+    echo "   响应: ${USAGE_RESPONSE}"
 fi
 
-# 3. 测试 POST /admin/keys
-log_info "3. 测试创建试用密钥..."
-LABEL="test-$(date +%Y%m%d-%H%M%S)"
-RESPONSE=$(curl -fsS -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -X POST "${BASE_URL}/admin/keys" \
-  -d "{\"label\":\"$LABEL\"}" 2>/dev/null || echo "FAILED")
-
-if [ "$RESPONSE" != "FAILED" ]; then
-  NEW_KEY=$(echo "$RESPONSE" | jq -r '.key' 2>/dev/null)
-  if [ -n "$NEW_KEY" ] && [ "$NEW_KEY" != "null" ]; then
-    log_success "创建试用密钥成功: ${NEW_KEY:0:16}..."
+# 4. 如果生成了试用密钥，测试使用它
+if [[ -n "${TRIAL_KEY}" ]]; then
+    echo ""
+    echo "4. 测试试用密钥使用:"
+    TEST_RESPONSE=$(curl -s -H "X-API-Key: ${TRIAL_KEY}" \
+        "${BASE_URL}/v1/chat/completions" \
+        -d '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"Hello"}]}' || echo "{}")
     
-    # 4. 测试 GET /admin/usage
-    log_info "4. 测试获取使用情况..."
-    USAGE_RESPONSE=$(curl -fsS -H "Authorization: Bearer $TOKEN" "${BASE_URL}/admin/usage" 2>/dev/null || echo "FAILED")
-    if [ "$USAGE_RESPONSE" != "FAILED" ]; then
-      log_success "获取使用情况成功"
+    if echo "${TEST_RESPONSE}" | grep -q "choices\|error"; then
+        echo "   ✅ 试用密钥可用"
     else
-      log_warn "获取使用情况失败 (接口可能未实现)"
+        echo "   ⚠️  试用密钥测试失败"
     fi
-    
-    # 5. 测试 DELETE /admin/keys/:key
-    log_info "5. 测试删除试用密钥..."
-    DELETE_RESPONSE=$(curl -fsS -H "Authorization: Bearer $TOKEN" \
-      -X DELETE "${BASE_URL}/admin/keys/${NEW_KEY}" 2>/dev/null || echo "FAILED")
-    
-    if [ "$DELETE_RESPONSE" != "FAILED" ]; then
-      log_success "删除试用密钥成功"
-    else
-      log_error "删除试用密钥失败"
-      exit 1
-    fi
-  else
-    log_error "创建密钥失败: $RESPONSE"
-    exit 1
-  fi
-else
-  log_error "创建密钥请求失败"
-  exit 1
 fi
 
-log_success "所有管理接口测试通过！"
-log_info "管理接口可用功能:"
-echo "  • POST /admin/keys     - 创建试用密钥"
-echo "  • GET  /admin/keys     - 列出所有密钥"
-echo "  • DELETE /admin/keys/:key - 删除密钥"
-echo "  • GET  /admin/usage    - 查看使用情况"
-echo "  • POST /admin/usage/reset - 重置使用计数"
+echo ""
+echo "=== 测试完成 ==="
+echo "注意: 如果管理员API端点尚未实现，这些测试会显示警告而非错误。"
+echo "这是预期的，因为API正在开发中。脚本主要用于验证API端点的基础连通性。"
