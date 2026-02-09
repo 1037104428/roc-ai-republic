@@ -52,6 +52,27 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   | python3 -m json.tool | head
 ```
 
+**admin/usage 输出说明**：
+```json
+{
+  "day": "2026-02-09",        // 查询日期
+  "mode": "file",             // 持久化模式：file=SQLite/JSON，memory=内存
+  "items": [                  // 用量条目列表
+    {
+      "key": "trial_xxx",     // TRIAL_KEY（展示时建议脱敏）
+      "label": "forum:alice purpose:demo",  // 签发时的备注
+      "req_count": 42,        // 当天累计请求次数
+      "updated_at": 1700000000000  // 最后一次更新时间戳（毫秒）
+    }
+  ]
+}
+```
+
+**关键字段**：
+- `req_count`：每次 `/v1/chat/completions` 请求都会计数（包括失败/超时请求）
+- `label`：建议格式 `"来源:用户名 用途:简短说明"`（如 `"forum:alice purpose:demo"`）
+- 默认每日限额：200 次请求（可配置 `DAILY_REQ_LIMIT`）
+
 （推荐）通过 SSH 在服务器本机执行，避免暴露端口：
 
 ```bash
