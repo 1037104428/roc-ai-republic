@@ -10,7 +10,7 @@ RUN apk add --no-cache python3 make g++ \
     && apk del python3 make g++
 
 # 复制应用代码
-COPY server-sqlite.js ./server.js
+COPY server-better-sqlite.js ./server.js
 
 EXPOSE 8787
 CMD ["node", "server.js"]
