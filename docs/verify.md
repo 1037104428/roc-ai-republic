@@ -166,6 +166,19 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 
 然后在**另一个终端**里跑管理接口（目标换成本机 `http://127.0.0.1:8788`）：
 
+#### 4.1.1) 数据库健康检查（推荐先跑）
+
+先确认 quota-proxy 数据库连接正常：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-quota-db-health.sh --remote
+```
+
+期望输出：包含 `"ok": true` 和数据库连接状态。
+
+#### 4.1.2) 管理接口探活（确认 token 保护）
+
 推荐：先跑一个“不会发 key”的安全探活脚本（确认管理接口确实被 token 保护）：
 
 ```bash
