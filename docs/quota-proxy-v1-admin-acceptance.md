@@ -65,6 +65,15 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 
 ## 3) 查询今日用量（按天汇总，推荐）
 
+推荐用脚本（支持 `--mask` 脱敏，适合贴日志；也支持 `--base-url` 覆盖环境变量）：
+
+```bash
+ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+  ./scripts/curl-admin-usage.sh --day "$(date +%F)" --mask --pretty
+```
+
+等价的原始 curl：
+
 ```bash
 curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
