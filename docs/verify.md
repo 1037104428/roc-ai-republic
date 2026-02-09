@@ -43,7 +43,37 @@ SSH_HOST=root@<SERVER_IP> \
 bash ./scripts/probe.sh
 ```
 
-## 0.2) 核心服务一键验证
+## 0.2) 完整验收测试（推荐）
+
+> 新增：完整验收测试脚本，验证所有关键组件，支持 JSON 输出便于 CI 集成。
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/validate-roc-full.sh
+```
+
+选项：
+- `--json`：JSON 格式输出，便于 CI 解析
+- `--no-ssh`：跳过 SSH 服务器检查（无权限时）
+- `--timeout N`：超时秒数（默认 10）
+- `--help`：显示帮助
+
+示例：
+```bash
+# 完整检查（有服务器权限）
+./scripts/validate-roc-full.sh
+
+# 无服务器权限检查
+./scripts/validate-roc-full.sh --no-ssh
+
+# JSON 输出用于 CI/CD
+./scripts/validate-roc-full.sh --json --no-ssh
+
+# 快速检查（短超时）
+./scripts/validate-roc-full.sh --timeout 5 --no-ssh
+```
+
+## 0.3) 核心服务一键验证
 
 > 适合项目维护者：检查所有核心服务（quota-proxy、论坛、安装脚本、文档）的完整性。
 
