@@ -4,7 +4,7 @@
 
 ## 目标
 
-- 查看 compose 状态：`docker compose ps`
+- 查看 compose 状态：`docker compose ps`（期望看到 `127.0.0.1:8787->8787/tcp` 或其它受控映射；避免 `0.0.0.0:8787` 误暴露）
 - 检查健康探针：`curl -fsS http://127.0.0.1:8787/healthz`（期望输出：`{"ok":true}`）
 
 ## 前置条件（推荐）
