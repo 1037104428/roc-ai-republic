@@ -45,6 +45,38 @@ ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && \
   sqlite3 data/quota.db "SELECT COUNT(*) FROM quota_usage;"'
 ```
 
+### 快速故障排查（管理员用）
+
+遇到问题？按顺序检查：
+
+1. **容器状态**：
+   ```bash
+   ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose ps'
+   ```
+   - 状态应为 `Up`，端口映射 `127.0.0.1:8787->8787/tcp`
+
+2. **健康检查**：
+   ```bash
+   ssh root@<SERVER_IP> 'curl -fsS http://127.0.0.1:8787/healthz'
+   ```
+   - 应返回 `{"ok":true}`
+
+3. **数据库文件**：
+   ```bash
+   ssh root@<SERVER_IP> 'ls -la /opt/roc/quota-proxy/data/'
+   ```
+   - 应有 `quota.db` 文件，大小 > 0
+
+4. **查看日志**：
+   ```bash
+   ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose logs --tail=20'
+   ```
+
+5. **重启服务**：
+   ```bash
+   ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose down && docker compose up -d'
+   ```
+
 ### 管理接口健康检查
 
 ```bash
