@@ -154,6 +154,16 @@ ssh -o BatchMode=yes -o ConnectTimeout=8 root@<server_ip> \
 }
 ```
 
+字段说明：
+
+- `mode`：后端持久化模式（`file`/`memory`；生产建议 `file`）。
+- `items[]`：用量条目列表（默认按 `updated_at` 倒序）。
+  - `day`：统计日期（`YYYY-MM-DD`）。
+  - `key`：trial key（外部展示建议脱敏，例如 `trial_abcd…wxyz`）。
+  - `label`：签发时写入的备注。
+  - `req_count`：当天累计请求次数。
+  - `updated_at`：最后一次更新用量的时间戳（毫秒）。
+
 ---
 
 ## 验收/验证命令

@@ -195,6 +195,11 @@ ADMIN_TOKEN='***' BASE_URL=http://127.0.0.1:8787 \
     { "day": "2026-02-08", "key": "trial_xxx", "label": "forum:alice", "req_count": 12, "updated_at": 1700000000000 }
   ]
 }</code></pre>
+  <ul>
+    <li><code>items[].day</code>：该条记录所属日期（跨天最近记录模式下常见）。</li>
+    <li><code>items[].req_count</code>：该 key 在该 <code>day</code> 的累计请求次数。</li>
+    <li><code>items[].updated_at</code>：最后一次更新该条用量的时间戳（毫秒）。</li>
+  </ul>
 
   <p>（可选）只看某一个 key：</p>
   <pre><code>curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=trial_xxx" \
