@@ -28,6 +28,32 @@ ssh -o BatchMode=yes -o ConnectTimeout=8 root@<server_ip> \
 
 约定：对外文档统一用环境变量名 `CLAWD_TRIAL_KEY`（等价于 OpenAI 生态常用的 `OPENAI_API_KEY`）。
 
+## 快速验证命令（管理员用）
+
+### SQLite 部署验证（一键检查）
+
+```bash
+# 使用验证脚本快速检查 SQLite 部署状态
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-quota-proxy-sqlite.sh --remote
+
+# 或手动验证
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && \
+  docker compose ps && \
+  curl -fsS http://127.0.0.1:8787/healthz && \
+  ls -la data/ && \
+  sqlite3 data/quota.db "SELECT COUNT(*) FROM quota_usage;"'
+```
+
+### 管理接口健康检查
+
+```bash
+# 检查管理接口可用性（需要 ADMIN_TOKEN）
+ADMIN_TOKEN="your_admin_token_here"
+ssh root@<SERVER_IP> "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' \
+  http://127.0.0.1:8787/admin/usage"
+```
+
 
 ### label 推荐格式（便于运营统计）
 
