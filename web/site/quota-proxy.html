@@ -111,7 +111,8 @@ export OPENAI_BASE_URL="${BASE_URL}/v1"</code></pre>
   -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}"</code></pre>
 
   <h2>健康检查（不调用模型，不消耗额度）</h2>
-  <pre><code>curl -fsS https://api.clawdrepublic.cn/healthz</code></pre>
+  <p>建议复用上文的 <code>BASE_URL</code>：</p>
+  <pre><code>curl -fsS "${BASE_URL}/healthz"</code></pre>
 
   <h2>常见错误排查</h2>
   <ul>
