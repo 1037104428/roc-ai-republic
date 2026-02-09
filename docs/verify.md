@@ -351,10 +351,21 @@ bash -n scripts/test-admin-api.sh
 ./scripts/test-admin-api.sh --help
 
 # 测试本地管理接口（需要 ADMIN_TOKEN）
-./scripts/test-admin-api.sh --local --token "$ADMIN_TOKEN"
+# 方式1：通过环境变量设置 ADMIN_TOKEN
+export ADMIN_TOKEN="your_admin_token_here"
+./scripts/test-admin-api.sh --local
 
-# 测试远程管理接口
-./scripts/test-admin-api.sh --remote 8.210.185.194 --token "$ADMIN_TOKEN"
+# 方式2：通过参数传递 ADMIN_TOKEN
+./scripts/test-admin-api.sh --local --token "your_admin_token_here"
+
+# 测试远程服务器管理接口
+./scripts/test-admin-api.sh --remote 8.210.185.194 --token "your_admin_token_here"
+
+# 脚本会自动验证以下接口：
+# 1. /admin/keys (POST) - 创建测试密钥（label: "test-admin-api-验证"）
+# 2. /admin/keys (GET) - 列出所有密钥，确认新密钥存在
+# 3. /admin/usage (GET) - 查看使用情况，确认新密钥用量为0
+# 4. /admin/keys/{key} (DELETE) - 删除测试密钥，清理测试数据
 ```
 
 ### 8.2) 手动管理 API 接口验证
