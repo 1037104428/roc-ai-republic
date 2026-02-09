@@ -190,6 +190,7 @@ sqlite3 /opt/roc/quota-proxy/data/quota-proxy.sqlite ".tables"
 
 ```bash
 export CLAWD_TRIAL_KEY='trial_xxx'
-./scripts/verify-trial-key.sh              # healthz + models
-./scripts/verify-trial-key.sh --chat       # 额外跑一次最小对话（会消耗额度）
+./scripts/verify-trial-key.sh                                # healthz + models
+./scripts/verify-trial-key.sh --chat                         # 额外跑一次最小对话（会消耗额度）
+./scripts/verify-trial-key.sh --chat --model deepseek-chat    # 指定模型（便于对照线上默认/推荐模型）
 ```
