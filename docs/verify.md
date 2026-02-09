@@ -224,6 +224,16 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ./scripts/verify-install-cn.sh --dry-run
 ```
 
+### 2.3) 在线一键验证（无需下载仓库）
+
+> 适合新手快速验证：直接从官网下载 install-cn.sh 并运行 --dry-run 模式，确认脚本可达且语法正确。
+
+```bash
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --dry-run --version latest
+```
+
+（如果网络慢，可加 `--registry-cn` 强制使用国内镜像源）
+
 ### 3.1) 验证 OpenClaw CLI 是否已正确安装（不要求 gateway）
 
 > 适合用户装完后第一时间自查：能否找到 `openclaw`、版本是多少、npm 全局 bin 是否在 PATH。
