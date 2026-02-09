@@ -88,7 +88,7 @@ check_admin_api() {
     # 2. 检查 admin/keys 端点
     echo "2. 检查 /admin/keys:"
     local response
-    response=$(curl -s -m 5 -H "Authorization: Bearer $token" "$base_url/admin/keys" 2>/dev/null || true)
+    response=$(curl -s -m 5 -H "X-Admin-Token: $token" "$base_url/admin/keys" 2>/dev/null || true)
     
     if [[ -n "$response" ]]; then
         echo "   ✅ Admin API 响应正常"
@@ -100,7 +100,7 @@ check_admin_api() {
     
     # 3. 检查 admin/usage 端点
     echo "3. 检查 /admin/usage:"
-    response=$(curl -s -m 5 -H "Authorization: Bearer $token" "$base_url/admin/usage" 2>/dev/null || true)
+    response=$(curl -s -m 5 -H "X-Admin-Token: $token" "$base_url/admin/usage" 2>/dev/null || true)
     
     if [[ -n "$response" ]]; then
         echo "   ✅ Usage API 响应正常"
