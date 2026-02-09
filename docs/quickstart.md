@@ -26,6 +26,8 @@ npm -v
 curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
 ```
 
+说明：安装脚本会**优先**使用国内可达的 npm 源（默认 npmmirror），若安装失败会自动回退到 npmjs 官方源；不会永久修改你的 npm registry 配置。
+
 可选：指定版本 / 仅打印命令（不执行）/ 换国内 npm 源：
 
 ```bash
