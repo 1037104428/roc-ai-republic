@@ -47,4 +47,17 @@ curl -fsS "${BASE_URL}/v1/models" | head
 - commit id（或服务器变更说明）
 - 一条可复制的验证命令（git show / curl / ssh compose ps 等）
 
+### 推荐追加方式（避免 printf: invalid option）
+
+> 一些 cron/脚本环境里，写入的文本如果以 `-` 开头，直接 `printf` 可能会报：`printf: invalid option`。
+> 建议统一用仓库内脚本追加周报。
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+./scripts/append-progress-log.sh \
+  --file '/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md' \
+  --text "[$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S %Z')] 小落地：<一句话总结>。commit=<COMMIT>; verify=cd /home/kai/.openclaw/workspace/roc-ai-republic && git show --name-only --oneline <COMMIT>"
+```
+
 参考：`docs/verify.md` 里的“安全追加周报记录”脚本用法。
