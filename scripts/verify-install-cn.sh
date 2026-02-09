@@ -84,12 +84,17 @@ echo "[cn-pack] ✅ Test 1 passed: Help output OK"
 # Test 2: Dry run
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "[cn-pack] Test 2: Dry run mode"
-  DRY_RUN_COUNT=$("$TEST_DIR/install-cn.sh" --dry-run --version "$VERSION" 2>&1 | grep -c "\[dry-run\]" || true)
-  if [[ "$DRY_RUN_COUNT" -eq 0 ]]; then
-    echo "[cn-pack] ❌ Test 2 failed: Dry run not working (found $DRY_RUN_COUNT [dry-run] markers)"
+  set +e
+  DRY_OUT=$("$TEST_DIR/install-cn.sh" --dry-run --version "$VERSION" 2>&1)
+  DRY_RC=$?
+  set -e
+  DRY_RUN_COUNT=$(printf "%s" "$DRY_OUT" | grep -c "\[dry-run\]" || true)
+  if [[ "$DRY_RUN_COUNT" -eq 0 || "$DRY_RC" -ne 0 ]]; then
+    echo "[cn-pack] ❌ Test 2 failed: dry-run expected markers and exit 0 (markers=$DRY_RUN_COUNT rc=$DRY_RC)"
+    printf "%s\n" "$DRY_OUT" | tail -n 50
     exit 1
   fi
-  echo "[cn-pack] ✅ Test 2 passed: Dry run OK (found $DRY_RUN_COUNT [dry-run] markers)"
+  echo "[cn-pack] ✅ Test 2 passed: Dry run OK (found $DRY_RUN_COUNT [dry-run] markers, rc=$DRY_RC)"
 fi
 
 # Test 3: Script syntax check
