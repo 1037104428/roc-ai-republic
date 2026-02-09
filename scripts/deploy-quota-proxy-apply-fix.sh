@@ -11,9 +11,16 @@ if [[ ! -f "$SERVER_FILE" ]]; then
     exit 1
 fi
 
-SERVER_IP=$(head -1 "$SERVER_FILE" | tr -d '[:space:]')
+SERVER_LINE=$(head -1 "$SERVER_FILE" | tr -d '[:space:]')
+# 支持格式: "ip=8.210.185.194" 或纯 "8.210.185.194"
+if [[ "$SERVER_LINE" =~ ^ip= ]]; then
+    SERVER_IP="${SERVER_LINE#ip=}"
+else
+    SERVER_IP="$SERVER_LINE"
+fi
+
 if [[ -z "$SERVER_IP" ]]; then
-    echo "Error: Could not read server IP from $SERVER_FILE"
+    echo "Error: Could not extract server IP from '$SERVER_LINE'"
     exit 1
 fi
 
@@ -25,7 +32,11 @@ scp -o BatchMode=yes -o ConnectTimeout=8 \
     quota-proxy/server-better-sqlite.js \
     root@$SERVER_IP:/opt/roc/quota-proxy/
 
-# 2. 重启 quota-proxy 容器
+# 2. 在容器内直接修改 server.js 添加 apply 静态路由
+ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
+    "cd /opt/roc/quota-proxy && docker compose exec quota-proxy sed -i \\\"14a app.use('/apply', express.static(join(__dirname, 'apply')));\\\" /app/server.js"
+
+# 3. 重启 quota-proxy 容器
 ssh -o BatchMode=yes -o ConnectTimeout=8 root@$SERVER_IP \
     "cd /opt/roc/quota-proxy && docker compose restart quota-proxy"
 
