@@ -32,6 +32,9 @@
   - `SKIP_NET_CHECK=1 curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash`
 - 脚本自测（不改系统，不安装）：
   - `cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/verify-install-cn.sh --dry-run`
+- 安装后快速验证：
+  - `./scripts/quick-verify-openclaw.sh`（检查命令、版本、状态、网络）
+  - 指南：`docs/quick-verify-guide.md`
 - 完整使用指南：
   - `docs/install-cn-guide.md`（参数说明、回退策略、自检功能、故障排除）
 - 故障排除指南：

@@ -247,6 +247,7 @@ cat <<'TXT'
 2) Add DeepSeek provider snippet (see docs/openclaw-cn-pack-deepseek-v0.md)
 3) Start gateway: openclaw gateway start
 4) Verify: openclaw status && openclaw models status
+5) Quick verification: ./scripts/quick-verify-openclaw.sh (if in repo)
 TXT
 
 # Optional health check with detailed diagnostics
