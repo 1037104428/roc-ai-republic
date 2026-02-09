@@ -40,7 +40,16 @@ cd roc-ai-republic
 
 ### 2. 部署 SQLite 版本
 
-#### 2.1 构建和部署
+#### 2.1 一键部署和验证（推荐）
+```bash
+# 使用新的一键部署验证脚本
+./scripts/deploy-and-verify-sqlite.sh
+
+# 干跑模式（不实际执行）
+./scripts/deploy-and-verify-sqlite.sh --dry-run
+```
+
+#### 2.2 手动构建和部署
 ```bash
 # 设置环境变量
 export DEEPSEEK_API_KEY=sk-xxx

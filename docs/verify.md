@@ -48,6 +48,38 @@ bash ./scripts/probe.sh
 > 适合项目维护者：检查所有核心服务（quota-proxy、论坛、安装脚本、文档）的完整性。
 
 ```bash
+
+## 0.3) SQLite 版本部署验证
+
+> 验证 quota-proxy SQLite 版本是否已正确部署
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 检查部署脚本语法
+bash -n scripts/deploy-and-verify-sqlite.sh
+
+# 干跑模式（不实际执行）
+./scripts/deploy-and-verify-sqlite.sh --dry-run
+
+# 检查服务器当前运行版本
+ssh root@8.210.185.194 "cd /opt/roc/quota-proxy && \
+    docker compose exec quota-proxy ps aux | grep node && \
+    echo '当前运行文件:' && \
+    docker compose exec quota-proxy ls -la /app/server*.js"
+
+# 检查 SQLite 数据库文件
+ssh root@8.210.185.194 "ls -la /data/*.db 2>/dev/null || echo '未找到 .db 文件'"
+
+# 验证管理接口（需要 ADMIN_TOKEN）
+ADMIN_TOKEN=$(ssh root@8.210.185.194 "grep ADMIN_TOKEN /opt/roc/quota-proxy/.env 2>/dev/null | cut -d= -f2")
+if [ -n "$ADMIN_TOKEN" ]; then
+    echo "测试管理接口..."
+    ssh root@8.210.185.194 "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' http://127.0.0.1:8787/admin/usage | head -c 200"
+else
+    echo "⚠️  未找到 ADMIN_TOKEN，跳过管理接口测试"
+fi
+```
 cd /home/kai/.openclaw/workspace/roc-ai-republic
 ./scripts/verify-all-core-services.sh
 ```
