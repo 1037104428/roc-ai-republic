@@ -1,100 +1,116 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# 修复论坛反向代理配置脚本
-# 用法: ./scripts/fix-forum-reverse-proxy.sh [--dry-run]
+# Fix forum reverse proxy 502 issue
+# This script updates Caddy configuration to properly proxy forum requests
 
-DRY_RUN=false
-if [[ "$1" == "--dry-run" ]]; then
-    DRY_RUN=true
-    echo "DRY RUN mode - no changes will be made"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+echo "=== 修复论坛反向代理 502 问题 ==="
+
+# Check if we have server info
+SERVER_FILE="${SERVER_FILE:-/tmp/server.txt}"
+if [[ ! -f "$SERVER_FILE" ]]; then
+    echo "❌ 服务器配置文件不存在: $SERVER_FILE"
+    echo "请先创建包含服务器IP的文件: echo '8.210.185.194' > /tmp/server.txt"
+    exit 1
 fi
 
-echo "=== 修复论坛反向代理配置 ==="
-echo "目标服务器: $(cat /tmp/server.txt 2>/dev/null || echo '8.210.185.194')"
-echo
+SERVER_IP="$(head -n1 "$SERVER_FILE" | sed 's/^ip=//' | tr -d '[:space:]')"
+echo "📡 目标服务器: $SERVER_IP"
 
-# 检查Caddy配置
-echo "1. 检查当前Caddy配置..."
-if [[ "$DRY_RUN" == false ]]; then
-    ssh root@8.210.185.194 "cat /etc/caddy/Caddyfile 2>/dev/null || echo 'Caddyfile not found'" | head -30
-else
-    echo "  [DRY RUN] 会检查 /etc/caddy/Caddyfile"
-fi
+# Create updated Caddy configuration
+cat > /tmp/caddy-forum-fix.caddy << 'CADDY'
+# Caddyfile for ROC AI Republic static site
+# Deploy to: /opt/roc/web/caddy/Caddyfile
+# Usage: caddy run --config /opt/roc/web/caddy/Caddyfile
 
-# 创建新的Caddy配置片段
-FORUM_CONFIG=$(cat <<'EOF'
-# Forum reverse proxy (path-based)
-handle_path /forum/* {
-    reverse_proxy http://127.0.0.1:8081 {
-        header_up Host {host}
+# HTTPS auto-configuration (must be first if present)
+{
+    # Auto HTTPS with Let's Encrypt
+    email admin@clawdrepublic.cn
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
+# Main domain - landing page
+clawdrepublic.cn {
+    # Static site files
+    root * /opt/roc/web/site
+    file_server {
+        index index.html
+    }
+    
+    # API gateway reverse proxy
+    handle_path /api/* {
+        reverse_proxy http://127.0.0.1:8787 {
+            header_up Host {host}
+        }
+    }
+    
+    # Forum reverse proxy - FIXED VERSION
+    # Using handle instead of handle_path for proper path handling
+    handle /forum/* {
+        reverse_proxy http://127.0.0.1:8081 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote}
+        }
+    }
+    
+    # Health check endpoint
+    handle /healthz {
+        respond "OK" 200
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
     }
 }
+
+# Redirect www to non-www
+www.clawdrepublic.cn {
+    redir https://clawdrepublic.cn{uri} permanent
+}
+CADDY
+
+echo "✅ 生成修复后的 Caddy 配置"
+
+# Deploy to server
+echo "🚀 部署到服务器..."
+ssh -i ~/.ssh/id_ed25519_roc_server -o BatchMode=yes -o ConnectTimeout=8 "root@$SERVER_IP" '
+    echo "备份当前配置..."
+    cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup.$(date +%Y%m%d-%H%M%S)
+    
+    echo "应用修复配置..."
+    cat > /etc/caddy/Caddyfile << "EOF"
+'"$(cat /tmp/caddy-forum-fix.caddy)"'
 EOF
-)
-
-echo
-echo "2. 准备添加论坛反向代理配置..."
-echo "$FORUM_CONFIG"
-
-if [[ "$DRY_RUN" == false ]]; then
-    echo
-    echo "3. 备份当前配置..."
-    ssh root@8.210.185.194 "cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup.$(date +%Y%m%d_%H%M%S)"
     
-    echo "4. 更新Caddy配置..."
-    # 先获取当前配置
-    CURRENT_CONFIG=$(ssh root@8.210.185.194 "cat /etc/caddy/Caddyfile")
+    echo "验证配置..."
+    caddy validate --config /etc/caddy/Caddyfile
     
-    # 检查是否已经有论坛配置
-    if echo "$CURRENT_CONFIG" | grep -q "handle_path /forum/\*"; then
-        echo "  论坛配置已存在，跳过添加"
-    else
-        # 在clawdrepublic.cn块中添加论坛路径处理
-        # 找到clawdrepublic.cn块的结束位置（匹配}）
-        UPDATED_CONFIG=$(echo "$CURRENT_CONFIG" | sed '/clawdrepublic.cn {/,/^}/ {
-            /^}/i\
-    # Forum reverse proxy (path-based)\
-    handle_path /forum/* {\
-        reverse_proxy http://127.0.0.1:8081 {\
-            header_up Host {host}\
-        }\
-    }\
-\
-        }')
-        
-        echo "$UPDATED_CONFIG" | ssh root@8.210.185.194 "cat > /etc/caddy/Caddyfile"
-        echo "  配置已更新"
-    fi
+    echo "重新加载 Caddy..."
+    caddy reload --config /etc/caddy/Caddyfile --force
     
-    echo "5. 验证配置语法..."
-    ssh root@8.210.185.194 "caddy validate --config /etc/caddy/Caddyfile"
-    
-    echo "6. 重新加载Caddy..."
-    ssh root@8.210.185.194 "systemctl reload caddy || caddy reload --config /etc/caddy/Caddyfile"
-    
-    echo "7. 等待服务稳定..."
+    echo "等待 3 秒让配置生效..."
     sleep 3
     
-    echo "8. 验证论坛可访问性..."
-    if curl -fsS -m 10 http://forum.clawdrepublic.cn/ >/dev/null 2>&1; then
-        echo "  ✅ 论坛可访问: http://forum.clawdrepublic.cn/"
-    else
-        echo "  ⚠️  论坛访问失败，检查日志: ssh root@8.210.185.194 'journalctl -u caddy --since \"5 minutes ago\"'"
-    fi
-    
-    echo
-    echo "=== 修复完成 ==="
-    echo "论坛URL: http://forum.clawdrepublic.cn/"
-    echo "备用路径: https://clawdrepublic.cn/forum/"
-    echo "验证命令: curl -fsS -m 5 http://forum.clawdrepublic.cn/ | grep -o 'Clawd 国度'"
-else
-    echo
-    echo "=== DRY RUN 完成 ==="
-    echo "实际运行时会:"
-    echo "1. 备份当前Caddy配置"
-    echo "2. 添加论坛反向代理配置"
-    echo "3. 验证配置语法"
-    echo "4. 重新加载Caddy"
-    echo "5. 验证论坛可访问性"
-fi
+    echo "测试论坛访问..."
+    curl -fsS -m 5 -H "Host: clawdrepublic.cn" http://127.0.0.1/forum/ >/dev/null 2>&1 && echo "✅ 本地测试通过" || echo "⚠️  本地测试失败"
+'
+
+echo ""
+echo "=== 验证步骤 ==="
+echo "1. 等待证书更新（如果需要）"
+echo "2. 测试论坛访问:"
+echo "   curl -fsS -m 5 https://clawdrepublic.cn/forum/"
+echo "3. 如果仍有问题，检查 Caddy 日志:"
+echo "   journalctl -u caddy --since '1 minute ago' | grep -i forum"
+echo ""
+echo "修复完成！论坛应该现在可以正常访问了。"
+
+# Clean up
+rm -f /tmp/caddy-forum-fix.caddy
