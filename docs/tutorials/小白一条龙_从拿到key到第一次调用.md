@@ -51,15 +51,6 @@ curl -sS https://api.clawdrepublic.cn/v1/chat/completions \
   }'
 ```
 
-## 3) 查看用量/额度（示例）
-
-```bash
-curl -sS https://api.clawdrepublic.cn/admin/usage \
-  -H "Authorization: Bearer YOUR_TRIAL_KEY"
-```
-
-> 说明：字段含义与常见问题，会在 quota-proxy 文档里解释。
-
 ## 3️⃣ 查看用量/额度
 
 ```bash
