@@ -45,6 +45,32 @@ ssh -o BatchMode=yes root@<server-ip> 'echo ok'
 > ./scripts/sanitize-server-txt.sh
 > ```
 
+## 维护工具
+
+### 清理旧备份文件
+
+quota-proxy 部署过程中可能会产生多个备份文件。使用以下脚本清理旧备份：
+
+```bash
+# 查看将要删除的文件（干运行）
+./scripts/cleanup-quota-proxy-backups.sh --dry-run
+
+# 实际删除超过7天的备份文件
+./scripts/cleanup-quota-proxy-backups.sh
+
+# 自定义保留天数
+./scripts/cleanup-quota-proxy-backups.sh --keep-days 14
+
+# 指定服务器
+./scripts/cleanup-quota-proxy-backups.sh --host 8.210.185.194
+```
+
+脚本会删除以下类型的旧备份文件：
+- `*.backup.*`（如 compose.yaml.backup.20260209-134440）
+- `*.bak.*`（如 server.js.bak.2026-02-09-051445）
+- `*.original`（如 server.js.original）
+- `*.backup`（通用备份文件）
+
 
 目前约定格式示例（最小）：
 
