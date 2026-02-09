@@ -20,6 +20,7 @@ show_help() {
   --web-dir DIR   指定服务器上的web目录（默认: /opt/roc/web）
   --url URL       直接测试URL（覆盖 server-ip/web-dir）
   --timeout SEC   超时时间（默认: 10秒）
+  --dry-run      只显示将要执行的命令，不实际执行
 
 环境变量:
   SERVER_FILE    服务器信息文件路径（默认: /tmp/server.txt）
@@ -28,6 +29,7 @@ show_help() {
   $0                     # 使用默认配置验证
   $0 --server-ip 1.2.3.4 # 验证特定服务器
   $0 --url http://example.com/ # 直接测试URL
+  $0 --dry-run          # 预览验证命令
 
 EOF
 }
@@ -37,6 +39,7 @@ SERVER_IP=""
 WEB_DIR="/opt/roc/web"
 TEST_URL=""
 TIMEOUT=10
+DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -59,6 +62,10 @@ while [[ $# -gt 0 ]]; do
         --timeout)
             TIMEOUT="$2"
             shift 2
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
             ;;
         *)
             echo "错误: 未知参数 $1"
@@ -100,7 +107,10 @@ verify() {
     
     # 1. 测试HTTP访问
     echo -n "1. HTTP访问测试... "
-    if curl -fsS -m "$TIMEOUT" "$URL" >/dev/null 2>&1; then
+    if [[ "$DRY_RUN" = true ]]; then
+        echo "[dry-run] curl -fsS -m $TIMEOUT \"$URL\" >/dev/null 2>&1"
+        echo "✅ 通过 (dry-run)"
+    elif curl -fsS -m "$TIMEOUT" "$URL" >/dev/null 2>&1; then
         echo "✅ 通过"
     else
         echo "❌ 失败"
@@ -110,7 +120,10 @@ verify() {
     # 2. 检查页面内容（如果HTTP访问成功）
     if [[ "$success" = true ]]; then
         echo -n "2. 页面内容检查... "
-        if curl -fsS -m "$TIMEOUT" "$URL" | grep -q "中华AI共和国"; then
+        if [[ "$DRY_RUN" = true ]]; then
+            echo "[dry-run] curl -fsS -m $TIMEOUT \"$URL\" | grep -q \"中华AI共和国\""
+            echo "✅ 找到标题 (dry-run)"
+        elif curl -fsS -m "$TIMEOUT" "$URL" | grep -q "中华AI共和国"; then
             echo "✅ 找到标题"
         else
             echo "⚠️  标题未找到（可能页面内容不同）"
@@ -118,8 +131,12 @@ verify() {
         
         # 检查关键元素
         echo -n "3. 关键元素检查... "
-        CONTENT=$(curl -fsS -m "$TIMEOUT" "$URL" 2>/dev/null || echo "")
-        MISSING_ELEMENTS=""
+        if [[ "$DRY_RUN" = true ]]; then
+            echo "[dry-run] curl -fsS -m $TIMEOUT \"$URL\" 2>/dev/null"
+            echo "✅ 所有关键元素存在 (dry-run)"
+        else
+            CONTENT=$(curl -fsS -m "$TIMEOUT" "$URL" 2>/dev/null || echo "")
+            MISSING_ELEMENTS=""
         
         if ! echo "$CONTENT" | grep -q "OpenClaw"; then
             MISSING_ELEMENTS="${MISSING_ELEMENTS}OpenClaw "
@@ -129,10 +146,11 @@ verify() {
             MISSING_ELEMENTS="${MISSING_ELEMENTS}一键安装 "
         fi
         
-        if [[ -z "$MISSING_ELEMENTS" ]]; then
-            echo "✅ 所有关键元素存在"
-        else
-            echo "⚠️  缺少元素: $MISSING_ELEMENTS"
+            if [[ -z "$MISSING_ELEMENTS" ]]; then
+                echo "✅ 所有关键元素存在"
+            else
+                echo "⚠️  缺少元素: $MISSING_ELEMENTS"
+            fi
         fi
     fi
     
@@ -141,7 +159,12 @@ verify() {
         echo -n "4. 服务器文件检查... "
         SSH_CMD="ssh -o BatchMode=yes -o ConnectTimeout=10 root@$SERVER_IP"
         
-        if $SSH_CMD "test -f $WEB_DIR/index.html" 2>/dev/null; then
+        if [[ "$DRY_RUN" = true ]]; then
+            echo "[dry-run] $SSH_CMD \"test -f $WEB_DIR/index.html\""
+            echo "✅ index.html 存在 (dry-run)"
+            echo "   文件大小: 1234 字节 ✅ (dry-run)"
+            echo "   文件权限: 644 ✅ (dry-run)"
+        elif $SSH_CMD "test -f $WEB_DIR/index.html" 2>/dev/null; then
             echo "✅ index.html 存在"
             
             # 检查文件大小
@@ -160,8 +183,10 @@ verify() {
                 echo "   文件权限: $PERMS ⚠️ (建议644)"
             fi
         else
-            echo "❌ index.html 不存在"
-            success=false
+            if [[ "$DRY_RUN" != true ]]; then
+                echo "❌ index.html 不存在"
+                success=false
+            fi
         fi
     fi
     
