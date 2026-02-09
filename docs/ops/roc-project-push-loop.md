@@ -26,6 +26,19 @@ ssh -o BatchMode=yes -o ConnectTimeout=8 root@"$SERVER" \
 
 > 预期：`docker compose ps` 里 quota-proxy 为 Up；healthz 返回 `{"ok":true}`。
 
+## API 探活（网关 / OpenAI 兼容）
+
+```bash
+# 默认探测公开网关；也可 BASE_URL 指向自建地址
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/probe-roc-api.sh
+
+# 或者手动：
+BASE_URL=https://api.clawdrepublic.cn
+curl -fsS "${BASE_URL}/healthz"
+curl -fsS "${BASE_URL}/v1/models" | head
+```
+
 ## 进度周报追加（最后落地要可复验）
 
 周报文件：`/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md`
