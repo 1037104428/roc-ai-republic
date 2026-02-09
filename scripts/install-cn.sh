@@ -74,22 +74,25 @@ run() {
 
 if command -v node >/dev/null 2>&1; then
   NODE_VER_RAW="$(node -v || true)"
-  echo "[cn-pack] node found: ${NODE_VER_RAW}"
   NODE_MAJOR="${NODE_VER_RAW#v}"
   NODE_MAJOR="${NODE_MAJOR%%.*}"
   if [[ -n "${NODE_MAJOR}" ]] && (( NODE_MAJOR < 20 )); then
-    echo "[cn-pack] Node.js >= 20 is required. Current: ${NODE_VER_RAW}" >&2
+    echo "[cn-pack] ERROR: Node.js version ${NODE_VER_RAW} is too old. OpenClaw requires Node.js >= 20." >&2
+    echo "[cn-pack] Please upgrade Node.js first. See: https://nodejs.org/" >&2
     exit 1
   fi
+  echo "[cn-pack] node found: ${NODE_VER_RAW} (>=20 ✓)"
 else
-  echo "[cn-pack] node not found. Please install Node.js >= 20 first." >&2
+  echo "[cn-pack] ERROR: node not found. Please install Node.js >= 20 first." >&2
+  echo "[cn-pack] Download from: https://nodejs.org/" >&2
   exit 1
 fi
 
 if command -v npm >/dev/null 2>&1; then
   echo "[cn-pack] npm found: $(npm -v)"
 else
-  echo "[cn-pack] npm not found. Please install npm (usually bundled with Node.js)." >&2
+  echo "[cn-pack] ERROR: npm not found. Please install npm (usually bundled with Node.js)." >&2
+  echo "[cn-pack] If you have Node.js but not npm, try reinstalling Node.js or check your PATH." >&2
   exit 1
 fi
 
