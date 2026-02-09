@@ -6,7 +6,7 @@
 
 如果你是第一次接触 Clawd 国度，请从这里开始：
 
-1. **阅读小白教程**：[小白一条龙：从拿到 Key 到第一次调用](./roc-ai-republic/docs/小白一条龙_从拿到key到第一次调用.md) - 5分钟完成第一次 AI 调用
+1. **阅读小白教程**：[小白一条龙：从拿到 Key 到第一次调用](./docs/tutorials/小白一条龙_从拿到key到第一次调用.md) - 5分钟完成第一次 AI 调用
 2. **申请试用密钥**：[TRIAL_KEY 申请指南](./docs/website/quota-proxy-trial-key.md)
 3. **加入社区**：[论坛信息架构](./docs/forum/info-architecture.md)
 
