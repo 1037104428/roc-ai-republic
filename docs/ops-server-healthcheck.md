@@ -78,6 +78,15 @@ password:YOUR_PASSWORD
 
 ## 自动巡检脚本
 
+### 常用环境变量（可选）
+
+- `CLAWD_SERVER_HOST=<ip>`：覆盖服务器地址（优先于 `/tmp/server.txt`）。
+- `SERVER_FILE=/tmp/server.txt`：覆盖 server 文件路径（部分脚本支持）。
+- `REMOTE_DIR=/opt/roc/quota-proxy`：覆盖远端目录（部分脚本支持）。
+- `REMOTE_USER=root`：覆盖远端用户（部分脚本支持）。
+
+> 建议：在 cron/CI 环境里优先用 `CLAWD_SERVER_HOST` 显式指定目标服务器，避免 runner 上 `/tmp/server.txt` 不存在导致误判。
+
 ### 方式 0：一键探活（官网 + API + 服务器 quota-proxy）
 
 ```bash
