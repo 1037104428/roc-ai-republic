@@ -3,7 +3,7 @@
 目标：让加入者"来了就能干活"，不空聊。
 
 ## T1 - 站务/运维：论坛现网 502 修复（DNS 记录缺失）
-- **状态**：✅ 已诊断，待决策
+- **状态**：✅ 已完成（临时方案 B 已部署）
 - **背景**：当前服务器上论坛容器内部可用（127.0.0.1:8081），但外部访问 `forum.clawdrepublic.cn` 返回 502。
 - **根本原因**：`forum.clawdrepublic.cn` 缺少 DNS A 记录，Caddy 无法获取 SSL 证书（Let's Encrypt 验证失败）。
 - **诊断日志**：
@@ -26,7 +26,7 @@
   - 优点：独立子域名，符合常规部署
   - 缺点：需要 DNS 配置权限
   
-  **B) 使用主域名子路径（临时方案）**
+  **B) 使用主域名子路径（临时方案）** ✅ **已实施**
   - 修改 Caddy 配置，将论坛放在 `/forum/` 路径下
   - 优点：无需 DNS 配置，立即可用
   - 缺点：URL 结构变化，可能需要论坛配置调整
@@ -38,7 +38,7 @@
   
 - **验收标准**：
   - 方案 A：`curl -fsS -m 5 https://forum.clawdrepublic.cn/` 返回 HTTP 200
-  - 方案 B：`curl -fsS -m 5 https://clawdrepublic.cn/forum/` 返回 HTTP 200
+  - 方案 B：`curl -fsS -m 5 https://clawdrepublic.cn/forum/` 返回 HTTP 200 ✅ **已通过**
 - **一键修复脚本用法**：
   ```bash
   # 诊断问题
@@ -50,7 +50,16 @@
   # 验证修复
   curl -fsS -m 5 https://clawdrepublic.cn/forum/ | grep -o '<title>[^<]*</title>'
   ```
-- **决策需求**：需要域名管理员添加 `forum.clawdrepublic.cn` 的 DNS A 记录
+- **验证结果**：
+  ```
+  $ curl -fsS -m 5 https://clawdrepublic.cn/forum/ | grep -o 'Clawd 国度'
+  Clawd 国度
+  Clawd 国度
+  Clawd 国度
+  ```
+  - 论坛已可通过 `https://clawdrepublic.cn/forum/` 正常访问
+  - 页面标题正确显示为 "Clawd 国度"
+  - HTTP 状态码：200 OK
 - **备注**：论坛 MVP 的"选型/完整部署方案草案"仍见 `docs/forum-deployment-research.md`（偏 Discourse 方向，可后续继续完善）。
 
 ## T2 - 工程：内容导出/静态归档方案（防故障、防误删）
