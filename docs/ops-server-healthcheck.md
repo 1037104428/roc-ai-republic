@@ -107,6 +107,9 @@ password:YOUR_PASSWORD
 # 更“傻瓜”的一键远端探活（读取 /tmp/server.txt；输出 compose ps + /healthz）
 ./scripts/ssh-healthz-quota-proxy.sh
 
+# JSON 单行摘要（适合 cron/CI 收集）
+./scripts/ssh-healthz-quota-proxy.sh --json | python3 -m json.tool
+
 # 一键远端拉取日志（排障时用；默认 tail=200；也支持 --follow / --service）
 ./scripts/ssh-logs-quota-proxy.sh --since 10m
 ./scripts/ssh-logs-quota-proxy.sh --service quota-proxy --since 10m
