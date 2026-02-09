@@ -1,0 +1,25 @@
+# 论坛反向代理配置
+forum.clawdrepublic.cn {
+    # 反向代理到 Flarum
+    reverse_proxy 127.0.0.1:8081
+    
+    # 日志
+    log {
+        output file /var/log/caddy/forum.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+    
+    # 安全头
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+# 重定向 http -> https
+http://forum.clawdrepublic.cn {
+    redir https://forum.clawdrepublic.cn{uri} permanent
+}

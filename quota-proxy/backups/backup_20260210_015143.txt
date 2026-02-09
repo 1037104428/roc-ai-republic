@@ -1,0 +1,20 @@
+# 测试数据库文件 - 模拟 SQLite 数据库
+# 创建时间: $(date)
+# 文件类型: 模拟数据库
+
+[api_keys]
+id,key,label,total_quota,used_quota,created_at
+1,sk-test-001,测试密钥1,1000,150,2026-02-10 01:00:00
+2,sk-test-002,测试密钥2,2000,300,2026-02-10 01:05:00
+
+[quota_usage]
+id,key_id,endpoint,tokens_used,timestamp
+1,1,/v1/chat/completions,50,2026-02-10 01:10:00
+2,1,/v1/embeddings,100,2026-02-10 01:15:00
+3,2,/v1/chat/completions,200,2026-02-10 01:20:00
+4,2,/v1/completions,100,2026-02-10 01:25:00
+
+[metadata]
+version=1.0
+created=$(date +%Y-%m-%d\ %H:%M:%S)
+records=6
