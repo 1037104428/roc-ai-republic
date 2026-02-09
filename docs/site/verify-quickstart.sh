@@ -35,7 +35,7 @@ fi
 
 # 2. 检查 API 健康状态
 echo "2. 检查 API 健康状态..."
-API_HEALTH=$(curl -fsS -m 10 https://api.clawdrepublic.cn/healthz 2>/dev/null || echo "{}")
+API_HEALTH=$(curl -fsS -m 10 https://clawdrepublic.cn/api/healthz 2>/dev/null || echo "{}")
 if echo "$API_HEALTH" | grep -q '"ok":true'; then
     echo "   ✅ API 健康检查通过"
 else
@@ -47,7 +47,7 @@ fi
 # 3. 如果有 key，检查模型列表
 if [[ -n "$KEY" ]]; then
     echo "3. 检查 TRIAL_KEY 有效性..."
-    MODELS_RESPONSE=$(curl -fsS -m 10 https://api.clawdrepublic.cn/v1/models \
+    MODELS_RESPONSE=$(curl -fsS -m 10 https://clawdrepublic.cn/api/v1/models \
         -H "Authorization: Bearer $KEY" 2>/dev/null || echo "{}")
     
     if echo "$MODELS_RESPONSE" | grep -q '"object":"list"'; then
