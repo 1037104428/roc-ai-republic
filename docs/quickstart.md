@@ -2,13 +2,33 @@
 
 > 官网版本（建议阅读）：https://clawdrepublic.cn/quickstart.html
 
-这份文档给“第一次装 OpenClaw、只想复制粘贴跑起来”的人用。
+这份文档给"第一次装 OpenClaw、只想复制粘贴跑起来"的人用。
+
+## 开始前：一键验证网络环境
+
+在安装前，可以先运行这个验证脚本检查网络环境是否正常：
+
+```bash
+# 下载并运行验证脚本
+curl -fsSL https://clawdrepublic.cn/verify-quickstart.sh | bash
+
+# 或者如果有 TRIAL_KEY，可以这样验证：
+# curl -fsSL https://clawdrepublic.cn/verify-quickstart.sh | bash -s -- --key 你的TRIAL_KEY
+```
+
+这个脚本会检查：
+- 官网是否可访问
+- API 网关是否健康
+- 安装脚本是否可下载
+- 你的 TRIAL_KEY 是否有效（如果提供）
+
+如果验证通过，说明网络环境正常，可以继续安装。
 
 ## 你将获得什么
 
 - 国内可直连安装 OpenClaw
 - 默认使用 Clawd 国度的 DeepSeek 限额网关（无需自己申请 DeepSeek key）
-- 遇到问题：按模板发帖，按“复制粘贴 + 你应该看到什么 + 失败怎么办”的方式排障
+- 遇到问题：按模板发帖，按"复制粘贴 + 你应该看到什么 + 失败怎么办"的方式排障
 
 ## 0) 准备 Node.js（如果你已经有 npm，可跳过）
 
