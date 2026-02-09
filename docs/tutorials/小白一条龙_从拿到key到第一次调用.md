@@ -5,11 +5,11 @@
 如果你已经拿到 TRIAL_KEY，直接运行这条命令：
 
 ```bash
-curl -X POST "https://quota-proxy.roc-ai-republic.com/v1/chat/completions" \
+curl -X POST "https://api.clawdrepublic.cn/v1/chat/completions" \
   -H "Authorization: Bearer YOUR_TRIAL_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gpt-3.5-turbo",
+    "model": "clawd-default",
     "messages": [{"role": "user", "content": "你好，世界！"}]
   }'
 ```
