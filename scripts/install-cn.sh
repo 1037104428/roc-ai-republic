@@ -169,11 +169,14 @@ cat <<'TXT'
 4) Verify: openclaw status && openclaw models status
 TXT
 
-# Optional health check
+# Optional health check with detailed diagnostics
 if [[ $DRY_RUN -eq 0 ]]; then
   echo "[cn-pack] Running post-install health check..."
   if command -v openclaw >/dev/null 2>&1; then
-    echo "[cn-pack] ✓ openclaw command found: $(openclaw --version 2>/dev/null || echo 'version check failed')"
+    OPENCLAW_PATH=$(command -v openclaw)
+    OPENCLAW_VERSION_OUTPUT=$(openclaw --version 2>/dev/null || echo "version check failed")
+    echo "[cn-pack] ✓ openclaw command found at: $OPENCLAW_PATH"
+    echo "[cn-pack] ✓ Version: $OPENCLAW_VERSION_OUTPUT"
     
     # Check if gateway is running
     if openclaw gateway status 2>/dev/null | grep -q "running\|active"; then
@@ -188,7 +191,46 @@ if [[ $DRY_RUN -eq 0 ]]; then
     else
       echo "[cn-pack] ℹ️ Config file not found. Create with: openclaw config init"
     fi
+    
+    # Additional diagnostics for troubleshooting
+    echo "[cn-pack] Running additional diagnostics..."
+    
+    # Check npm global installation
+    if npm list -g openclaw 2>/dev/null | grep -q "openclaw@"; then
+      echo "[cn-pack] ✓ OpenClaw is installed globally via npm"
+    else
+      echo "[cn-pack] ⚠️ OpenClaw not found in npm global list. May be installed via npx"
+    fi
+    
+    # Check workspace directory
+    if [[ -d ~/.openclaw/workspace ]]; then
+      echo "[cn-pack] ✓ Workspace directory exists: ~/.openclaw/workspace"
+    else
+      echo "[cn-pack] ℹ️ Workspace directory not found. Will be created on first run"
+    fi
+    
   else
-    echo "[cn-pack] ⚠️ openclaw command not in PATH. Try reopening your terminal or adding npm global bin to PATH"
+    echo "[cn-pack] ⚠️ openclaw command not in PATH. Running diagnostics..."
+    
+    # Check npm global bin path
+    NPM_BIN_PATH=$(npm bin -g 2>/dev/null || echo "/usr/local/bin")
+    echo "[cn-pack]   npm global bin path: $NPM_BIN_PATH"
+    
+    # Check if npm bin is in PATH
+    if echo "$PATH" | tr ':' '\n' | grep -q "^$NPM_BIN_PATH$"; then
+      echo "[cn-pack]   ✓ npm bin path is in PATH"
+    else
+      echo "[cn-pack]   ⚠️ npm bin path NOT in PATH. Add to your shell config:"
+      echo "[cn-pack]      export PATH=\"\$PATH:$NPM_BIN_PATH\""
+    fi
+    
+    # Check if openclaw exists in npm bin
+    if [[ -f "$NPM_BIN_PATH/openclaw" ]]; then
+      echo "[cn-pack]   ✓ openclaw binary found at: $NPM_BIN_PATH/openclaw"
+      echo "[cn-pack]   Try: source ~/.bashrc (or ~/.zshrc) and run 'openclaw --version'"
+    else
+      echo "[cn-pack]   ⚠️ openclaw binary not found in npm bin. Installation may have failed."
+      echo "[cn-pack]   Try: npx openclaw --version (runs via npx without PATH)"
+    fi
   fi
 fi
