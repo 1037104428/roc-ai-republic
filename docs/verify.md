@@ -387,3 +387,88 @@ curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  "${BASE_URL}/admin/usage"
 # 4. 删除密钥（替换 {key} 为实际密钥）
 curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \n  -X DELETE "${BASE_URL}/admin/keys/{key}"
 ```
+
+## 9) SQLite 持久化完整功能验证
+
+### 9.1) SQLite 完整功能测试脚本
+
+```bash
+# 完整验证 SQLite 持久化与管理接口的端到端测试
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 检查脚本语法
+bash -n scripts/test-sqlite-full-cycle.sh
+
+# 查看脚本帮助
+./scripts/test-sqlite-full-cycle.sh --help
+
+# 在服务器本机测试（推荐）
+ADMIN_TOKEN="your_admin_token_here" ./scripts/test-sqlite-full-cycle.sh
+
+# 远程测试（需确保 admin 接口可访问）
+ADMIN_TOKEN="your_admin_token_here" ./scripts/test-sqlite-full-cycle.sh \
+  --url http://your-server:8787 \
+  --label "test-$(date +%Y%m%d-%H%M%S)"
+
+# 脚本会自动验证以下完整流程：
+# 1. 健康检查 (/healthz)
+# 2. 模型列表 (/v1/models)
+# 3. 创建测试 key (/admin/keys)
+# 4. 查询 key 列表 (/admin/keys)
+# 5. 查询用量 (/admin/usage)
+# 6. 用量重置 (/admin/usage/reset)
+# 7. 吊销 key (/admin/keys/:key)
+# 8. 验证 key 吊销后不可用
+# 9. SQLite 文件存在性检查（本地部署时）
+```
+
+### 9.2) SQLite 数据库文件验证
+
+```bash
+# 检查 SQLite 数据库文件（需要服务器 SSH 访问）
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && ls -la data/'
+
+# 检查数据库文件大小
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && du -h data/quota.db'
+
+# 检查数据库表结构（需要 sqlite3 命令）
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db ".tables"'
+
+# 检查表结构详情
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db ".schema"'
+
+# 检查数据行数
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db "SELECT count(*) FROM keys;"'
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db "SELECT count(*) FROM usage;"'
+```
+
+### 9.3) SQLite 持久化验证要点
+
+1. **重启后数据不丢失**：重启 quota-proxy 容器后，之前签发的 key 和用量记录应仍然存在
+2. **并发安全**：多个请求同时访问时，SQLite 应能正确处理并发（通过事务）
+3. **数据一致性**：用量统计应与实际请求匹配，无重复计数或漏计数
+4. **管理接口完整性**：所有管理接口（keys/usage/reset/delete）都应正常工作
+5. **性能可接受**：在预期负载下（如每日数百次请求），响应时间应在合理范围内
+
+### 9.4) 快速验证 SQLite 持久化是否生效
+
+```bash
+# 1. 创建测试 key
+ADMIN_TOKEN="your_token" KEY1=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -X POST http://127.0.0.1:8787/admin/keys \
+  -d '{"label":"persistence-test"}' | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
+
+# 2. 重启 quota-proxy 容器
+ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose restart quota-proxy'
+
+# 3. 等待容器启动（约5秒）
+sleep 5
+
+# 4. 验证 key 仍然存在且可用
+curl -fsS -H "Authorization: Bearer $KEY1" http://127.0.0.1:8787/v1/models && echo "SQLite 持久化验证通过"
+
+# 5. 清理测试 key
+curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -X DELETE "http://127.0.0.1:8787/admin/keys/$KEY1"
+```
