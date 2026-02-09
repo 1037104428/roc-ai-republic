@@ -67,6 +67,26 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
 - `req_count`
 - `updated_at`
 
+补充说明（字段含义）：
+- `day`：按天汇总的日期（YYYY-MM-DD）
+- `req_count`：该 key 在该日累计请求次数（通常每次调用 /v1/* 记 1 次；以实现为准）
+- `updated_at`：该 key 在该日计数最后更新时间（毫秒时间戳）
+
+示例输出（格式示意，字段以实际为准）：
+```json
+{
+  "day": "2026-02-09",
+  "items": [
+    {
+      "key": "trial_...",
+      "label": "forum-user:alice",
+      "req_count": 3,
+      "updated_at": 1760000000000
+    }
+  ]
+}
+```
+
 ---
 
 ## 3.5) （可选）查询最近用量（跨天，运维排查用）
