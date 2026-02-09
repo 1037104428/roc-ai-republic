@@ -1,13 +1,31 @@
-# OpenClaw 小白中文包（免翻墙版）— DeepSeek 默认（最短路径 v0）
+# OpenClaw 小白中文包（免翻墙版）- DeepSeek 默认（最短路径 v0）
 
-目标：给纯小白一条“复制粘贴就能跑”的路：**不翻墙**也能用 OpenClaw。
+目标：给纯小白一条"复制粘贴就能跑"的路：**不翻墙**也能用 OpenClaw。
 
 这份文档只做一件事：把 **DeepSeek（OpenAI-compatible）** 接到 OpenClaw，并设为默认模型。
 
-> 字段来源（本机 OpenClaw docs）：
-> - 配置文件位置/格式：`docs/help/faq.md`（`~/.openclaw/openclaw.json`，JSON5）
-> - 环境变量与 `.env` 读取优先级：`docs/environment.md`
-> - 自定义 provider（`models.providers`）与 `openai-completions`：`docs/concepts/model-providers.md`
+## 🚀 一键配置（推荐）
+
+如果你已经安装了 OpenClaw，只需运行一条命令：
+
+```bash
+curl -fsSL https://clawdrepublic.cn/setup-deepseek-openclaw.sh | bash
+```
+
+或者下载后运行：
+
+```bash
+# 下载脚本
+curl -fsSL https://clawdrepublic.cn/setup-deepseek-openclaw.sh -o setup.sh
+chmod +x setup.sh
+./setup.sh
+```
+
+脚本会：
+1. 检查 OpenClaw 是否已安装
+2. 询问并保存你的 DeepSeek API Key
+3. 创建或更新 OpenClaw 配置文件
+4. 验证配置并给出后续步骤
 
 ---
 
@@ -77,7 +95,7 @@ export DEEPSEEK_API_KEY='YOUR_KEY_HERE'
 ```
 
 备注：
-- 上面这些键（`models.providers.*.baseUrl/apiKey/api/models[]` + `api: "openai-completions"`）是 OpenClaw 文档里“自定义 OpenAI-compatible provider”的标准写法。
+- 上面这些键（`models.providers.*.baseUrl/apiKey/api/models[]` + `api: "openai-completions"`）是 OpenClaw 文档里"自定义 OpenAI-compatible provider"的标准写法。
 - 如果 DeepSeek 未来调整了模型 id / baseUrl，只需要改 `models[].id` / `baseUrl`。
 
 ---
@@ -93,8 +111,33 @@ openclaw models status
 
 ---
 
-## 4) 下一步（路线图）
+## 4) 一键脚本详情
 
-- 补齐：DeepSeek 官方入口链接（写入 `docs/links.md`，避免散落在文档里）
-- 增加：小白向“10 分钟开箱”脚本（安装 + 写 `.env` + 写配置 + 验证）
-- 增加：不买 key 的“试用额度池/网关”路径（见仓库 `quota-proxy/`）
+如果你对脚本的工作原理感兴趣，或者想手动配置：
+
+### 脚本功能
+- **自动检测**：检查 OpenClaw 是否已安装
+- **安全输入**：交互式输入 API Key（不会在终端历史中留下痕迹）
+- **配置管理**：自动创建或更新配置文件
+- **环境变量**：自动设置 `.env` 文件
+- **验证步骤**：提供完整的验证命令
+
+### 手动运行脚本
+```bash
+# 从仓库运行
+cd /path/to/roc-ai-republic
+./scripts/setup-deepseek-openclaw.sh
+
+# 或者直接下载运行
+curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/setup-deepseek-openclaw.sh | bash
+```
+
+### 脚本源码位置
+- 仓库：`scripts/setup-deepseek-openclaw.sh`
+- 线上：`https://clawdrepublic.cn/setup-deepseek-openclaw.sh`
+
+## 5) 下一步（路线图）
+
+- 增加：不买 key 的"试用额度池/网关"路径（见仓库 `quota-proxy/`）
+- 优化：脚本增加更多错误处理和回退机制
+- 扩展：支持更多国内可用的 AI 模型（智谱、月之暗面等）

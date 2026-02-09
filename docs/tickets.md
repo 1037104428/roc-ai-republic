@@ -75,7 +75,19 @@
   - FAQ：这是什么/边界/怎么加入/怎么贡献
 
 ## T4 - 子项目：OpenClaw 小白中文包（免翻墙版）
-- 交付物：把 `docs/openclaw-cn-pack-deepseek-v0.md` 补齐成"可复制粘贴能跑"的版本（尤其是 DeepSeek provider 配置片段与验证步骤）
+- 状态：✅ 已完成
+- 交付物：
+  - 完善文档：`docs/openclaw-cn-pack-deepseek-v0.md` 已更新为"可复制粘贴能跑"的版本
+  - 一键配置脚本：`scripts/setup-deepseek-openclaw.sh`（支持交互式配置）
+  - 线上脚本：`https://clawdrepublic.cn/setup-deepseek-openclaw.sh`
+- 验证命令：
+  ```bash
+  # 测试脚本
+  curl -fsSL https://clawdrepublic.cn/setup-deepseek-openclaw.sh | head -n 20
+  
+  # 查看文档
+  curl -fsSL https://clawdrepublic.cn/openclaw-cn-pack-deepseek-v0.md | head -n 30
+  ```
 - 时间盒：7 天
 
 ## T5 - quota-proxy：SQLite 持久化 + 管理端点（ADMIN_TOKEN 保护）
