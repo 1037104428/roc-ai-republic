@@ -28,6 +28,8 @@
   - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-cn https://mirrors.cloud.tencent.com/npm/`
 - 想显式设置回退源：
   - `curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --registry-fallback https://registry.npmjs.org`
+- 跳过网络连通性检查（如果curl不可用或网络环境特殊）：
+  - `SKIP_NET_CHECK=1 curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash`
 - 脚本自测（不改系统，不安装）：
   - `cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/verify-install-cn.sh --dry-run`
 - 故障排除指南：

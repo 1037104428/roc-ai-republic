@@ -96,6 +96,20 @@ else
   exit 1
 fi
 
+# Quick network connectivity check (optional, can be skipped with env var)
+if [[ -z "${SKIP_NET_CHECK:-}" ]]; then
+  echo "[cn-pack] Checking network connectivity to npm registries..."
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsS -m 5 "$REG_CN" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ CN registry reachable: $REG_CN"
+    else
+      echo "[cn-pack] ⚠️ CN registry not reachable (will try fallback): $REG_CN"
+    fi
+  else
+    echo "[cn-pack] ℹ️ curl not found, skipping network check"
+  fi
+fi
+
 install_openclaw() {
   local reg="$1"
   local attempt="$2"
