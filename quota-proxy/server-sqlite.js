@@ -190,6 +190,32 @@ app.get('/admin/keys', adminAuth, (req, res) => {
     });
 });
 
+// 删除密钥
+app.delete('/admin/keys/:key', adminAuth, (req, res) => {
+    const { key } = req.params;
+    
+    if (!key) {
+        return res.status(400).json({ error: 'Key parameter is required' });
+    }
+    
+    db.run('DELETE FROM api_keys WHERE key = ?', [key], function(err) {
+        if (err) {
+            console.error('Error deleting key:', err);
+            return res.status(500).json({ error: 'Failed to delete key' });
+        }
+        
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Key not found' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Key ${key} deleted successfully`,
+            deleted: this.changes
+        });
+    });
+});
+
 // 查看使用情况
 app.get('/admin/usage', adminAuth, (req, res) => {
     const { key, days = 7 } = req.query;
