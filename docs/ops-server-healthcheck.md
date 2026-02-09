@@ -107,6 +107,9 @@ password:YOUR_PASSWORD
 # 更“傻瓜”的一键远端探活（读取 /tmp/server.txt；输出 compose ps + /healthz）
 ./scripts/ssh-healthz-quota-proxy.sh
 
+# 只看 compose 状态（方便贴周报 / 只要 ps）
+./scripts/ssh-compose-ps-quota-proxy.sh
+
 # JSON 单行摘要（适合 cron/CI 收集）
 ./scripts/ssh-healthz-quota-proxy.sh --json | python3 -m json.tool
 
