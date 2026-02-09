@@ -99,8 +99,14 @@ if [[ ! -f "$SERVER_FILE" ]]; then
     exit 1
 fi
 
-# Read server IP
-SERVER_IP=$(head -n1 "$SERVER_FILE" | tr -d '[:space:]')
+# Read server IP (support both formats: "ip=8.8.8.8" or just "8.8.8.8")
+SERVER_LINE=$(head -n1 "$SERVER_FILE" | tr -d '[:space:]')
+if [[ "$SERVER_LINE" =~ ^ip= ]]; then
+    SERVER_IP="${SERVER_LINE#ip=}"
+else
+    SERVER_IP="$SERVER_LINE"
+fi
+
 if [[ -z "$SERVER_IP" ]]; then
     log_error "No server IP found in $SERVER_FILE"
     exit 1
