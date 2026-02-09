@@ -306,3 +306,30 @@ http://localhost:8787/admin
 - **记录所有管理操作** - 界面操作会记录到服务器日志中
 
 详细说明请参考 [ADMIN-INTERFACE.md](./ADMIN-INTERFACE.md)
+
+## 管理界面验证脚本
+
+我们提供了一个专门的验证脚本来检查管理界面的完整功能：
+
+```bash
+# 查看帮助
+./scripts/verify-quota-proxy-admin-ui.sh --help
+
+# 本地验证（默认 127.0.0.1:8787）
+./scripts/verify-quota-proxy-admin-ui.sh
+
+# 远程服务器验证
+QUOTA_PROXY_HOST=8.210.185.194 ./scripts/verify-quota-proxy-admin-ui.sh
+
+# 带管理员令牌验证 API 端点
+ADMIN_TOKEN=your_token ./scripts/verify-quota-proxy-admin-ui.sh
+```
+
+脚本会验证：
+1. ✅ 健康检查端点 (`/healthz`)
+2. ✅ 管理界面可访问性 (`/admin/`)
+3. ✅ 密钥管理 API (`/admin/keys`) - 需要 ADMIN_TOKEN
+4. ✅ 使用情况 API (`/admin/usage`) - 需要 ADMIN_TOKEN
+5. ✅ 提供快速测试命令示例
+
+这对于部署后的验收和日常运维检查非常有用。
