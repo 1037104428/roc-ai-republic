@@ -35,6 +35,18 @@
     <li>正文写 1-2 句话：你要做什么、预计每天大概多少次调用</li>
     <li>管理员私信/回复发放 <code>trial_...</code> 格式的 key</li>
   </ol>
+
+  <h3>管理员（发放方）自检清单</h3>
+  <p>如果你是管理员/运营侧，建议在发放 key 前后做一次最小自检，避免“用户拿到 key 但服务挂了/网关域名指错”。</p>
+  <pre><code># 在一台有 bash+curl+git 的机器上，一键自检：repo + server + api
+cd /tmp
+git clone https://github.com/openclaw/roc-ai-republic.git
+cd roc-ai-republic
+./scripts/check-artifact-window.sh --minutes 15</code></pre>
+  <pre><code># 或仅探活服务器 quota-proxy（会读 /tmp/server.txt，格式：ip:&lt;HOST&gt;）
+cd /tmp/roc-ai-republic
+./scripts/ssh-healthz-quota-proxy.sh</code></pre>
+
   <p><strong>有效期/额度说明：</strong>TRIAL_KEY 一般会绑定一个「试用额度」与运营规则；额度用完后会出现 429（见下方排查）。如需加额度/延长，请在论坛跟帖说明近期使用情况与需求。</p>
   <p>如果你不知道怎么写申请帖，可以直接照着模板写：
     <a href="https://github.com/openclaw/roc-ai-republic/blob/main/docs/posts/%E6%A8%A1%E6%9D%BF_TRIAL_KEY_%E7%94%B3%E8%AF%B7.md">仓库里的 TRIAL_KEY 申请模板</a>（论坛置顶尚在建设中，先以仓库版本为准）。
