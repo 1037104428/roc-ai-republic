@@ -98,16 +98,37 @@ fi
 
 install_openclaw() {
   local reg="$1"
-  echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg"
+  local attempt="$2"
+  echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg (attempt: $attempt)"
   # no-audit/no-fund: faster & quieter, especially on slow networks
-  run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund
+  if run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund; then
+    return 0
+  else
+    echo "[cn-pack] Install attempt failed via registry: $reg" >&2
+    return 1
+  fi
 }
 
-if install_openclaw "$REG_CN"; then
-  echo "[cn-pack] Install OK via CN registry."
+# 尝试CN源
+if install_openclaw "$REG_CN" "CN-registry"; then
+  echo "[cn-pack] ✅ Install OK via CN registry."
 else
-  echo "[cn-pack] Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
-  install_openclaw "$REG_FALLBACK"
+  echo "[cn-pack] ⚠️ Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
+  echo "[cn-pack] This may be due to network issues, registry mirror sync delay, or package availability." >&2
+  echo "[cn-pack] Retrying with fallback registry in 2 seconds..." >&2
+  sleep 2
+  
+  if install_openclaw "$REG_FALLBACK" "fallback-registry"; then
+    echo "[cn-pack] ✅ Install OK via fallback registry."
+  else
+    echo "[cn-pack] ❌ Both registry attempts failed." >&2
+    echo "[cn-pack] Troubleshooting steps:" >&2
+    echo "[cn-pack] 1. Check network connectivity: curl -fsS https://registry.npmjs.org" >&2
+    echo "[cn-pack] 2. Verify Node.js version: node -v (requires >=20)" >&2
+    echo "[cn-pack] 3. Try manual install: npm i -g openclaw@${VERSION}" >&2
+    echo "[cn-pack] 4. Report issue: https://github.com/openclaw/openclaw/issues" >&2
+    exit 1
+  fi
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
