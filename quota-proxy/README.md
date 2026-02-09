@@ -1,6 +1,6 @@
 # quota-proxy：DeepSeek 限额试用网关（OpenAI-compatible）
 
-目的：给“OpenClaw 小白中文包”提供 **可控、可持续** 的免费试用额度。
+目的：给"OpenClaw 小白中文包"提供 **可控、可持续** 的免费试用额度。
 
 基本思路：
 - 用户拿到一个 `TRIAL_KEY`（我们发；在客户端/脚本里推荐用环境变量 `CLAWD_TRIAL_KEY` 承载，兼容旧名 `TRIAL_KEY`）
@@ -9,7 +9,7 @@
 - 网关对每个 `TRIAL_KEY` 做最小限额（v0：按日请求数）
 
 ## 安全边界
-- 不做任何隐蔽/绕行/“翻墙入口”；就是普通 HTTP(S) 服务。
+- 不做任何隐蔽/绕行/"翻墙入口"；就是普通 HTTP(S) 服务。
 - 不收集多余隐私：仅做 **按日请求次数** 计数（v0：内存/JSON；v1：SQLite）。
 - v1 已引入 SQLite 持久化 + 简单管理接口（见下文）。
 
@@ -47,7 +47,28 @@
     - 用量会落盘（v0 写 JSON；v1 写 SQLite）
 - `ADMIN_TOKEN`：管理口鉴权 token（不要写进仓库）
 
-> 计数口径：每次请求进入 `/v1/chat/completions` 时会先 `incrUsage()`，所以**上游失败/超时也会计入当日次数**（更符合“试用配额=请求机会”）。
+> 计数口径：每次请求进入 `/v1/chat/completions` 时会先 `incrUsage()`，所以**上游失败/超时也会计入当日次数**（更符合"试用配额=请求机会"）。
+
+## 快速验证（部署后）
+
+部署完成后，可以用以下命令验证服务是否正常：
+
+```bash
+# 1. 健康检查
+curl -fsS http://127.0.0.1:8787/healthz
+
+# 2. 模型列表（需要有效的 TRIAL_KEY）
+curl -fsS http://127.0.0.1:8787/v1/models \
+  -H "Authorization: Bearer $CLAWD_TRIAL_KEY"
+
+# 3. 简单聊天请求
+curl -fsS http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer $CLAWD_TRIAL_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"你好"}]}'
+```
+
+如果看到 `{"ok":true}`（健康检查）或正常的模型列表/响应，说明网关工作正常。
 
 ## 本地运行（开发）
 ```bash
@@ -146,7 +167,7 @@ curl -fsS http://127.0.0.1:8787/admin/keys \
 ```
 
 ### 4) 撤销 / 禁用某个 key（管理员）
-当前 v1（SQLite）实现**未提供**“撤销 key”的 HTTP 接口（避免误操作/需要更明确的审计与权限边界）。
+当前 v1（SQLite）实现**未提供**"撤销 key"的 HTTP 接口（避免误操作/需要更明确的审计与权限边界）。
 
 可回滚的做法（推荐先备份 DB）：
 ```bash
@@ -200,6 +221,42 @@ export QUOTA_PROXY_URL=http://localhost:8787
 ## 下一步（v2 / 可选增强）
 - key 维度策略：有效期 / 日限额（每 key 覆盖）/ 禁用
 - 可选：脱敏审计日志（只保留 request_id / 时间 / key hash / 状态码）
+
+## TRIAL_KEY 申请与使用流程
+
+### 申请试用密钥（当前为手动发放）
+
+目前 TRIAL_KEY 需要通过管理员手动发放。申请流程：
+
+1. **联系管理员**：通过 Clawd 社区渠道（论坛/Telegram群）联系管理员申请试用
+2. **提供信息**：提供你的使用场景和预计用量
+3. **获取密钥**：管理员通过管理界面创建密钥后发送给你
+
+### 使用试用密钥
+
+获取 TRIAL_KEY 后，在客户端配置：
+
+```bash
+# 环境变量方式（推荐）
+export CLAWD_TRIAL_KEY="your_trial_key_here"
+export OPENAI_BASE_URL="http://localhost:8787"
+
+# 或在 OpenClaw 配置中设置
+# provider.baseUrl = "http://localhost:8787"
+# provider.apiKey = "your_trial_key_here"
+```
+
+### 验证密钥状态
+
+```bash
+# 检查密钥是否有效
+curl -H "Authorization: Bearer your_trial_key_here" \
+  http://localhost:8787/v1/models
+```
+
+### 自助申请流程（规划中）
+
+未来将实现自助申请页面，用户可通过 Web 表单申请试用密钥，系统自动审核发放。
 
 ## Web 管理界面
 
