@@ -69,7 +69,8 @@ fi
 mkdir -p "$(dirname "$FILE")"
 
 if [[ $WITH_TS -eq 1 ]]; then
-  TS="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+  # Force Asia/Shanghai so cron/SSH shells don't accidentally log in UTC.
+  TS="$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S %Z')"
   printf -- '[%s] %s\n' "$TS" "$TEXT" >> "$FILE"
 else
   printf -- '%s\n' "$TEXT" >> "$FILE"
