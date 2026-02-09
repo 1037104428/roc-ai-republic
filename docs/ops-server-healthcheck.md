@@ -98,6 +98,20 @@ password:YOUR_PASSWORD
 # ./scripts/probe-roc-all.sh --json | jq -r '.all_ok'
 ```
 
+### 方式 0.5：滚动窗口自检（15 分钟）
+
+推进循环的硬性目标是：**每 15 分钟至少 1 个可验证落地物**。
+
+仓库提供了一个“窗口自检”脚本：同时检查 repo 最近 commit、远端 quota-proxy（compose ps + /healthz）以及 API 网关探活，并支持 JSON 输出与严格退出码（适合 cron/CI）。
+
+```bash
+# 人类可读
+./scripts/check-artifact-window.sh --minutes 15
+
+# JSON（单行）+ 严格模式（任一项失败则 exit!=0）
+./scripts/check-artifact-window.sh --minutes 15 --json --strict | python3 -m json.tool
+```
+
 ### 方式 1：SSH Key（推荐）
 
 ```bash
