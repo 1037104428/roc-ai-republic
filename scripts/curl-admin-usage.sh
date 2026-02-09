@@ -16,6 +16,7 @@ BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
 DAY=""
 KEY=""
 LIMIT=""
+BASE_URL_ARG=""
 PRETTY=0
 MASK=0
 
@@ -25,9 +26,13 @@ Usage:
   ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-usage.sh \
     [--day YYYY-MM-DD] [--key KEY] [--limit N] [--pretty] [--mask]
 
+  # Or pass baseUrl explicitly (overrides BASE_URL env)
+  ADMIN_TOKEN=... bash scripts/curl-admin-usage.sh --base-url http://127.0.0.1:8787 --pretty
+
 Notes:
   - GET /admin/usage requires persistence enabled (SQLITE_PATH).
   - BASE_URL defaults to http://127.0.0.1:8787
+  - --base-url overrides BASE_URL env
   - --pretty formats JSON (python -m json.tool).
   - --mask redacts key-like fields before printing (safe for sharing logs).
 EOF
@@ -43,6 +48,8 @@ while [[ $# -gt 0 ]]; do
       KEY="${2:-}"; shift 2;;
     --limit)
       LIMIT="${2:-}"; shift 2;;
+    --base-url)
+      BASE_URL_ARG="${2:-}"; shift 2;;
     --pretty)
       PRETTY=1; shift;;
     --mask)
@@ -85,6 +92,10 @@ fi
 q=""
 if [[ ${#qs[@]} -gt 0 ]]; then
   q="?$(IFS='&'; echo "${qs[*]}")"
+fi
+
+if [[ -n "$BASE_URL_ARG" ]]; then
+  BASE_URL="$BASE_URL_ARG"
 fi
 
 url="${BASE_URL%/}/admin/usage${q}"
