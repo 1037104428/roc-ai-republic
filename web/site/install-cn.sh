@@ -107,6 +107,11 @@ else
   install_openclaw "$REG_FALLBACK"
 fi
 
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "[cn-pack] Dry-run done (no changes made)."
+  exit 0
+fi
+
 # Self-check
 if command -v openclaw >/dev/null 2>&1; then
   echo "[cn-pack] Installed. Check: $(openclaw --version)"

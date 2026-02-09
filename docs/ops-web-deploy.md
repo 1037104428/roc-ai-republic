@@ -1,6 +1,6 @@
 # 站点（静态 landing page）部署草案（Caddy / Nginx）
 
-目标：把仓库里的静态站点 `web/site/` 部署到服务器 `/opt/roc/web/`，并通过 HTTPS 对外提供：
+目标：把仓库里的静态站点 `web/site/` 部署到服务器 `/opt/roc/web/`（推荐），并通过 HTTPS 对外提供：
 
 - 下载入口（含 `install-cn.sh`）
 - 安装命令
@@ -27,15 +27,26 @@
 
 ## 部署（文件同步）
 
-在本机（有仓库的一侧）执行：
+在本机（有仓库的一侧）执行（推荐用仓库自带脚本，自动读取 `/tmp/server.txt`）：
 
 ```bash
 cd /home/kai/.openclaw/workspace/roc-ai-republic
-# 示例：用 rsync 推送到服务器（需 root 权限/可写 /opt/roc）
-rsync -av --delete web/site/ root@<SERVER_HOST>:/opt/roc/web/
+./scripts/deploy-web-site.sh
 ```
 
-如果你不想 `--delete`（更安全），可以先用：
+你也可以先跑一遍 dry-run 看看会做什么：
+
+```bash
+./scripts/deploy-web-site.sh --dry-run
+```
+
+> 说明：脚本默认目标目录是 `/opt/roc/web`。若你想用子目录（例如 `/opt/roc/web/site`），可用：
+>
+> ```bash
+> ./scripts/deploy-web-site.sh --remote-dir /opt/roc/web/site
+> ```
+
+如果你更偏好 rsync（例如增量同步/可选择 `--delete`），也可以手动用：
 
 ```bash
 rsync -av web/site/ root@<SERVER_HOST>:/opt/roc/web/
