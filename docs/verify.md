@@ -73,6 +73,15 @@ curl -fsS -m 8 https://clawdrepublic.cn/quota-proxy.html | grep -q 'CLAWD_TRIAL_
 curl -fsS -m 8 https://api.clawdrepublic.cn/healthz && echo
 ```
 
+### 2.1) API 一键探活脚本（/healthz + /v1/models）
+
+> 适合每次改完 quota-proxy 或网关配置后，做最小验收。
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/probe-roc-api.sh
+```
+
 ## 3) 国内一键安装脚本（install-cn.sh 可达 + 语法）
 
 ```bash
