@@ -41,9 +41,14 @@ curl -fsS http://127.0.0.1:8787/healthz
 
 ## 2) 生成 1 个 trial key
 
-推荐用脚本（更不容易粘贴错）：
+推荐用脚本（更不容易粘贴错）。如果服务器目录 `/opt/roc/quota-proxy` 里**没有** `scripts/`，建议在任意目录先 clone 本仓库再运行脚本（脚本只依赖 curl）：
 
 ```bash
+# 任选其一：在服务器上 clone 仓库（推荐）
+cd /opt/roc
+[ -d roc-ai-republic ] || git clone https://github.com/openclaw/roc-ai-republic.git
+cd roc-ai-republic
+
 ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
   ./scripts/curl-admin-create-key.sh --label 'forum-user:alice' --pretty
 ```
@@ -65,7 +70,7 @@ curl -fsS -X POST http://127.0.0.1:8787/admin/keys \
 
 ## 3) 查询今日用量（按天汇总，推荐）
 
-推荐用脚本（支持 `--mask` 脱敏，适合贴日志；也支持 `--base-url` 覆盖环境变量）：
+推荐用脚本（支持 `--mask` 脱敏，适合贴日志；也支持 `--base-url` 覆盖环境变量）。同上：如果当前目录没有 `scripts/`，请先 clone 本仓库再执行。
 
 ```bash
 ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
