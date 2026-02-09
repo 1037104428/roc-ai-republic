@@ -52,6 +52,7 @@ patterns=(
   "*.xml"
   "*.md"
   "install-cn.sh"
+  "verify-quickstart.sh"
 )
 
 mkdir -p "$dst"
