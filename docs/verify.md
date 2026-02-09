@@ -437,6 +437,36 @@ ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db ".tables"
 # 检查表结构详情
 ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db ".schema"'
 
+### 9.3) 服务器端 SQLite 持久化验证脚本
+
+```bash
+# 使用专用脚本在服务器上验证 SQLite 持久化
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 检查脚本语法
+bash -n scripts/verify-sqlite-persistence-on-server.sh
+
+# 查看脚本帮助
+./scripts/verify-sqlite-persistence-on-server.sh --help
+
+# 基本验证（文本输出）
+./scripts/verify-sqlite-persistence-on-server.sh
+
+# JSON 格式输出（便于 cron/监控解析）
+./scripts/verify-sqlite-persistence-on-server.sh --json
+
+# 自定义服务器文件路径
+SERVER_FILE=/path/to/server.txt ./scripts/verify-sqlite-persistence-on-server.sh
+
+# 脚本验证项目：
+# 1. SSH 连接性
+# 2. quota-proxy 容器运行状态
+# 3. SQLite 数据库文件存在性
+# 4. 数据库文件可读写性
+# 5. 健康检查端点 (/healthz)
+# 6. 数据库表结构（如果 sqlite3 可用）
+```
+
 # 检查数据行数
 ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db "SELECT count(*) FROM keys;"'
 ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db "SELECT count(*) FROM usage;"'
