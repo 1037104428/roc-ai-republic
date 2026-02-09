@@ -1,13 +1,16 @@
-FROM node:22-bookworm-slim
+FROM node:20-alpine
 WORKDIR /app
 
-# better-sqlite3 may need native build tools if no prebuild is available.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ \
-  && rm -rf /var/lib/apt/lists/*
+# 复制 package.json 文件
+COPY package*.json ./
 
-COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
-COPY server.js ./
+# 安装依赖（包括 sqlite3 需要的编译工具）
+RUN apk add --no-cache python3 make g++ \
+    && npm ci --only=production \
+    && apk del python3 make g++
+
+# 复制应用代码
+COPY server-sqlite.js ./server.js
+
 EXPOSE 8787
-CMD ["node","/app/server.js"]
+CMD ["node", "server.js"]
