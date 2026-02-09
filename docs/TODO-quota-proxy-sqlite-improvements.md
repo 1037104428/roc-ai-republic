@@ -22,7 +22,7 @@
 - [x] `GET /admin/usage` - 查看使用情况
 - [ ] `DELETE /admin/keys/:key` - 删除密钥
 - [ ] `PUT /admin/keys/:key` - 更新密钥标签
-- [ ] `GET /admin/keys` - 列出所有密钥
+- [x] `GET /admin/keys` - 列出所有密钥 (2026-02-10 01:54)
 - [ ] `POST /admin/reset-usage` - 重置使用统计
 
 ### 3. 安全性增强

@@ -129,6 +129,67 @@ app.post('/admin/keys', adminAuth, (req, res) => {
     );
 });
 
+// 列出所有密钥
+app.get('/admin/keys', adminAuth, (req, res) => {
+    const { limit = 100, offset = 0, activeOnly = false } = req.query;
+    
+    let whereClause = '';
+    let params = [];
+    
+    if (activeOnly === 'true') {
+        whereClause = 'WHERE (expires_at IS NULL OR expires_at > datetime("now"))';
+    }
+    
+    const query = `
+        SELECT 
+            id,
+            key,
+            label,
+            total_quota,
+            used_quota,
+            created_at,
+            expires_at,
+            CASE 
+                WHEN expires_at IS NULL THEN 'active'
+                WHEN expires_at > datetime("now") THEN 'active'
+                ELSE 'expired'
+            END as status
+        FROM api_keys
+        ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+    `;
+    
+    params.push(parseInt(limit), parseInt(offset));
+    
+    db.all(query, params, (err, rows) => {
+        if (err) {
+            console.error('Error fetching keys:', err);
+            return res.status(500).json({ error: 'Failed to fetch keys' });
+        }
+        
+        // 获取总数
+        const countQuery = `SELECT COUNT(*) as total FROM api_keys ${whereClause}`;
+        db.get(countQuery, whereClause ? [] : [], (countErr, countResult) => {
+            if (countErr) {
+                console.error('Error counting keys:', countErr);
+                return res.status(500).json({ error: 'Failed to count keys' });
+            }
+            
+            res.json({
+                success: true,
+                keys: rows,
+                pagination: {
+                    total: countResult.total,
+                    limit: parseInt(limit),
+                    offset: parseInt(offset),
+                    hasMore: (parseInt(offset) + rows.length) < countResult.total
+                }
+            });
+        });
+    });
+});
+
 // 查看使用情况
 app.get('/admin/usage', adminAuth, (req, res) => {
     const { key, days = 7 } = req.query;
