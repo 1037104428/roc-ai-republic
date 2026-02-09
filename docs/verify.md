@@ -587,7 +587,60 @@ ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && sqlite3 data/quota.db "SELECT c
 4. **管理接口完整性**：所有管理接口（keys/usage/reset/delete）都应正常工作
 5. **性能可接受**：在预期负载下（如每日数百次请求），响应时间应在合理范围内
 
-### 9.4) 快速验证 SQLite 持久化是否生效
+### 9.4) SQLite 部署验证脚本
+
+```bash
+# 使用专用脚本验证 SQLite 部署状态
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 检查脚本语法
+bash -n scripts/verify-quota-proxy-sqlite.sh
+
+# 查看脚本帮助
+./scripts/verify-quota-proxy-sqlite.sh --help
+
+# 本地验证（检查脚本和配置）
+./scripts/verify-quota-proxy-sqlite.sh --local
+
+# 远程验证（检查服务器部署）
+./scripts/verify-quota-proxy-sqlite.sh --remote
+
+# 完整验证（本地+远程）
+./scripts/verify-quota-proxy-sqlite.sh
+
+# 脚本验证内容：
+# 1. 本地文件检查（SQLite 部署脚本、配置文件）
+# 2. 服务器 SSH 连接性
+# 3. quota-proxy 容器运行状态
+# 4. SQLite 数据库文件存在性和权限
+# 5. 健康检查端点 (/healthz)
+# 6. 管理接口可用性（如果提供 ADMIN_TOKEN）
+```
+
+### 9.5) SQLite 一键部署脚本验证
+
+```bash
+# 验证 SQLite 一键部署脚本
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 检查部署脚本语法
+bash -n scripts/deploy-quota-proxy-sqlite.sh
+
+# 查看部署脚本帮助
+./scripts/deploy-quota-proxy-sqlite.sh --help
+
+# 干运行模式（预览部署步骤）
+./scripts/deploy-quota-proxy-sqlite.sh --dry-run
+
+# 部署脚本功能：
+# 1. 自动备份现有配置
+# 2. 更新 docker-compose.yml 使用 SQLite 版本
+# 3. 创建 SQLite 数据目录和文件
+# 4. 重启 quota-proxy 服务
+# 5. 验证部署结果
+```
+
+### 9.6) 快速验证 SQLite 持久化是否生效
 
 ```bash
 # 1. 创建测试 key
