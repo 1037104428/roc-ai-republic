@@ -4,19 +4,21 @@
 
 ## TL;DR
 
-- 用户拿到 `TRIAL_KEY` 后，可用一条 curl 立刻验证是否可用
+- 用户拿到 `TRIAL_KEY` 后，可用几条 curl 立刻验证是否可用
 - 管理员建议“一人一钥 + 可撤销 + 可限额”，避免 Key 在公开场合泄露
+- **管理接口（admin/usage 等）不对外开放**：请用 `ADMIN_TOKEN` 并在服务器本机访问 `127.0.0.1:8787`
 
 ---
 
-## 管理员：发放流程
+## 管理员：发放流程（当前：人工）
 
-1) 生成 `TRIAL_KEY`
-   - 建议：一人一钥
-   - 建议：设置可控额度（可按天/月或总量；以你当前实现为准）
-2) 私信发给用户
-   - 不要在群里/帖子公开
-3) 需要停用时：撤销该 key 或把配额设为 0
+1) 在服务器本机生成 `TRIAL_KEY`
+2) 私信发给用户（不要公开粘贴）
+3) 需要停用时：撤销该 key（或后续版本将其限额设为 0）
+
+> 管理接口说明与脚本：见仓库文档 `roc-ai-republic/docs/quota-proxy-v1-admin-spec.md`。
+
+---
 
 ## 用户：curl 快速验证
 
@@ -27,6 +29,10 @@
 把 `YOUR_TRIAL_KEY` 换成你的 key：
 
 ```bash
+# 0) 不需要 key 的健康检查（不消耗额度）
+curl -fsS https://api.clawdrepublic.cn/healthz
+
+# 1) 需要 key：查看可用模型（用于确认 key 生效）
 curl -fsS https://api.clawdrepublic.cn/v1/models \
   -H "Authorization: Bearer YOUR_TRIAL_KEY" \
   | head
@@ -41,28 +47,43 @@ curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Authorization: Bearer YOUR_TRIAL_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "clawd-default",
+    "model": "deepseek-chat",
     "messages": [{"role": "user", "content": "你好，给我一个 3 步学习计划"}]
   }'
 ```
 
-## admin/usage 输出字段怎么读（示例说明）
+---
 
-> 注意：字段名以你部署的版本输出为准。
+## 管理员：admin/usage 输出字段怎么读（简版）
 
-常见字段含义：
+> 以当前线上实现为准（详细规范见 `roc-ai-republic/docs/quota-proxy-v1-admin-spec.md`）。
 
-- key: key 标识（可能是 hash/短 id）
-- status: active / revoked / expired
-- quota: 总配额
-- used: 已使用量
-- remaining: 剩余量
-- window: 统计窗口（天/月等）
-- last_used_at: 最近使用时间
+典型返回（按天查询）：
 
-示例：
+```json
+{
+  "day": "2026-02-08",
+  "mode": "file",
+  "items": [
+    { "key": "trial_xxx", "label": "forum:alice purpose:demo", "req_count": 12, "updated_at": 1700000000000 }
+  ]
+}
+```
+
+字段说明：
+
+- `day`：查询日期（`YYYY-MM-DD`）
+- `mode`：`file`（已开启持久化）/ `memory`（纯内存，不推荐生产）
+- `items[]`：用量条目
+  - `key`：trial key（对外展示建议脱敏）
+  - `label`：签发时写入的备注
+  - `req_count`：当天累计请求次数
+  - `updated_at`：最后一次更新用量的时间戳（毫秒）
+
+管理员查询示例（服务器本机执行）：
 
 ```bash
-curl -fsS https://api.clawdrepublic.cn/admin/usage \
-  -H "Authorization: Bearer YOUR_TRIAL_KEY"
+curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  | python3 -m json.tool | head
 ```
