@@ -68,6 +68,10 @@ cd roc-ai-republic
 
 ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
   ./scripts/curl-admin-create-key.sh --label 'forum-user:alice' --pretty
+
+# 想先确认将发送的请求内容（不实际发请求）：
+ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
+  ./scripts/curl-admin-create-key.sh --label 'forum-user:alice' --dry-run
 ```
 
 等价的原始 curl：

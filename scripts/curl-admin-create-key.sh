@@ -15,17 +15,19 @@ BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
 
 LABEL=""
 PRETTY=0
+DRY_RUN=0
 
 usage() {
   cat <<'EOF'
 Usage:
   ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-create-key.sh \
-    [--label TEXT] [--pretty]
+    [--label TEXT] [--pretty] [--dry-run]
 
 Notes:
   - POST /admin/keys requires persistence enabled (SQLITE_PATH).
   - BASE_URL defaults to http://127.0.0.1:8787
   - --pretty formats JSON (python -m json.tool).
+  - --dry-run prints the curl command + JSON body without sending the request.
 EOF
 }
 
@@ -37,6 +39,8 @@ while [[ $# -gt 0 ]]; do
       LABEL="${2:-}"; shift 2;;
     --pretty)
       PRETTY=1; shift;;
+    --dry-run)
+      DRY_RUN=1; shift;;
     *)
       echo "Unknown arg: $1" >&2
       usage >&2
@@ -58,6 +62,20 @@ PY
 )
 
 url="${BASE_URL%/}/admin/keys"
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  cat <<EOF
+# dry-run (no request sent)
+URL=${url}
+BODY=${body}
+
+curl -fsS -X POST "${url}" \
+  -H "Authorization: Bearer \${ADMIN_TOKEN}" \
+  -H 'content-type: application/json' \
+  -d '${body}'
+EOF
+  exit 0
+fi
 
 out=$(curl -fsS -X POST "$url" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
