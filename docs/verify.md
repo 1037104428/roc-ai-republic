@@ -82,6 +82,17 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ./scripts/probe-roc-api.sh
 ```
 
+（可选）切换目标网关（例如自建域名 / 临时 IP）：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+BASE_URL='https://api.clawdrepublic.cn' ./scripts/probe-roc-api.sh
+```
+
+期望输出（示例）：
+- `/healthz` 返回 `{"ok":true}` 或 `ok` 字样
+- `/v1/models` 返回 JSON，且包含至少 1 个 model id
+
 ## 3) 国内一键安装脚本（install-cn.sh 可达 + 语法）
 
 ```bash
