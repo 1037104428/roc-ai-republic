@@ -8,6 +8,11 @@ import { dirname, join } from 'path';
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 
+// 静态文件服务 - 管理界面
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+app.use('/admin', express.static(join(__dirname, 'admin')));
+
 const DEEPSEEK_BASE = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1';
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
@@ -300,4 +305,10 @@ app.listen(PORT, () => {
   console.log(`[quota-proxy] Database: ${DB_PATH}`);
   console.log(`[quota-proxy] Daily limit: ${DAILY_REQ_LIMIT}`);
   console.log(`[quota-proxy] Admin interface: ${ADMIN_TOKEN ? 'enabled at /admin' : 'disabled (no ADMIN_TOKEN)'}`);
+});
+
+
+// 管理界面健康检查
+app.get('/admin/healthz', (req, res) => {
+    res.json({ ok: true, service: 'quota-proxy-admin', timestamp: Date.now() });
 });
