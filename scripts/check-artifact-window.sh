@@ -29,3 +29,11 @@ if [[ -f /tmp/server.txt ]]; then
 else
   echo "server: SKIP (/tmp/server.txt not found)"
 fi
+
+echo
+
+# 3) public API gateway probe (/healthz + /v1/models)
+BASE_URL_DEFAULT="https://api.clawdrepublic.cn"
+BASE_URL="${BASE_URL:-$BASE_URL_DEFAULT}"
+echo "api: probing ${BASE_URL}"
+./scripts/probe-roc-api.sh
