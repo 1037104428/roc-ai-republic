@@ -1,165 +1,158 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e
 
-# Deploy landing page to server
-# This script copies the static site files to the server and configures web server
+# 部署中华AI共和国 landing page 到服务器
+# 用法: ./scripts/deploy-landing-page.sh [--dry-run] [--help]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-WEB_DIR="$REPO_ROOT/web"
-
-# Configuration
 SERVER_FILE="${SERVER_FILE:-/tmp/server.txt}"
-REMOTE_USER="${REMOTE_USER:-root}"
-REMOTE_WEB_DIR="${REMOTE_WEB_DIR:-/opt/roc/web}"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $*"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $*"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $*"
-}
-
-usage() {
+show_help() {
     cat <<EOF
-Deploy landing page to server
+部署中华AI共和国 landing page 到服务器
 
-Usage: $0 [OPTIONS]
+用法: $0 [选项]
 
-Options:
-  --server-file FILE    Path to server config file (default: /tmp/server.txt)
-  --remote-user USER    SSH user (default: root)
-  --remote-dir DIR      Remote directory for web files (default: /opt/roc/web)
-  --dry-run             Show commands without executing
-  --help                Show this help
+选项:
+  --dry-run     只显示将要执行的命令，不实际执行
+  --help        显示此帮助信息
+  --server-ip IP  指定服务器IP（覆盖 SERVER_FILE）
+  --web-dir DIR   指定服务器上的web目录（默认: /opt/roc/web）
 
-Environment variables:
-  SERVER_FILE      Same as --server-file
-  REMOTE_USER      Same as --remote-user
-  REMOTE_WEB_DIR   Same as --remote-dir
+环境变量:
+  SERVER_FILE    服务器信息文件路径（默认: /tmp/server.txt）
+  SSH_KEY        可选的SSH私钥路径
 
-The server file should contain the server IP address (one per line).
-Example:
-  8.210.185.194
+示例:
+  $0                     # 使用默认配置部署
+  $0 --dry-run           # 预览部署命令
+  $0 --server-ip 1.2.3.4 --web-dir /var/www/html
+
 EOF
 }
 
-# Parse arguments
+# 解析参数
 DRY_RUN=false
+SERVER_IP=""
+WEB_DIR="/opt/roc/web"
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --server-file)
-            SERVER_FILE="$2"
-            shift 2
-            ;;
-        --remote-user)
-            REMOTE_USER="$2"
-            shift 2
-            ;;
-        --remote-dir)
-            REMOTE_WEB_DIR="$2"
-            shift 2
-            ;;
         --dry-run)
             DRY_RUN=true
             shift
             ;;
-        --help|-h)
-            usage
+        --help)
+            show_help
             exit 0
             ;;
+        --server-ip)
+            SERVER_IP="$2"
+            shift 2
+            ;;
+        --web-dir)
+            WEB_DIR="$2"
+            shift 2
+            ;;
         *)
-            log_error "Unknown option: $1"
-            usage
+            echo "错误: 未知参数 $1"
+            show_help
             exit 1
             ;;
     esac
 done
 
-# Check prerequisites
-if ! command -v rsync &> /dev/null; then
-    log_error "rsync is required but not installed"
-    exit 1
-fi
-
-if [[ ! -f "$SERVER_FILE" ]]; then
-    log_error "Server file not found: $SERVER_FILE"
-    log_info "Create it with: echo '8.210.185.194' > /tmp/server.txt"
-    exit 1
-fi
-
-# Read server IP (support both formats: "ip=8.8.8.8" or just "8.8.8.8")
-SERVER_LINE=$(head -n1 "$SERVER_FILE" | tr -d '[:space:]')
-if [[ "$SERVER_LINE" =~ ^ip= ]]; then
-    SERVER_IP="${SERVER_LINE#ip=}"
-else
-    SERVER_IP="$SERVER_LINE"
+# 获取服务器IP
+if [[ -z "$SERVER_IP" ]]; then
+    if [[ -f "$SERVER_FILE" ]]; then
+        # 支持格式: ip=1.2.3.4 或 裸IP
+        SERVER_IP=$(grep -E '^ip=' "$SERVER_FILE" | cut -d= -f2)
+        if [[ -z "$SERVER_IP" ]]; then
+            # 尝试读取第一行作为裸IP
+            SERVER_IP=$(head -n1 "$SERVER_FILE" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')
+        fi
+    fi
 fi
 
 if [[ -z "$SERVER_IP" ]]; then
-    log_error "No server IP found in $SERVER_FILE"
+    echo "错误: 无法获取服务器IP"
+    echo "请设置 --server-ip 参数或确保 $SERVER_FILE 包含IP地址"
     exit 1
 fi
 
-log_info "Deploying to server: $SERVER_IP"
-log_info "Remote directory: $REMOTE_WEB_DIR"
-log_info "Web source: $WEB_DIR"
+echo "服务器IP: $SERVER_IP"
+echo "Web目录: $WEB_DIR"
+echo "源目录: $REPO_ROOT/web-landing"
 
-# Check web directory exists
-if [[ ! -d "$WEB_DIR/site" ]]; then
-    log_error "Web directory not found: $WEB_DIR/site"
-    log_info "Expected structure: web/site/ with HTML files"
+# 检查源文件
+if [[ ! -f "$REPO_ROOT/web-landing/index.html" ]]; then
+    echo "错误: 找不到 landing page 源文件: $REPO_ROOT/web-landing/index.html"
     exit 1
 fi
 
-# List files to deploy
-log_info "Files to deploy:"
-find "$WEB_DIR/site" -type f -name "*.html" | while read -r file; do
-    log_info "  $(realpath --relative-to="$WEB_DIR" "$file")"
-done
-
-if [[ "$DRY_RUN" == "true" ]]; then
-    log_info "Dry run - would execute:"
-    log_info "  rsync -avz --delete \"$WEB_DIR/site/\" \"$REMOTE_USER@$SERVER_IP:$REMOTE_WEB_DIR/\""
-    log_info "  ssh \"$REMOTE_USER@$SERVER_IP\" \"ls -la $REMOTE_WEB_DIR/\""
-    exit 0
+# 构建SSH命令
+SSH_CMD="ssh -o BatchMode=yes -o ConnectTimeout=10 root@$SERVER_IP"
+if [[ -n "$SSH_KEY" && -f "$SSH_KEY" ]]; then
+    SSH_CMD="ssh -i '$SSH_KEY' -o BatchMode=yes -o ConnectTimeout=10 root@$SERVER_IP"
 fi
 
-# Deploy files
-log_info "Deploying web files..."
-rsync -avz --delete \
-    "$WEB_DIR/site/" \
-    "$REMOTE_USER@$SERVER_IP:$REMOTE_WEB_DIR/"
+# 部署函数
+deploy() {
+    echo "正在部署 landing page..."
+    
+    # 1. 在服务器上创建目录
+    echo "创建目录: $WEB_DIR"
+    if [[ "$DRY_RUN" = true ]]; then
+        echo "[dry-run] $SSH_CMD \"mkdir -p $WEB_DIR\""
+    else
+        $SSH_CMD "mkdir -p $WEB_DIR"
+    fi
+    
+    # 2. 复制文件
+    echo "复制 index.html"
+    if [[ "$DRY_RUN" = true ]]; then
+        echo "[dry-run] scp $REPO_ROOT/web-landing/index.html root@$SERVER_IP:$WEB_DIR/"
+    else
+        scp "$REPO_ROOT/web-landing/index.html" "root@$SERVER_IP:$WEB_DIR/"
+    fi
+    
+    # 3. 设置权限
+    echo "设置文件权限"
+    if [[ "$DRY_RUN" = true ]]; then
+        echo "[dry-run] $SSH_CMD \"chmod 644 $WEB_DIR/index.html\""
+    else
+        $SSH_CMD "chmod 644 $WEB_DIR/index.html"
+    fi
+    
+    # 4. 验证部署
+    echo "验证部署..."
+    if [[ "$DRY_RUN" = true ]]; then
+        echo "[dry-run] $SSH_CMD \"ls -la $WEB_DIR/ && curl -fsS http://127.0.0.1:80/ 2>/dev/null | head -5 || echo 'Web服务可能未运行'\""
+    else
+        $SSH_CMD "ls -la $WEB_DIR/ && echo && echo '文件内容预览:' && head -20 $WEB_DIR/index.html"
+    fi
+    
+    echo "✅ Landing page 部署完成"
+    echo "访问地址: http://$SERVER_IP/"
+    echo "或配置域名后访问: https://your-domain.com/"
+}
 
-# Verify deployment
-log_info "Verifying deployment..."
-ssh "$REMOTE_USER@$SERVER_IP" "ls -la $REMOTE_WEB_DIR/"
+# 执行部署
+deploy
 
-# Check if web server is configured
-log_info "Checking web server configuration..."
-if ssh "$REMOTE_USER@$SERVER_IP" "test -f /etc/caddy/Caddyfile"; then
-    log_info "Caddy configuration found"
-    ssh "$REMOTE_USER@$SERVER_IP" "grep -n 'clawdrepublic.cn' /etc/caddy/Caddyfile || true"
-elif ssh "$REMOTE_USER@$SERVER_IP" "test -f /etc/nginx/nginx.conf"; then
-    log_info "Nginx configuration found"
-    ssh "$REMOTE_USER@$SERVER_IP" "grep -n 'server_name' /etc/nginx/sites-enabled/* 2>/dev/null || true"
-else
-    log_warn "No web server configuration found. You may need to:"
-    log_warn "1. Copy web/caddy/Caddyfile or web/nginx/nginx.conf to server"
-    log_warn "2. Restart web server"
-fi
+# 提供后续步骤
+cat <<EOF
 
-log_info "Deployment complete!"
-log_info "Site should be available at: https://clawdrepublic.cn/"
-log_info "To verify: curl -fsS https://clawdrepublic.cn/"
+后续步骤:
+1. 配置Web服务器 (Nginx/Caddy) 指向 $WEB_DIR
+2. 配置SSL证书 (Let's Encrypt)
+3. 配置域名解析到 $SERVER_IP
+4. 测试访问: curl -fsS http://$SERVER_IP/
+
+现有配置参考:
+- Nginx: $REPO_ROOT/web/nginx/nginx.conf
+- Caddy: $REPO_ROOT/web/caddy/Caddyfile
+- 部署脚本: $REPO_ROOT/scripts/deploy-web-server-config.sh
+
+EOF
