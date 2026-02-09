@@ -77,7 +77,7 @@ fi
 
 if [[ ${AS_JSON} -eq 0 ]]; then
   ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 "${HOST}" \
-    "cd '${REMOTE_PATH}' && docker compose ps && echo && curl -fsS http://127.0.0.1:8787/healthz"
+    "cd '${REMOTE_PATH}' && docker compose ps && echo && curl -fsS http://127.0.0.1:8787/healthz && echo"
   exit 0
 fi
 
