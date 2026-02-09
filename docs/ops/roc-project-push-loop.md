@@ -36,6 +36,13 @@ git log -n 10 --date=iso --pretty=format:'%h %ad %s'
 
 # 服务器目标（root 主机 ip/域名）
 cat /tmp/server.txt
+
+# 约定：/tmp/server.txt 格式
+# - 仅需一行：ip:<HOST>
+# - 允许前后空格（脚本会 trim）
+# - <HOST> 可以是 IP 或可解析域名
+# 示例：
+#   ip:8.210.185.194
 ```
 
 ## 服务器探活（quota-proxy）
