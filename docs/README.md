@@ -46,6 +46,7 @@
 - 验收清单：`docs/quota-proxy-v1-admin-acceptance.md`
 - 需求/工单汇总：`docs/tickets.md`
 - Trial Key 管理脚本：`docs/admin-trial-key-manager.md`（配套脚本：`scripts/admin-trial-key-manager.sh`）
+- Admin API 快速指南：`docs/admin-api-quick-guide.md`（配套测试脚本：`scripts/test-admin-api-basic.sh`）
 
 ## 论坛 MVP（内容先行）
 
