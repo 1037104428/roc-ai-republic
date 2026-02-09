@@ -145,6 +145,33 @@ curl -fsS http://127.0.0.1:8787/admin/keys \
   -H "Authorization: Bearer ${ADMIN_TOKEN}"
 ```
 
+### 4) 撤销 / 禁用某个 key（管理员）
+当前 v1（SQLite）实现**未提供**“撤销 key”的 HTTP 接口（避免误操作/需要更明确的审计与权限边界）。
+
+可回滚的做法（推荐先备份 DB）：
+```bash
+# 1) 进入服务器（示例：compose 运行目录）
+cd /opt/roc/quota-proxy
+
+# 2) 找到 DB 路径（与 .env 的 SQLITE_PATH 一致）
+#   常见为：/opt/roc/quota-proxy/data/quota.db 或 /data/quota.db
+
+# 3) 备份
+cp -a ./data/quota.db ./data/quota.db.bak.$(date +%F-%H%M%S)
+
+# 4) 删除 key（会级联删除 daily_usage）
+sqlite3 ./data/quota.db "DELETE FROM trial_keys WHERE key='trial_xxx';"
+```
+
+验证（被撤销的 key 再请求应 401）：
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" \
+  http://127.0.0.1:8787/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -H 'Authorization: Bearer trial_xxx' \
+  -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"ping"}]}'
+```
+
 ## 下一步（v2 / 可选增强）
 - key 维度策略：有效期 / 日限额（每 key 覆盖）/ 禁用
 - 可选：脱敏审计日志（只保留 request_id / 时间 / key hash / 状态码）
