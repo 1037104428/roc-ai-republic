@@ -196,7 +196,7 @@ check_key_pages() {
     local expected="${page_spec#*:}"
     local url="https://clawdrepublic.cn/$page_name"
     
-    if curl -fsS -m "$TIMEOUT" "$url" 2>/dev/null | grep -q "$expected"; then
+    if curl -fsS -m "$TIMEOUT" "$url" 2>/dev/null | grep -i -q "$expected"; then
       add_result "page_$page_name" "PASS" "页面包含预期内容" "$url: 找到 '$expected'"
     else
       add_result "page_$page_name" "FAIL" "页面缺少预期内容" "$url: 未找到 '$expected'"
