@@ -8,9 +8,32 @@ TRIAL_KEY 是 Clawd 社区提供的 DeepSeek API 试用密钥，通过 quota-pro
 
 ## 获取 TRIAL_KEY
 
-### 当前方式：手动申请（管理员发放）
+### 方式一：Web 自助申请（推荐）
 
-由于系统处于早期阶段，目前采用手动申请方式：
+Clawd 国度现已提供 Web 自助申请界面：
+
+1. **访问申请页面**
+   - 打开浏览器访问：`https://api.clawdrepublic.cn/apply/`
+   - 或本地部署访问：`http://localhost:8787/apply/`
+
+2. **填写申请表单**
+   - 邮箱地址（必填）
+   - 姓名/昵称（可选）
+   - 使用目的（必填，如：学习、开发、测试等）
+   - 预计每日用量（可选）
+
+3. **提交申请**
+   - 点击"提交申请"按钮
+   - 系统会显示申请已提交的确认信息
+   - 管理员会在 24 小时内审核并发放密钥
+
+4. **获取密钥**
+   - 审核通过后，密钥将通过邮件发送给你
+   - 密钥格式：`sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+### 方式二：手动申请（管理员发放）
+
+如果自助申请系统暂时不可用，仍可通过手动方式申请：
 
 1. **联系管理员**
    - 通过 Clawd 社区论坛（建设中）或 Telegram 群联系管理员
@@ -24,11 +47,7 @@ TRIAL_KEY 是 Clawd 社区提供的 DeepSeek API 试用密钥，通过 quota-pro
 3. **获取密钥**
    - 管理员通过管理界面创建密钥
    - 将密钥通过安全渠道发送给你
-   - 密钥格式：`trial_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
-
-### 未来规划：自助申请系统
-
-计划实现 Web 自助申请页面，用户可通过表单申请，系统自动审核发放。
+   - 密钥格式：`sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
 
 ## 使用 TRIAL_KEY
 
