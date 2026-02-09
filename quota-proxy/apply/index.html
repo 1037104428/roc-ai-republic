@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申请试用密钥 - Clawd 国度</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        main {
+            padding: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e53e3e;
+        }
+        
+        .help-text {
+            margin-top: 6px;
+            font-size: 0.875rem;
+            color: #718096;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+            display: block;
+        }
+        
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+            display: block;
+        }
+        
+        .info-box {
+            background: #ebf8ff;
+            border: 1px solid #bee3f8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-box h3 {
+            color: #2c5282;
+            margin-bottom: 10px;
+        }
+        
+        .info-box ul {
+            padding-left: 20px;
+        }
+        
+        .info-box li {
+            margin-bottom: 8px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+            font-size: 0.875rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>申请试用密钥</h1>
+            <p class="subtitle">获取 Clawd 国度的 DeepSeek API 试用额度</p>
+        </header>
+        
+        <main>
+            <div class="info-box">
+                <h3>试用说明</h3>
+                <ul>
+                    <li>试用密钥每日有 <strong>200 次</strong> API 调用限额</li>
+                    <li>试用期结束后如需继续使用，请关注社区公告</li>
+                    <li>请勿将密钥分享给他人或用于商业用途</li>
+                    <li>申请后管理员会在 <strong>24 小时内</strong> 审核并回复</li>
+                    <li>审核通过后，密钥将通过邮件发送给您</li>
+                </ul>
+            </div>
+            
+            <div id="message" class="message"></div>
+            
+            <form id="applicationForm">
+                <div class="form-group">
+                    <label for="email" class="required">邮箱地址</label>
+                    <input type="email" id="email" name="email" required placeholder="your@email.com">
+                    <div class="help-text">我们将通过此邮箱通知您申请结果</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="name">姓名/昵称</label>
+                    <input type="text" id="name" name="name" placeholder="可选，用于个性化称呼">
+                </div>
+                
+                <div class="form-group">
+                    <label for="purpose" class="required">使用目的</label>
+                    <textarea id="purpose" name="purpose" required placeholder="请简要说明您计划如何使用 DeepSeek API，例如：学习 AI 开发、测试项目原型、研究用途等"></textarea>
+                    <div class="help-text">请尽可能详细地描述，这有助于我们了解您的需求</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="expected_usage">预计用量</label>
+                    <select id="expected_usage" name="expected_usage">
+                        <option value="">请选择预计用量</option>
+                        <option value="light">轻度使用（每日 &lt; 50 次调用）</option>
+                        <option value="moderate">中度使用（每日 50-150 次调用）</option>
+                        <option value="heavy">重度使用（每日接近 200 次调用）</option>
+                    </select>
+                    <div class="help-text">帮助我们更好地分配资源</div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn" id="submitBtn">
+                        <span id="btnText">提交申请</span>
+                        <span id="btnLoading" class="loading" style="display: none;"></span>
+                    </button>
+                </div>
+            </form>
+        </main>
+        
+        <footer>
+            <p>© 2026 Clawd 国度 | 如有问题，请访问 <a href="https://clawdrepublic.cn/forum">社区论坛</a></p>
+        </footer>
+    </div>
+    
+    <script>
+        document.getElementById('applicationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoading = document.getElementById('btnLoading');
+            const messageDiv = document.getElementById('message');
+            
+            // 显示加载状态
+            submitBtn.disabled = true;
+            btnText.textContent = '提交中...';
+            btnLoading.style.display = 'inline-block';
+            messageDiv.className = 'message';
+            messageDiv.style.display = 'none';
+            
+            // 收集表单数据
+            const formData = {
+                email: document.getElementById('email').value,
+                name: document.getElementById('name').value,
+                purpose: document.getElementById('purpose').value,
+                expected_usage: document.getElementById('expected_usage').value
+            };
+            
+            try {
+                // 获取当前主机和端口
+                const baseUrl = window.location.origin;
+                
+                // 发送申请
+                const response = await fetch(`${baseUrl}/api/apply`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 成功
+                    messageDiv.className = 'message success';
+                    messageDiv.innerHTML = `
+                        <h3>申请提交成功！</h3>
+                        <p>您的申请ID: <strong>${data.id}</strong></p>
+                        <p>${data.message}</p>
+                        <p>请留意您的邮箱，我们会在审核完成后通知您。</p>
+                    `;
+                    messageDiv.style.display = 'block';
+                    
+                    // 重置表单
+                    document.getElementById('applicationForm').reset();
+                    
+                    // 滚动到消息
+                    messageDiv.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    // 错误
+                    throw new Error(data.error || '提交失败，请重试');
+                }
+            } catch (error) {
+                // 显示错误
+                messageDiv.className = 'message error';
+                messageDiv.innerHTML = `
+                    <h3>提交失败</h3>
+                    <p>${error.message}</p>
+                    <p>请检查网络连接后重试，或直接联系管理员。</p>
+                `;
+                messageDiv.style.display = 'block';
+                
+                // 滚动到错误消息
+                messageDiv.scrollIntoView({ behavior: 'smooth' });
+            } finally {
+                // 恢复按钮状态
+                submitBtn.disabled = false;
+                btnText.textContent = '提交申请';
+                btnLoading.style.display = 'none';
+            }
+        });
+        
+        // 表单验证
+        const form = document.getElementById('applicationForm');
+        const emailInput = document.getElementById('email');
+        const purposeInput = document.getElementById('purpose');
+        
+        function validateForm() {
+            const submitBtn = document.getElementById('submitBtn');
+            const isValid = emailInput.value && purposeInput.value;
+            submitBtn.disabled = !isValid;
+        }
+        
+        emailInput.addEventListener('input', validateForm);
+        purposeInput.addEventListener('input', validateForm);
+        
+        // 初始验证
+        validateForm();
+    </script>
+</body>
+</html>
