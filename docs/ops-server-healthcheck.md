@@ -107,8 +107,10 @@ password:YOUR_PASSWORD
 # 更“傻瓜”的一键远端探活（读取 /tmp/server.txt；输出 compose ps + /healthz）
 ./scripts/ssh-healthz-quota-proxy.sh
 
-# 一键远端拉取日志（排障时用；默认 tail=200）
+# 一键远端拉取日志（排障时用；默认 tail=200；也支持 --follow / --service）
 ./scripts/ssh-logs-quota-proxy.sh --since 10m
+./scripts/ssh-logs-quota-proxy.sh --service quota-proxy --since 10m
+./scripts/ssh-logs-quota-proxy.sh --follow --since 2m
 
 # 可选：覆盖 server 文件路径/远端目录/用户
 # SERVER_FILE=/tmp/server.txt REMOTE_DIR=/opt/roc/quota-proxy REMOTE_USER=root ./scripts/check-server-quota-proxy.sh
