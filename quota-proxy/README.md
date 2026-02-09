@@ -200,3 +200,30 @@ export QUOTA_PROXY_URL=http://localhost:8787
 ## 下一步（v2 / 可选增强）
 - key 维度策略：有效期 / 日限额（每 key 覆盖）/ 禁用
 - 可选：脱敏审计日志（只保留 request_id / 时间 / key hash / 状态码）
+
+## Web 管理界面
+
+当设置了 `ADMIN_TOKEN` 环境变量时，可以通过浏览器访问管理界面：
+
+```
+http://localhost:8787/admin
+```
+
+管理界面提供以下功能：
+1. **系统状态查看** - 检查数据库连接、运行模式等
+2. **密钥管理** - 创建、查看、删除试用密钥
+3. **使用情况监控** - 查看各密钥的 API 调用情况
+
+### 访问方式
+1. 确保服务器运行在 SQLite 模式下（使用 `server-sqlite.js`）
+2. 设置 `ADMIN_TOKEN` 环境变量
+3. 访问 `http://localhost:8787/admin`
+4. 在界面中输入管理员令牌进行认证
+
+### 安全注意事项
+- **不要将管理界面暴露到公网** - 建议只通过本地访问或 VPN 访问
+- **使用强密码作为 ADMIN_TOKEN**
+- **定期轮换 ADMIN_TOKEN**
+- **记录所有管理操作** - 界面操作会记录到服务器日志中
+
+详细说明请参考 [ADMIN-INTERFACE.md](./ADMIN-INTERFACE.md)
