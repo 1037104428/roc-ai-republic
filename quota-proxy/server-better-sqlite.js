@@ -11,6 +11,7 @@ app.use(express.json({ limit: '2mb' }));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 app.use('/admin', express.static(join(__dirname, 'admin')));
+app.use('/apply', express.static(join(__dirname, 'apply')));
 
 const DEEPSEEK_BASE = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1';
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
