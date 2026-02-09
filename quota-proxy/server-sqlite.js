@@ -2,6 +2,8 @@ import express from 'express';
 import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -261,10 +263,41 @@ app.get('/admin/keys', async (req, res) => {
   }
 });
 
+// Serve admin interface
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Serve static admin interface
+app.get('/admin', (req, res) => {
+  if (!ADMIN_TOKEN) {
+    return res.status(404).send('Admin interface disabled (no ADMIN_TOKEN set)');
+  }
+  
+  // Check if admin.html exists
+  const adminHtmlPath = join(__dirname, 'admin.html');
+  res.sendFile(adminHtmlPath, (err) => {
+    if (err) {
+      console.error(`[quota-proxy] Error serving admin interface: ${err.message}`);
+      res.status(404).send('Admin interface not found');
+    }
+  });
+});
+
+// Simple health check endpoint for admin interface
+app.get('/admin/health', (req, res) => {
+  res.json({ 
+    ok: true, 
+    mode: 'sqlite',
+    db_path: DB_PATH,
+    admin_interface: ADMIN_TOKEN ? 'enabled' : 'disabled'
+  });
+});
+
 // Start server
 const PORT = process.env.PORT || 8787;
 app.listen(PORT, () => {
   console.log(`[quota-proxy] SQLite version listening on port ${PORT}`);
   console.log(`[quota-proxy] Database: ${DB_PATH}`);
   console.log(`[quota-proxy] Daily limit: ${DAILY_REQ_LIMIT}`);
+  console.log(`[quota-proxy] Admin interface: ${ADMIN_TOKEN ? 'enabled at /admin' : 'disabled (no ADMIN_TOKEN)'}`);
 });

@@ -112,6 +112,7 @@ RUN npm ci --only=production
 # 复制源代码
 COPY server-sqlite.js ./
 COPY server.js ./  # 保留原版本用于参考
+COPY admin.html ./  # 管理界面
 
 # 创建数据目录
 RUN mkdir -p /data && chown node:node /data
