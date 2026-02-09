@@ -45,6 +45,9 @@ echo "服务器: ${SERVER_IP}"
 echo "API地址: ${BASE_URL}"
 echo "管理员令牌: ${ADMIN_TOKEN:0:10}..."
 echo ""
+echo "注意: 管理员API通常只绑定在127.0.0.1，需要通过SSH隧道访问:"
+echo "  ssh -L 8787:127.0.0.1:8787 root@服务器IP"
+echo ""
 
 # 1. 健康检查
 echo "1. 测试健康检查端点 /healthz:"

@@ -44,12 +44,14 @@ QUOTA_PROXY_ADMIN_TOKEN="your_admin_token_here" ./scripts/test-admin-api.sh
 ### 2. 生产环境验证
 
 ```bash
-# 生产服务器验证
-./scripts/test-admin-api.sh --server clawdrepublic.cn
+# 生产服务器验证（需要通过SSH隧道）
+ssh -L 8787:127.0.0.1:8787 root@clawdrepublic.cn
+# 然后在另一个终端中运行：
+./scripts/test-admin-api.sh --server 127.0.0.1
 
-# 使用环境变量设置令牌
+# 或者使用环境变量设置令牌
 export QUOTA_PROXY_ADMIN_TOKEN="production_admin_token"
-./scripts/test-admin-api.sh --server clawdrepublic.cn
+./scripts/test-admin-api.sh --server 127.0.0.1
 ```
 
 ### 3. CI/CD 集成
@@ -96,11 +98,26 @@ API地址: http://8.210.185.194:8787
 这是预期的，因为API正在开发中。脚本主要用于验证API端点的基础连通性。
 ```
 
-## 错误处理
+## 安全说明
 
-### 常见错误
+### 访问控制
+
+quota-proxy 的管理员 API 设计为**内部访问**，默认只绑定在 `127.0.0.1`。这是出于安全考虑：
+
+1. **外部访问**：需要通过 SSH 端口转发
+   ```bash
+   ssh -L 8787:127.0.0.1:8787 root@服务器IP
+   ```
+2. **生产环境**：建议通过 VPN 或内部网络访问
+3. **开发环境**：可以临时修改 Docker 配置暴露端口（不推荐生产）
+
+### 错误处理
+
+#### 常见错误
 
 1. **连接失败** - 服务器不可达或端口未开放
+   - 检查是否需要 SSH 隧道
+   - 确认防火墙规则
 2. **认证失败** - 管理员令牌无效或缺失
 3. **API 未实现** - 端点尚未开发完成（显示警告）
 
