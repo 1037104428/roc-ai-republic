@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
 # 清理 quota-proxy 服务器上的旧备份文件
 # 用法: ./scripts/cleanup-quota-proxy-backups.sh [--dry-run] [--keep-days N]
@@ -46,9 +46,14 @@ done
 # 获取服务器 IP
 if [[ -z "$SERVER_IP" ]]; then
   if [[ -f "/tmp/server.txt" ]]; then
+    # 尝试多种格式解析
     SERVER_IP=$(grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' /tmp/server.txt | head -1)
     if [[ -z "$SERVER_IP" ]]; then
       SERVER_IP=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' /tmp/server.txt | head -1)
+    fi
+    if [[ -z "$SERVER_IP" ]]; then
+      # 尝试解析 ip=8.210.185.194 格式
+      SERVER_IP=$(grep -oE 'ip=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' /tmp/server.txt | cut -d= -f2 | head -1)
     fi
   fi
 fi
