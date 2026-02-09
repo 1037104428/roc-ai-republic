@@ -49,6 +49,37 @@ bash ./scripts/probe.sh
 curl -fsS -m 8 https://clawdrepublic.cn/ >/dev/null && echo 'site: OK'
 ```
 
+## 2) 论坛（Forum）
+
+### 2.1) 路径访问（/forum/）
+
+```bash
+curl -fsS -m 8 https://clawdrepublic.cn/forum/ >/dev/null && echo 'forum (path): OK'
+```
+
+### 2.2) 子域名访问（forum.clawdrepublic.cn）
+
+```bash
+curl -fsS -m 8 https://forum.clawdrepublic.cn/ >/dev/null && echo 'forum (subdomain): OK'
+```
+
+如果子域名访问失败（502/SSL 错误），可使用论坛修复脚本：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/fix-forum-subdomain.sh --dry-run  # 预览将要执行的操作
+# ./scripts/fix-forum-subdomain.sh          # 实际执行修复
+```
+
+验证论坛访问状态（包含子域名和路径）：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/verify-forum-access.sh
+# JSON 输出格式（适合 CI/监控）：
+./scripts/verify-forum-access.sh --json
+```
+
 ### 1.1) 官网（Downloads 页面）
 
 ```bash

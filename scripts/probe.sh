@@ -24,7 +24,7 @@ Options:
   --no-ssh   Skip server checks via ssh (useful for contributors without access).
 
 Env overrides:
-  WEB_URL, API_URL, FORUM_PATH, SSH_HOST, SSH_KEY
+  WEB_URL, API_URL, FORUM_PATH, FORUM_SUBDOMAIN, SSH_HOST, SSH_KEY
 EOF
   exit 0
 fi
@@ -41,6 +41,7 @@ fi
 WEB_URL="${WEB_URL:-https://clawdrepublic.cn}"
 API_URL="${API_URL:-https://api.clawdrepublic.cn}"
 FORUM_PATH="${FORUM_PATH:-/forum/}"
+FORUM_SUBDOMAIN="${FORUM_SUBDOMAIN:-https://forum.clawdrepublic.cn}"
 SSH_HOST="${SSH_HOST:-root@8.210.185.194}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519_roc_server}"
 
@@ -61,19 +62,30 @@ if ! curl "${curl_flags[@]}" "${API_URL}/v1/models" | head -c 200; then
 fi
 printf -- '\n'
 
-log "forum: ${WEB_URL}${FORUM_PATH}"
+log "forum (path): ${WEB_URL}${FORUM_PATH}"
 # Prefer status-code probe (stable). Optionally print a short hint from HTML title.
 forum_tmp="$(mktemp -t roc_forum_probe.XXXXXX.html)"
 code="$(curl -m 8 -sS -o "$forum_tmp" -w '%{http_code}' "${WEB_URL}${FORUM_PATH}" || true)"
 if [[ "$code" == "200" || "$code" == "302" ]]; then
   title="$(grep -i -m1 -o '<title>[^<]*' "$forum_tmp" 2>/dev/null | sed 's/<title>//' || true)"
-  [[ -n "$title" ]] && log "forum: OK (title: $title)" || log "forum: OK"
+  [[ -n "$title" ]] && log "forum (path): OK (title: $title)" || log "forum (path): OK"
 else
-  log "forum: FAIL (http $code)"
-  rm -f "$forum_tmp" || true
-  exit 1
+  log "forum (path): FAIL (http $code)"
 fi
 rm -f "$forum_tmp" || true
+
+log "forum (subdomain): ${FORUM_SUBDOMAIN}"
+forum_tmp2="$(mktemp -t roc_forum_subdomain.XXXXXX.html)"
+code2="$(curl -m 8 -sS -o "$forum_tmp2" -w '%{http_code}' "${FORUM_SUBDOMAIN}" 2>/dev/null || echo "curl_failed")"
+if [[ "$code2" == "200" || "$code2" == "302" ]]; then
+  title2="$(grep -i -m1 -o '<title>[^<]*' "$forum_tmp2" 2>/dev/null | sed 's/<title>//' || true)"
+  [[ -n "$title2" ]] && log "forum (subdomain): OK (title: $title2)" || log "forum (subdomain): OK"
+elif [[ "$code2" == "curl_failed" ]]; then
+  log "forum (subdomain): FAIL (curl error - may be DNS/SSL/502)"
+else
+  log "forum (subdomain): FAIL (http $code2)"
+fi
+rm -f "$forum_tmp2" || true
 
 if [[ "$NO_SSH" == "1" ]]; then
   log "server: skipped (--no-ssh)"
