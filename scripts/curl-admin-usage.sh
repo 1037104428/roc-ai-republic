@@ -2,40 +2,34 @@
 set -euo pipefail
 
 # curl-admin-usage.sh
-# Helper for querying quota-proxy admin usage endpoint.
+# Helper for fetching usage via quota-proxy admin endpoint.
 #
 # Requirements:
 #   - ADMIN_TOKEN env var
 #
 # Examples:
 #   ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
-#     bash scripts/curl-admin-usage.sh --day $(date +%F)
-#
-#   ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
-#     bash scripts/curl-admin-usage.sh --limit 50
-#
-#   ADMIN_TOKEN=*** BASE_URL=http://127.0.0.1:8787 \
-#     bash scripts/curl-admin-usage.sh --day $(date +%F) --key trial_xxx
+#     bash scripts/curl-admin-usage.sh --day "$(date +%F)" --limit 50 --pretty
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
 
 DAY=""
-LIMIT=""
 KEY=""
-MASK=0
+LIMIT=""
 PRETTY=0
+MASK=0
 
 usage() {
   cat <<'EOF'
 Usage:
   ADMIN_TOKEN=... BASE_URL=http://127.0.0.1:8787 bash scripts/curl-admin-usage.sh \
-    [--day YYYY-MM-DD] [--limit N] [--key trial_xxx] [--pretty] [--mask]
+    [--day YYYY-MM-DD] [--key KEY] [--limit N] [--pretty] [--mask]
 
 Notes:
-  - Prefer --day for operational stats. Use --limit for quick debugging.
-  - --pretty formats JSON (python -m json.tool).
-  - --mask obfuscates trial keys in output (safe for sharing logs).
+  - GET /admin/usage requires persistence enabled (SQLITE_PATH).
   - BASE_URL defaults to http://127.0.0.1:8787
+  - --pretty formats JSON (python -m json.tool).
+  - --mask redacts key-like fields before printing (safe for sharing logs).
 EOF
 }
 
@@ -45,14 +39,14 @@ while [[ $# -gt 0 ]]; do
       usage; exit 0;;
     --day)
       DAY="${2:-}"; shift 2;;
-    --limit)
-      LIMIT="${2:-}"; shift 2;;
     --key)
       KEY="${2:-}"; shift 2;;
-    --mask)
-      MASK=1; shift;;
+    --limit)
+      LIMIT="${2:-}"; shift 2;;
     --pretty)
       PRETTY=1; shift;;
+    --mask)
+      MASK=1; shift;;
     *)
       echo "Unknown arg: $1" >&2
       usage >&2
@@ -66,40 +60,70 @@ if [[ -z "${ADMIN_TOKEN:-}" ]]; then
 fi
 
 qs=()
-if [[ -n "$DAY" ]]; then qs+=("day=${DAY}"); fi
-if [[ -n "$LIMIT" ]]; then qs+=("limit=${LIMIT}"); fi
-if [[ -n "$KEY" ]]; then qs+=("key=${KEY}"); fi
-
-query=""
-if [[ ${#qs[@]} -gt 0 ]]; then
-  query="?$(IFS='&'; echo "${qs[*]}")"
+if [[ -n "$DAY" ]]; then
+  qs+=("day=$(python3 - <<PY
+import urllib.parse
+print(urllib.parse.quote(${DAY!r}))
+PY
+)")
+fi
+if [[ -n "$KEY" ]]; then
+  qs+=("key=$(python3 - <<PY
+import urllib.parse
+print(urllib.parse.quote(${KEY!r}))
+PY
+)")
+fi
+if [[ -n "$LIMIT" ]]; then
+  qs+=("limit=$(python3 - <<PY
+import urllib.parse
+print(urllib.parse.quote(${LIMIT!r}))
+PY
+)")
 fi
 
-url="${BASE_URL%/}/admin/usage${query}"
+q=""
+if [[ ${#qs[@]} -gt 0 ]]; then
+  q="?$(IFS='&'; echo "${qs[*]}")"
+fi
+
+url="${BASE_URL%/}/admin/usage${q}"
 
 out=$(curl -fsS "$url" \
   -H "Authorization: Bearer ${ADMIN_TOKEN}")
 
+# Optional redaction for log sharing.
 if [[ "$MASK" == "1" ]]; then
   out=$(python3 - <<'PY'
-import json, sys
+import json, re, sys
+s = sys.stdin.read()
+try:
+  data = json.loads(s)
+except Exception:
+  print(s)
+  raise SystemExit(0)
 
-def mask_key(s: str) -> str:
-    if not isinstance(s, str):
-        return s
-    if not s.startswith('trial_'):
-        return s
-    if len(s) <= 12:
-        return 'trial_***'
-    return s[:9] + '...' + s[-4:]
+def mask_key(v: str) -> str:
+  if not isinstance(v, str):
+    return v
+  if len(v) <= 10:
+    return "***"
+  return v[:6] + "…" + v[-4:]
 
-obj = json.loads(sys.stdin.read())
-items = obj.get('items')
-if isinstance(items, list):
-    for it in items:
-        if isinstance(it, dict) and 'key' in it:
-            it['key'] = mask_key(it.get('key'))
-print(json.dumps(obj, ensure_ascii=False))
+def walk(x):
+  if isinstance(x, dict):
+    out = {}
+    for k, v in x.items():
+      if k in ("key", "api_key", "trial_key") and isinstance(v, str):
+        out[k] = mask_key(v)
+      else:
+        out[k] = walk(v)
+    return out
+  if isinstance(x, list):
+    return [walk(i) for i in x]
+  return x
+
+print(json.dumps(walk(data), ensure_ascii=False))
 PY
 <<<"$out")
 fi
