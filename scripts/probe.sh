@@ -24,7 +24,7 @@ Options:
   --no-ssh   Skip server checks via ssh (useful for contributors without access).
 
 Env overrides:
-  WEB_URL, API_URL, FORUM_PATH, FORUM_SUBDOMAIN, SSH_HOST, SSH_KEY
+  WEB_URL, API_URL, FORUM_PATH, FORUM_SUBDOMAIN, LANDING_URL, SSH_HOST, SSH_KEY
 EOF
   exit 0
 fi
@@ -42,6 +42,7 @@ WEB_URL="${WEB_URL:-https://clawdrepublic.cn}"
 API_URL="${API_URL:-https://api.clawdrepublic.cn}"
 FORUM_PATH="${FORUM_PATH:-/forum/}"
 FORUM_SUBDOMAIN="${FORUM_SUBDOMAIN:-https://forum.clawdrepublic.cn}"
+LANDING_URL="${LANDING_URL:-http://clawdrepublic.cn:8080}"  # 假设 landing page 在 8080 端口
 SSH_HOST="${SSH_HOST:-root@8.210.185.194}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519_roc_server}"
 
@@ -86,6 +87,23 @@ else
   log "forum (subdomain): FAIL (http $code2)"
 fi
 rm -f "$forum_tmp2" || true
+
+# Landing page check (optional, may not be deployed yet)
+log "landing: ${LANDING_URL}"
+landing_tmp="$(mktemp -t roc_landing.XXXXXX.html)"
+code3="$(curl -m 8 -sS -o "$landing_tmp" -w '%{http_code}' "${LANDING_URL}" 2>/dev/null || echo "curl_failed")"
+if [[ "$code3" == "200" ]]; then
+  if grep -q "中华AI共和国" "$landing_tmp" 2>/dev/null; then
+    log "landing: OK (found title)"
+  else
+    log "landing: OK (200 but title not found)"
+  fi
+elif [[ "$code3" == "curl_failed" ]]; then
+  log "landing: SKIP (curl error - may not be deployed)"
+else
+  log "landing: SKIP (http $code3 - may not be deployed)"
+fi
+rm -f "$landing_tmp" || true
 
 if [[ "$NO_SSH" == "1" ]]; then
   log "server: skipped (--no-ssh)"
