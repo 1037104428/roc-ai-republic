@@ -2,6 +2,19 @@
 
 > 目标：低噪音、持续落地。每 3 分钟 tick；滚动窗口每 15 分钟至少 1 个可验证落地物（commit / 可 healthz 的部署变化 / 文档 push / 新脚本可运行）。
 
+## “可验证落地物”判定（便于自检）
+
+满足任一即可（建议**同时写入可复制的 verify 命令**，方便回看）：
+
+1) 仓库：有新 commit（已 push）。
+   - verify：`cd /home/kai/.openclaw/workspace/roc-ai-republic && git show --name-only --oneline <COMMIT>`
+2) 服务器：部署状态变化且可探活（healthz OK）。
+   - verify：`ssh root@$(sed -n 's/^ip://p' /tmp/server.txt) 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'`
+3) 文档：新增/更新文档且已 push（同 1）。
+4) 脚本：新增/更新脚本并可运行（至少 `bash -n` 或 `--help/--dry-run` 能通过）。
+
+> 经验：本项目的“落地”更看重**可复验**而不是字数；宁可小，也要能一条命令确认。
+
 ## 本地检查清单（单次 tick）
 
 ```bash
