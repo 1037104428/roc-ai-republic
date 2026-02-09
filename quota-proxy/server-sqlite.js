@@ -1,315 +1,172 @@
-import express from 'express';
-import crypto from 'crypto';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+const fs = require('fs');
+const { adminRateLimit } = require('./middleware/rate-limit');
 
 const app = express();
-app.use(express.json({ limit: '2mb' }));
-
-// 静态文件服务 - 管理界面
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-app.use('/admin', express.static(join(__dirname, 'admin')));
-app.use('/apply', express.static(join(__dirname, 'apply')));
-
-const DEEPSEEK_BASE = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1';
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-
-if (!DEEPSEEK_API_KEY) {
-  console.error('[quota-proxy] Missing DEEPSEEK_API_KEY');
-  process.exit(1);
-}
-
-const DAILY_REQ_LIMIT = Number(process.env.DAILY_REQ_LIMIT || 200);
-
-// SQLite database path
-const DB_PATH = process.env.SQLITE_PATH || '/data/quota.db';
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-
-// Database connection
-let db = null;
-
-async function initDb() {
-  try {
-    db = await open({
-      filename: DB_PATH,
-      driver: sqlite3.Database
-    });
-
-    // Create tables if they don't exist
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS trial_keys (
-        key TEXT PRIMARY KEY,
-        label TEXT,
-        created_at INTEGER NOT NULL
-      );
-      
-      CREATE TABLE IF NOT EXISTS daily_usage (
-        day TEXT NOT NULL,
-        trial_key TEXT NOT NULL,
-        requests INTEGER DEFAULT 0,
-        updated_at INTEGER NOT NULL,
-        PRIMARY KEY (day, trial_key),
-        FOREIGN KEY (trial_key) REFERENCES trial_keys(key) ON DELETE CASCADE
-      );
-      
-      CREATE INDEX IF NOT EXISTS idx_daily_usage_day ON daily_usage(day);
-      CREATE INDEX IF NOT EXISTS idx_daily_usage_key ON daily_usage(trial_key);
-    `);
-
-    console.log(`[quota-proxy] SQLite database initialized: ${DB_PATH}`);
-  } catch (error) {
-    console.error(`[quota-proxy] Failed to initialize database: ${error.message}`);
-    process.exit(1);
-  }
-}
-
-function dayKey(d = new Date()) {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function getTrialKey(req) {
-  const auth = req.headers['authorization'];
-  if (auth && typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) {
-    return auth.slice(7).trim();
-  }
-  const xk = req.headers['x-trial-key'];
-  if (typeof xk === 'string' && xk.trim()) return xk.trim();
-  return null;
-}
-
-function isAdmin(req) {
-  if (!ADMIN_TOKEN) return false;
-  const auth = req.headers['authorization'];
-  if (auth && typeof auth === 'string' && auth.toLowerCase().startsWith('bearer ')) {
-    return auth.slice(7).trim() === ADMIN_TOKEN;
-  }
-  const xk = req.headers['x-admin-token'];
-  if (typeof xk === 'string' && xk.trim()) return xk.trim() === ADMIN_TOKEN;
-  return false;
-}
-
-async function ensureKeyKnown(trialKey) {
-  try {
-    const row = await db.get('SELECT key FROM trial_keys WHERE key = ?', trialKey);
-    return !!row;
-  } catch (error) {
-    console.error(`[quota-proxy] Database error in ensureKeyKnown: ${error.message}`);
-    return false;
-  }
-}
-
-async function incrUsage(trialKey) {
-  const day = dayKey();
-  const now = Date.now();
-  
-  try {
-    // Insert or update daily usage
-    await db.run(`
-      INSERT INTO daily_usage (day, trial_key, requests, updated_at)
-      VALUES (?, ?, 1, ?)
-      ON CONFLICT(day, trial_key) DO UPDATE SET
-        requests = requests + 1,
-        updated_at = ?
-    `, [day, trialKey, now, now]);
-
-    // Get current count
-    const row = await db.get(
-      'SELECT requests FROM daily_usage WHERE day = ? AND trial_key = ?',
-      [day, trialKey]
-    );
-    
-    return { day, requests: row?.requests || 1 };
-  } catch (error) {
-    console.error(`[quota-proxy] Database error in incrUsage: ${error.message}`);
-    return { day, requests: 1 };
-  }
-}
-
-// Initialize database
-await initDb();
-
-// -------------------------
-// Public endpoints
-// -------------------------
-
-app.get('/healthz', (req, res) => res.json({ ok: true }));
-
-app.get('/v1/models', async (req, res) => {
-  return res.json({
-    object: 'list',
-    data: [
-      { id: 'deepseek-chat', object: 'model', owned_by: 'deepseek' },
-      { id: 'deepseek-reasoner', object: 'model', owned_by: 'deepseek' },
-    ],
-  });
-});
-
-app.post('/v1/chat/completions', async (req, res) => {
-  const trialKey = getTrialKey(req);
-  if (!trialKey) {
-    return res.status(401).json({ error: { message: 'Missing trial key (use Authorization: Bearer <TRIAL_KEY>)' } });
-  }
-
-  const known = await ensureKeyKnown(trialKey);
-  if (!known) {
-    return res.status(401).json({
-      error: { message: 'Unknown TRIAL_KEY (not issued). Please request a trial key.' },
-    });
-  }
-
-  const { requests } = await incrUsage(trialKey);
-  if (requests > DAILY_REQ_LIMIT) {
-    return res.status(429).json({
-      error: { message: `Trial quota exceeded (daily requests>${DAILY_REQ_LIMIT}).` },
-    });
-  }
-
-  const upstream = `${DEEPSEEK_BASE}/chat/completions`;
-  const r = await fetch(upstream, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-    },
-    body: JSON.stringify(req.body),
-  });
-
-  const text = await r.text();
-  res.status(r.status);
-  res.setHeader('content-type', r.headers.get('content-type') || 'application/json');
-  return res.send(text);
-});
-
-// -------------------------
-// Admin endpoints
-// -------------------------
-
-app.post('/admin/keys', async (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
-
-  const label = (req.body?.label && String(req.body.label)) || null;
-  const trialKey = `trial_${crypto.randomBytes(18).toString('hex')}`;
-  const now = Date.now();
-  
-  try {
-    await db.run('INSERT INTO trial_keys (key, label, created_at) VALUES (?, ?, ?)', 
-      [trialKey, label, now]);
-    
-    return res.json({ key: trialKey, label, created_at: now });
-  } catch (error) {
-    console.error(`[quota-proxy] Database error in POST /admin/keys: ${error.message}`);
-    return res.status(500).json({ error: { message: 'Database error' } });
-  }
-});
-
-app.get('/admin/usage', async (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
-
-  const qDay = (req.query?.day && String(req.query.day)) || null; // YYYY-MM-DD
-  const qKey = (req.query?.key && String(req.query.key)) || null;
-  const limit = Math.min(500, Math.max(1, Number(req.query?.limit || 50)));
-
-  try {
-    if (qDay) {
-      let query = `
-        SELECT du.trial_key as key, du.requests as req_count, du.updated_at, tk.label
-        FROM daily_usage du
-        LEFT JOIN trial_keys tk ON du.trial_key = tk.key
-        WHERE du.day = ?
-      `;
-      const params = [qDay];
-      
-      if (qKey) {
-        query += ' AND du.trial_key = ?';
-        params.push(qKey);
-      }
-      
-      query += ' ORDER BY du.updated_at DESC';
-      
-      const items = await db.all(query, params);
-      return res.json({ day: qDay, mode: 'sqlite', items });
-    }
-
-    // Recent usage across all days
-    const items = await db.all(`
-      SELECT du.day, du.trial_key as key, du.requests as req_count, du.updated_at, tk.label
-      FROM daily_usage du
-      LEFT JOIN trial_keys tk ON du.trial_key = tk.key
-      ORDER BY du.updated_at DESC
-      LIMIT ?
-    `, [limit]);
-    
-    return res.json({ mode: 'sqlite', items });
-  } catch (error) {
-    console.error(`[quota-proxy] Database error in GET /admin/usage: ${error.message}`);
-    return res.status(500).json({ error: { message: 'Database error' } });
-  }
-});
-
-app.get('/admin/keys', async (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
-
-  try {
-    const keys = await db.all(`
-      SELECT key, label, created_at
-      FROM trial_keys
-      ORDER BY created_at DESC
-    `);
-    
-    return res.json({ mode: 'sqlite', keys });
-  } catch (error) {
-    console.error(`[quota-proxy] Database error in GET /admin/keys: ${error.message}`);
-    return res.status(500).json({ error: { message: 'Database error' } });
-  }
-});
-
-// Serve admin interface
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Serve static admin interface
-app.get('/admin', (req, res) => {
-  if (!ADMIN_TOKEN) {
-    return res.status(404).send('Admin interface disabled (no ADMIN_TOKEN set)');
-  }
-  
-  // Check if admin.html exists
-  const adminHtmlPath = join(__dirname, 'admin.html');
-  res.sendFile(adminHtmlPath, (err) => {
-    if (err) {
-      console.error(`[quota-proxy] Error serving admin interface: ${err.message}`);
-      res.status(404).send('Admin interface not found');
-    }
-  });
-});
-
-// Simple health check endpoint for admin interface
-app.get('/admin/health', (req, res) => {
-  res.json({ 
-    ok: true, 
-    mode: 'sqlite',
-    db_path: DB_PATH,
-    admin_interface: ADMIN_TOKEN ? 'enabled' : 'disabled'
-  });
-});
-
-// Start server
 const PORT = process.env.PORT || 8787;
-app.listen(PORT, () => {
-  console.log(`[quota-proxy] SQLite version listening on port ${PORT}`);
-  console.log(`[quota-proxy] Database: ${DB_PATH}`);
-  console.log(`[quota-proxy] Daily limit: ${DAILY_REQ_LIMIT}`);
-  console.log(`[quota-proxy] Admin interface: ${ADMIN_TOKEN ? 'enabled at /admin' : 'disabled (no ADMIN_TOKEN)'}`);
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'dev-admin-token-change-in-production';
+
+// 数据库初始化
+const db = new sqlite3.Database(':memory:'); // 使用内存数据库，生产环境应改为文件
+db.serialize(() => {
+    db.run(`
+        CREATE TABLE IF NOT EXISTS api_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT UNIQUE NOT NULL,
+            label TEXT,
+            total_quota INTEGER DEFAULT 1000,
+            used_quota INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME
+        )
+    `);
+    
+    db.run(`
+        CREATE TABLE IF NOT EXISTS usage_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_key TEXT,
+            endpoint TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            response_time INTEGER,
+            status_code INTEGER
+        )
+    `);
 });
 
+// 中间件
+app.use(express.json());
 
-// 管理界面健康检查
-app.get('/admin/healthz', (req, res) => {
-    res.json({ ok: true, service: 'quota-proxy-admin', timestamp: Date.now() });
+// 静态文件服务 - 用于 /apply 页面
+app.use('/apply', express.static(path.join(__dirname, 'apply')));
+
+// 健康检查端点
+app.get('/healthz', (req, res) => {
+    res.json({ ok: true });
+});
+
+// API 网关端点
+app.post('/gateway', (req, res) => {
+    const apiKey = req.headers['x-api-key'] || req.query.api_key;
+    
+    if (!apiKey) {
+        return res.status(401).json({ error: 'Missing API key' });
+    }
+    
+    // 检查 API key 有效性
+    db.get('SELECT * FROM api_keys WHERE key = ? AND (expires_at IS NULL OR expires_at > datetime("now"))', [apiKey], (err, row) => {
+        if (err || !row) {
+            return res.status(403).json({ error: 'Invalid or expired API key' });
+        }
+        
+        // 检查配额
+        if (row.used_quota >= row.total_quota) {
+            return res.status(429).json({ error: 'Quota exceeded' });
+        }
+        
+        // 模拟 API 调用
+        const responseTime = Math.floor(Math.random() * 100) + 50;
+        
+        // 记录使用情况
+        db.run(
+            'INSERT INTO usage_log (api_key, endpoint, response_time, status_code) VALUES (?, ?, ?, ?)',
+            [apiKey, '/gateway', responseTime, 200]
+        );
+        
+        // 更新已用配额
+        db.run('UPDATE api_keys SET used_quota = used_quota + 1 WHERE key = ?', [apiKey]);
+        
+        // 返回模拟响应
+        setTimeout(() => {
+            res.json({
+                success: true,
+                data: {
+                    message: 'API request processed',
+                    responseTime: `${responseTime}ms`,
+                    remainingQuota: row.total_quota - (row.used_quota + 1)
+                }
+            });
+        }, responseTime);
+    });
+});
+
+// Admin API - 受速率限制保护
+app.use('/admin', adminRateLimit);
+
+// Admin 认证中间件
+const adminAuth = (req, res, next) => {
+    const token = req.headers['authorization']?.replace('Bearer ', '') || 
+                  req.headers['x-admin-token'] || 
+                  req.query.admin_token;
+    
+    if (token !== ADMIN_TOKEN) {
+        return res.status(401).json({ error: 'Invalid admin token' });
+    }
+    next();
+};
+
+// 生成试用密钥
+app.post('/admin/keys', adminAuth, (req, res) => {
+    const { label, totalQuota = 1000 } = req.body;
+    const key = `sk-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    db.run(
+        'INSERT INTO api_keys (key, label, total_quota) VALUES (?, ?, ?)',
+        [key, label, totalQuota],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Failed to create key' });
+            }
+            res.json({
+                success: true,
+                key,
+                label,
+                totalQuota,
+                id: this.lastID
+            });
+        }
+    );
+});
+
+// 查看使用情况
+app.get('/admin/usage', adminAuth, (req, res) => {
+    const { key, days = 7 } = req.query;
+    
+    let query = `
+        SELECT 
+            ak.key,
+            ak.label,
+            ak.total_quota,
+            ak.used_quota,
+            ak.created_at,
+            COUNT(ul.id) as request_count,
+            AVG(ul.response_time) as avg_response_time
+        FROM api_keys ak
+        LEFT JOIN usage_log ul ON ak.key = ul.api_key
+            AND ul.timestamp > datetime('now', ?)
+        GROUP BY ak.id
+    `;
+    
+    const params = [`-${days} days`];
+    
+    if (key) {
+        query += ' WHERE ak.key = ?';
+        params.push(key);
+    }
+    
+    db.all(query, params, (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.json({ success: true, data: rows });
+    });
+});
+
+// 启动服务器
+app.listen(PORT, () => {
+    console.log(`Quota proxy server running on port ${PORT}`);
+    console.log(`Admin token: ${ADMIN_TOKEN}`);
+    console.log(`Health check: http://localhost:${PORT}/healthz`);
+    console.log(`Apply page: http://localhost:${PORT}/apply/`);
 });
