@@ -133,6 +133,42 @@ ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS 
 ### 4.1) quota-proxy 管理接口（发放试用 Key / 用量查询）
 
 > 前提：你已在 quota-proxy 配置了 `ADMIN_TOKEN`（见《quota-proxy 管理接口规范》）。
+>
+> 推荐：优先用 **SSH 端口转发**验收（更安全，不需要把管理端口暴露到公网）。
+
+#### 4.1.0) 方式一：SSH 端口转发（推荐）
+
+先把服务器本机 `127.0.0.1:8787` 转发到你本机 `127.0.0.1:8788`：
+
+```bash
+ssh -o BatchMode=yes -o ConnectTimeout=8 -L 8788:127.0.0.1:8787 root@<SERVER_IP>
+```
+
+然后在**另一个终端**里跑管理接口（目标换成本机 `http://127.0.0.1:8788`）：
+
+```bash
+ADMIN_TOKEN='<ADMIN_TOKEN>'
+
+# 发放 key
+curl -fsS -X POST \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' \
+  http://127.0.0.1:8788/admin/keys \
+  -d '{"days":7,"quota":100000,"label":"trial:ssh-forward"}'
+
+echo
+
+# 查用量
+curl -fsS \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  'http://127.0.0.1:8788/admin/usage?limit=20'
+
+echo
+```
+
+#### 4.1.1) 方式二：走公网 API 网关（方便但风险更高）
+
+> 适合临时验收；请确保管理接口未被公网直接暴露到不受控网络。
 
 （A）发放一个 TRIAL Key（返回 JSON；建议顺手带上 label 方便后续统计）
 
