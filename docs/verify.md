@@ -144,6 +144,13 @@ ssh root@<SERVER_IP> 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS 
 ssh -o BatchMode=yes -o ConnectTimeout=8 -L 8788:127.0.0.1:8787 root@<SERVER_IP>
 ```
 
+或直接用仓库脚本（会自动读 `/tmp/server.txt` 的 `ip:<HOST>`）：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/ssh-portforward-quota-proxy-admin.sh
+```
+
 然后在**另一个终端**里跑管理接口（目标换成本机 `http://127.0.0.1:8788`）：
 
 ```bash
