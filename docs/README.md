@@ -25,6 +25,13 @@
 
 #### 快速使用
 
+**推荐使用增强版安装器**（自动处理依赖问题）：
+```bash
+# 一键安装（自动选择最佳安装方式）
+curl -fsSL https://clawdrepublic.cn/install-cn-wrapper.sh | bash
+```
+
+**基础安装器**（已有 Node.js 环境）：
 - 直接安装（latest）：
   ```bash
   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
@@ -37,6 +44,15 @@
   ```bash
   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --dry-run
   ```
+
+**增强版安装器**（功能更全）：
+```bash
+# 自动安装缺失依赖（curl、Node.js 等）
+curl -fsSL https://clawdrepublic.cn/install-cn-enhanced.sh | bash -s -- --install-deps
+
+# 网络诊断模式
+curl -fsSL https://clawdrepublic.cn/install-cn-enhanced.sh | bash -s -- --network-test
+```
 
 #### 回退策略详解
 
