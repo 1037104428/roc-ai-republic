@@ -10,12 +10,19 @@
   ```
   DNS problem: NXDOMAIN looking up A for forum.clawdrepublic.cn - check that a DNS record exists for this domain
   ```
+- **当前状态**：
+  - ✅ 论坛通过子路径可访问：`https://clawdrepublic.cn/forum/`
+  - ❌ 独立子域名仍不可用：`http://forum.clawdrepublic.cn/`（502 错误）
+  - ✅ 本地服务正常：`http://127.0.0.1:8081/`
 - **交付物**：
   - 诊断脚本：`scripts/fix-forum-502-dns.sh`（分析问题并提供解决方案）
   - 临时修复脚本：`scripts/apply-forum-subpath-fix.sh`（将论坛移到主域名子路径）
+  - 完整修复脚本：`scripts/fix-forum-502.sh`（提供 Caddy/Nginx 反向代理配置修复）
+  - 修复指南：`docs/forum-502-fix-guide.md`（详细解决方案）
   - 验证命令：
     - 内网验证：`curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null`
     - 外网验证（临时方案）：`curl -fsS -m 5 https://clawdrepublic.cn/forum/ >/dev/null`
+    - 外网验证（完整方案）：`curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null`
 - **解决方案（三选一）**：
   
   **A) 添加 DNS 记录（推荐长期方案）**
@@ -31,14 +38,15 @@
   - 优点：无需 DNS 配置，立即可用
   - 缺点：URL 结构变化，可能需要论坛配置调整
   
-  **C) 禁用 HTTPS（仅测试用）**
+  **C) 使用 HTTP 临时访问（开发测试）**
   - 修改 Caddy 配置，对 forum.clawdrepublic.cn 使用 HTTP
-  - 优点：简单快速
+  - 优点：简单快速，无需 DNS 记录
   - 缺点：不安全，不推荐生产环境
   
 - **验收标准**：
   - 方案 A：`curl -fsS -m 5 https://forum.clawdrepublic.cn/` 返回 HTTP 200
   - 方案 B：`curl -fsS -m 5 https://clawdrepublic.cn/forum/` 返回 HTTP 200 ✅ **已通过**
+  - 方案 C：`curl -fsS -m 5 http://forum.clawdrepublic.cn/` 返回 HTTP 200
 - **一键修复脚本用法**：
   ```bash
   # 诊断问题
@@ -46,6 +54,9 @@
   
   # 应用临时方案 B（子路径）
   ./scripts/apply-forum-subpath-fix.sh
+  
+  # 应用完整修复（方案 C - HTTP 临时访问）
+  ./scripts/fix-forum-502.sh
   
   # 验证修复
   curl -fsS -m 5 https://clawdrepublic.cn/forum/ | grep -o '<title>[^<]*</title>'
