@@ -1,5 +1,7 @@
 # quota-proxy：DeepSeek 限额试用网关（OpenAI-compatible）
 
+**快速开始**：[QUICKSTART.md](./QUICKSTART.md) - 5分钟快速部署指南
+
 目的：给"OpenClaw 小白中文包"提供 **可控、可持续** 的免费试用额度。
 
 基本思路：
