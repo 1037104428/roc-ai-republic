@@ -13,9 +13,17 @@ set -euo pipefail
 #   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
+# Script version for update checking
+SCRIPT_VERSION="2026.02.10.01"
+SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
+
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
 NPM_REGISTRY_FALLBACK_DEFAULT="https://registry.npmjs.org"
 OPENCLAW_VERSION_DEFAULT="latest"
+
+# Show script version
+echo "[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION"
+echo "[cn-pack] ========================================="
 
 usage() {
   cat <<'TXT'
@@ -29,11 +37,54 @@ Options:
   --network-optimize       Run advanced network optimization (detect best mirrors)
   --force-cn               Force using CN registry (skip fallback)
   --dry-run                Print commands without executing
+  --check-update           Check for script updates
   -h, --help               Show help
 
 Env vars (equivalent):
   OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT
 TXT
+}
+
+# Function to check for script updates
+check_script_update() {
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "[cn-pack] ℹ️ curl not available, skipping update check"
+    return 0
+  fi
+  
+  echo "[cn-pack] Checking for script updates..."
+  
+  # Try to get remote script content
+  REMOTE_CONTENT=$(curl -fsS -m 10 "$SCRIPT_UPDATE_URL" 2>/dev/null || echo "")
+  
+  if [[ -z "$REMOTE_CONTENT" ]]; then
+    echo "[cn-pack] ℹ️ Could not fetch remote script (network issue)"
+    return 0
+  fi
+  
+  # Extract version from remote script - handle different quote styles
+  REMOTE_VERSION=$(echo "$REMOTE_CONTENT" | \
+    grep -m1 'SCRIPT_VERSION=' | \
+    sed -n "s/.*SCRIPT_VERSION=\"\([^\"]*\)\".*/\1/p" || \
+    echo "$REMOTE_CONTENT" | \
+    grep -m1 'SCRIPT_VERSION=' | \
+    sed -n "s/.*SCRIPT_VERSION='\([^']*\)'.*/\1/p" || \
+    echo "")
+  
+  if [[ -z "$REMOTE_VERSION" ]]; then
+    echo "[cn-pack] ℹ️ Could not parse version from remote script"
+    return 0
+  fi
+  
+  if [[ "$REMOTE_VERSION" != "$SCRIPT_VERSION" ]]; then
+    echo "[cn-pack] ⚠️  New version available: $REMOTE_VERSION (current: $SCRIPT_VERSION)"
+    echo "[cn-pack] ℹ️  Update with: curl -fsSL $SCRIPT_UPDATE_URL -o /tmp/install-cn.sh && bash /tmp/install-cn.sh"
+    echo "[cn-pack] ℹ️  Or visit: https://github.com/1037104428/roc-ai-republic/blob/main/scripts/install-cn.sh"
+    return 1
+  else
+    echo "[cn-pack] ✅ Script is up to date (version: $SCRIPT_VERSION)"
+    return 0
+  fi
 }
 
 DRY_RUN=0
@@ -60,12 +111,18 @@ while [[ $# -gt 0 ]]; do
       FORCE_CN=1; shift ;;
     --dry-run)
       DRY_RUN=1; shift ;;
+    --check-update)
+      check_script_update
+      exit $?
+      ;;
     -h|--help)
-      usage; exit 0 ;;
-    *)
-      echo "[cn-pack] Unknown arg: $1" >&2
       usage
-      exit 2
+      exit 0
+      ;;
+    *)
+      echo "[cn-pack] ❌ Unknown option: $1" >&2
+      usage >&2
+      exit 1
       ;;
   esac
 done
