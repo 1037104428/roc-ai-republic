@@ -1,12 +1,9 @@
 #!/bin/bash
-# 部署 quota-proxy SQLite 版本脚本
-# 用法：./scripts/deploy-quota-proxy-sqlite.sh [--help] [--dry-run] [--force]
+
+# quota-proxy SQLite版本部署脚本
+# 部署包含SQLite持久化、POST /admin/keys和GET /admin/usage接口的版本
 
 set -e
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SERVER_IP="$(cat /tmp/server.txt 2>/dev/null | grep -oP 'ip=\K[0-9.]+' || echo '8.210.185.194')"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -15,6 +12,112 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# 默认配置
+DEFAULT_SERVER="root@8.210.185.194"
+DEFAULT_DEPLOY_DIR="/opt/roc/quota-proxy-sqlite"
+DEFAULT_ADMIN_TOKEN="roc-admin-token-$(date +%s | tail -c 6)"
+
+# 显示帮助
+show_help() {
+    cat << EOF
+quota-proxy SQLite版本部署脚本
+
+用法: $0 [选项]
+
+选项:
+  -s, --server SERVER     服务器地址 (默认: ${DEFAULT_SERVER})
+  -d, --dir DIR          部署目录 (默认: ${DEFAULT_DEPLOY_DIR})
+  -t, --token TOKEN      ADMIN_TOKEN (默认: 自动生成)
+  -k, --key KEY          SSH私钥路径
+  -n, --dry-run          模拟运行，不实际部署
+  -v, --verbose          详细输出
+  -h, --help             显示此帮助信息
+
+环境变量:
+  DEEPSEEK_API_KEY       必需: DeepSeek API密钥
+  ADMIN_TOKEN            可选: 管理令牌 (默认自动生成)
+  DAILY_REQ_LIMIT        可选: 每日请求限制 (默认: 200)
+
+示例:
+  $0 -s root@example.com -d /opt/roc/quota-proxy
+  DEEPSEEK_API_KEY=sk-xxx $0 --verbose
+
+说明:
+  1. 部署quota-proxy SQLite版本到指定服务器
+  2. 包含SQLite持久化存储
+  3. 实现POST /admin/keys和GET /admin/usage接口
+  4. 使用ADMIN_TOKEN保护管理接口
+EOF
+}
+
+# 解析参数
+SERVER="$DEFAULT_SERVER"
+DEPLOY_DIR="$DEFAULT_DEPLOY_DIR"
+ADMIN_TOKEN=""
+SSH_KEY=""
+DRY_RUN=false
+VERBOSE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -s|--server)
+            SERVER="$2"
+            shift 2
+            ;;
+        -d|--dir)
+            DEPLOY_DIR="$2"
+            shift 2
+            ;;
+        -t|--token)
+            ADMIN_TOKEN="$2"
+            shift 2
+            ;;
+        -k|--key)
+            SSH_KEY="$2"
+            shift 2
+            ;;
+        -n|--dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}错误: 未知选项 $1${NC}"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# 检查必需环境变量
+if [ -z "$DEEPSEEK_API_KEY" ]; then
+    echo -e "${RED}错误: 必须设置DEEPSEEK_API_KEY环境变量${NC}"
+    echo -e "${YELLOW}示例: export DEEPSEEK_API_KEY=sk-xxx${NC}"
+    exit 1
+fi
+
+# 生成ADMIN_TOKEN（如果未提供）
+if [ -z "$ADMIN_TOKEN" ]; then
+    ADMIN_TOKEN="$DEFAULT_ADMIN_TOKEN"
+    echo -e "${YELLOW}提示: 使用自动生成的ADMIN_TOKEN: ${ADMIN_TOKEN}${NC}"
+    echo -e "${YELLOW}      在生产环境中请使用强密码并妥善保管${NC}"
+fi
+
+# 构建SSH命令
+SSH_CMD="ssh"
+if [ -n "$SSH_KEY" ]; then
+    SSH_CMD="$SSH_CMD -i $SSH_KEY"
+fi
+SSH_CMD="$SSH_CMD -o ConnectTimeout=10 -o StrictHostKeyChecking=no $SERVER"
+
+# 日志函数
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -31,292 +134,258 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-show_help() {
-    cat << EOF
-中华AI共和国 - quota-proxy SQLite 版本部署脚本
-
-用法: $0 [选项]
-
-选项:
-  --help      显示此帮助信息
-  --dry-run   只显示将要执行的命令，不实际执行
-  --force     强制重新部署（即使当前已运行 SQLite 版本）
-  --server-ip IP地址  指定服务器IP（默认从 /tmp/server.txt 读取）
-
-功能:
-  1. 检查当前 quota-proxy 运行状态
-  2. 备份当前配置和数据库
-  3. 切换到 SQLite 版本（server-sqlite.js）
-  4. 创建 SQLite 数据库目录和文件
-  5. 重启服务并验证
-
-环境变量:
-  ADMIN_TOKEN  管理员令牌（如未设置会提示输入）
-  DEEPSEEK_API_KEY  DeepSeek API 密钥
-
-示例:
-  $0 --dry-run
-  ADMIN_TOKEN=mysecret DEEPSEEK_API_KEY=sk-xxx $0
-EOF
-}
-
-check_dependencies() {
-    log_info "检查依赖..."
-    if ! command -v ssh &> /dev/null; then
-        log_error "需要 ssh 客户端"
-        exit 1
+# 执行命令（支持dry-run）
+run_cmd() {
+    local cmd="$1"
+    local desc="$2"
+    
+    if [ "$VERBOSE" = true ]; then
+        log_info "$desc"
+        echo -e "${BLUE}命令:${NC} $cmd"
     fi
     
-    if ! command -v docker &> /dev/null; then
-        log_warn "本地 docker 未安装，但服务器端需要"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${YELLOW}[DRY-RUN] 跳过执行${NC}"
+        return 0
     fi
-}
-
-check_current_state() {
-    log_info "检查当前服务器状态..."
     
-    # 检查服务是否运行
-    if ssh "root@$SERVER_IP" "cd /opt/roc/quota-proxy && docker compose ps 2>/dev/null | grep -q 'Up'" 2>/dev/null; then
-        log_info "quota-proxy 服务正在运行"
-        
-        # 检查当前运行的 server 文件
-        local current_server=$(ssh "root@$SERVER_IP" "cd /opt/roc/quota-proxy && docker compose exec quota-proxy ps aux 2>/dev/null | grep -o 'server[^ ]*\.js' | head -1" 2>/dev/null || echo "unknown")
-        log_info "当前运行版本: $current_server"
-        
-        if [[ "$current_server" == "server-sqlite.js" ]] || [[ "$current_server" == "server-better-sqlite.js" ]]; then
-            log_info "当前已运行 SQLite 版本"
-            if [[ "$FORCE" != "true" ]]; then
-                log_warn "已运行 SQLite 版本，使用 --force 强制重新部署"
-                return 1
-            fi
-        fi
-    else
-        log_warn "quota-proxy 服务未运行或无法访问"
+    eval "$cmd"
+    local exit_code=$?
+    
+    if [ $exit_code -ne 0 ]; then
+        log_error "命令执行失败 (退出码: $exit_code)"
+        return $exit_code
     fi
     
     return 0
 }
 
-backup_current() {
-    log_info "备份当前配置..."
+# 主部署函数
+deploy() {
+    log_info "开始部署quota-proxy SQLite版本"
+    log_info "服务器: $SERVER"
+    log_info "部署目录: $DEPLOY_DIR"
+    log_info "ADMIN_TOKEN: ${ADMIN_TOKEN:0:10}..."
     
-    local timestamp=$(date +%Y%m%d_%H%M%S)
-    local backup_dir="/opt/roc/quota-proxy/backup_$timestamp"
+    # 1. 检查服务器连接
+    log_info "检查服务器连接..."
+    run_cmd "$SSH_CMD 'echo \"服务器连接正常\"'" "测试SSH连接"
     
-    ssh "root@$SERVER_IP" "mkdir -p $backup_dir" 2>/dev/null || true
+    # 2. 创建部署目录
+    log_info "创建部署目录..."
+    run_cmd "$SSH_CMD 'mkdir -p $DEPLOY_DIR'" "创建部署目录"
     
-    # 备份 compose 文件
-    ssh "root@$SERVER_IP" "cp /opt/roc/quota-proxy/compose.yaml $backup_dir/" 2>/dev/null || true
+    # 3. 上传文件
+    log_info "上传文件到服务器..."
     
-    # 备份环境文件
-    ssh "root@$SERVER_IP" "cp /opt/roc/quota-proxy/.env $backup_dir/ 2>/dev/null || true"
+    # 创建临时目录
+    TEMP_DIR=$(mktemp -d)
     
-    # 备份数据库文件（如果有）
-    ssh "root@$SERVER_IP" "cp /opt/roc/quota-proxy/*.db $backup_dir/ 2>/dev/null || true"
-    ssh "root@$SERVER_IP" "cp /opt/roc/quota-proxy/*.json $backup_dir/ 2>/dev/null || true"
+    # 复制必需文件
+    cp -r /home/kai/.openclaw/workspace/roc-ai-republic/quota-proxy/* "$TEMP_DIR/"
     
-    log_success "备份完成: $backup_dir"
-}
+    # 创建环境文件
+    cat > "$TEMP_DIR/.env" << EOF
+# quota-proxy SQLite版本配置
+DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+PORT=8787
+DAILY_REQ_LIMIT=${DAILY_REQ_LIMIT:-200}
+ADMIN_TOKEN=$ADMIN_TOKEN
+DATABASE_PATH=./quota-proxy.db
+LOG_LEVEL=info
+EOF
+    
+    # 创建启动脚本
+    cat > "$TEMP_DIR/start.sh" << 'EOF'
+#!/bin/bash
+set -e
 
-deploy_sqlite() {
-    log_info "部署 SQLite 版本..."
+# 加载环境变量
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# 检查必需环境变量
+if [ -z "$DEEPSEEK_API_KEY" ]; then
+    echo "错误: 必须设置DEEPSEEK_API_KEY环境变量"
+    exit 1
+fi
+
+if [ -z "$ADMIN_TOKEN" ]; then
+    echo "警告: ADMIN_TOKEN未设置，管理接口将不可用"
+fi
+
+# 启动服务
+echo "启动quota-proxy SQLite版本..."
+echo "端口: ${PORT:-8787}"
+echo "数据库: ${DATABASE_PATH:-./quota-proxy.db}"
+echo "每日限制: ${DAILY_REQ_LIMIT:-200}"
+
+exec node server-sqlite-simple.js
+EOF
     
-    # 检查必要的文件
-    if ! ssh "root@$SERVER_IP" "test -f /opt/roc/quota-proxy/server-sqlite.js" 2>/dev/null; then
-        log_error "服务器上缺少 server-sqlite.js 文件"
-        log_info "从本地复制..."
-        
-        if [[ -f "$PROJECT_ROOT/quota-proxy/server-sqlite.js" ]]; then
-            scp "$PROJECT_ROOT/quota-proxy/server-sqlite.js" "root@$SERVER_IP:/opt/roc/quota-proxy/" 2>/dev/null
-            log_success "已复制 server-sqlite.js"
-        else
-            log_error "本地也缺少 server-sqlite.js 文件"
-            return 1
-        fi
-    fi
+    chmod +x "$TEMP_DIR/start.sh"
     
-    # 创建数据库目录
-    ssh "root@$SERVER_IP" "mkdir -p /opt/roc/quota-proxy/data" 2>/dev/null
-    
-    # 更新 compose.yaml 使用 SQLite 版本
-    local compose_content=$(cat << 'EOF'
+    # 创建Docker Compose文件
+    cat > "$TEMP_DIR/docker-compose.yml" << EOF
+version: '3.8'
+
 services:
   quota-proxy:
     build: .
-    container_name: quota-proxy-quota-proxy-1
+    container_name: quota-proxy-sqlite
     restart: unless-stopped
     ports:
       - "127.0.0.1:8787:8787"
     environment:
-      - PORT=8787
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - ADMIN_TOKEN=${ADMIN_TOKEN}
-      - SQLITE_PATH=/app/data/quota.db
-      - NODE_ENV=production
+      - DEEPSEEK_API_KEY=\${DEEPSEEK_API_KEY}
+      - DEEPSEEK_BASE_URL=\${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+      - PORT=\${PORT:-8787}
+      - DAILY_REQ_LIMIT=\${DAILY_REQ_LIMIT:-200}
+      - ADMIN_TOKEN=\${ADMIN_TOKEN}
+      - DATABASE_PATH=/data/quota-proxy.db
+      - LOG_LEVEL=\${LOG_LEVEL:-info}
     volumes:
-      - ./data:/app/data
-    command: ["node", "server-sqlite.js"]
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8787/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 EOF
-)
     
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] 将更新 compose.yaml:"
-        echo "$compose_content"
-    else
-        echo "$compose_content" | ssh "root@$SERVER_IP" "cat > /opt/roc/quota-proxy/compose.yaml"
-        log_success "已更新 compose.yaml"
-    fi
-    
-    # 更新 .env 文件（如果存在）
-    if [[ -n "$ADMIN_TOKEN" ]] && [[ -n "$DEEPSEEK_API_KEY" ]]; then
-        local env_content="DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY\nADMIN_TOKEN=$ADMIN_TOKEN"
-        
-        if [[ "$DRY_RUN" == "true" ]]; then
-            log_info "[DRY-RUN] 将更新 .env 文件"
-            echo -e "$env_content"
-        else
-            echo -e "$env_content" | ssh "root@$SERVER_IP" "cat > /opt/roc/quota-proxy/.env"
-            log_success "已更新 .env 文件"
-        fi
-    else
-        log_warn "未设置 ADMIN_TOKEN 或 DEEPSEEK_API_KEY，请确保 .env 文件已正确配置"
-    fi
-}
+    # 创建Dockerfile
+    cat > "$TEMP_DIR/Dockerfile" << 'EOF'
+FROM node:18-alpine
 
-restart_service() {
-    log_info "重启服务..."
-    
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] 将执行: docker compose down && docker compose up -d"
-        return 0
-    fi
-    
-    # 停止服务
-    if ssh "root@$SERVER_IP" "cd /opt/roc/quota-proxy && docker compose down 2>/dev/null"; then
-        log_success "服务已停止"
-    else
-        log_warn "停止服务时出错（可能服务未运行）"
-    fi
-    
-    # 启动服务
-    if ssh "root@$SERVER_IP" "cd /opt/roc/quota-proxy && docker compose up -d"; then
-        log_success "服务已启动"
-    else
-        log_error "启动服务失败"
-        return 1
-    fi
-    
-    # 等待服务就绪
-    log_info "等待服务就绪..."
-    sleep 3
-    
-    # 验证服务
-    if ssh "root@$SERVER_IP" "curl -fsS http://127.0.0.1:8787/healthz 2>/dev/null"; then
-        log_success "服务健康检查通过"
-    else
-        log_error "服务健康检查失败"
-        return 1
-    fi
-    
-    # 检查是否运行 SQLite 版本
-    local current_server=$(ssh "root@$SERVER_IP" "cd /opt/roc/quota-proxy && docker compose exec quota-proxy ps aux 2>/dev/null | grep -o 'server[^ ]*\.js' | head -1" 2>/dev/null || echo "unknown")
-    
-    if [[ "$current_server" == "server-sqlite.js" ]]; then
-        log_success "✓ 成功切换到 SQLite 版本"
-    else
-        log_warn "当前运行版本: $current_server（可能不是 SQLite 版本）"
-    fi
-}
+WORKDIR /app
 
-verify_deployment() {
+# 复制package文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm ci --only=production
+
+# 复制应用文件
+COPY . .
+
+# 创建数据目录
+RUN mkdir -p /data
+
+# 暴露端口
+EXPOSE 8787
+
+# 启动命令
+CMD ["node", "server-sqlite-simple.js"]
+EOF
+    
+    # 创建验证脚本
+    cat > "$TEMP_DIR/verify-deployment.sh" << 'EOF'
+#!/bin/bash
+set -e
+
+echo "验证quota-proxy SQLite版本部署..."
+
+# 检查服务是否运行
+if curl -fsS http://127.0.0.1:8787/healthz > /dev/null 2>&1; then
+    echo "✓ 健康检查通过"
+else
+    echo "✗ 健康检查失败"
+    exit 1
+fi
+
+# 检查管理接口（需要ADMIN_TOKEN）
+if [ -n "$ADMIN_TOKEN" ]; then
+    if curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" http://127.0.0.1:8787/admin/keys > /dev/null 2>&1; then
+        echo "✓ 管理接口可访问"
+    else
+        echo "✗ 管理接口访问失败"
+    fi
+else
+    echo "⚠ ADMIN_TOKEN未设置，跳过管理接口测试"
+fi
+
+# 检查数据库文件
+if [ -f ./quota-proxy.db ] || [ -f ./data/quota-proxy.db ]; then
+    echo "✓ 数据库文件存在"
+else
+    echo "⚠ 数据库文件不存在（首次运行时会创建）"
+fi
+
+echo "验证完成"
+EOF
+    
+    chmod +x "$TEMP_DIR/verify-deployment.sh"
+    
+    # 上传文件
+    log_info "上传文件..."
+    run_cmd "scp -r $TEMP_DIR/* $SERVER:$DEPLOY_DIR/" "上传文件到服务器"
+    
+    # 清理临时目录
+    rm -rf "$TEMP_DIR"
+    
+    # 4. 在服务器上安装依赖
+    log_info "在服务器上安装Node.js依赖..."
+    run_cmd "$SSH_CMD 'cd $DEPLOY_DIR && npm ci --only=production'" "安装依赖"
+    
+    # 5. 创建systemd服务（可选）
+    log_info "创建systemd服务..."
+    run_cmd "$SSH_CMD 'cat > /etc/systemd/system/quota-proxy-sqlite.service << \"EOF\"
+[Unit]
+Description=quota-proxy SQLite Version
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$DEPLOY_DIR
+EnvironmentFile=$DEPLOY_DIR/.env
+ExecStart=/usr/bin/node $DEPLOY_DIR/server-sqlite-simple.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF'" "创建systemd服务文件"
+    
+    # 6. 启动服务
+    log_info "启动服务..."
+    run_cmd "$SSH_CMD 'systemctl daemon-reload && systemctl enable quota-proxy-sqlite.service && systemctl start quota-proxy-sqlite.service'" "启动systemd服务"
+    
+    # 7. 验证部署
     log_info "验证部署..."
+    run_cmd "$SSH_CMD 'sleep 3 && cd $DEPLOY_DIR && ./verify-deployment.sh'" "验证部署"
     
-    # 检查数据库文件
-    if ssh "root@$SERVER_IP" "test -f /opt/roc/quota-proxy/data/quota.db" 2>/dev/null; then
-        log_success "SQLite 数据库文件已创建: /opt/roc/quota-proxy/data/quota.db"
-        
-        # 检查表结构
-        local tables=$(ssh "root@$SERVER_IP" "sqlite3 /opt/roc/quota-proxy/data/quota.db '.tables' 2>/dev/null" || echo "")
-        if [[ -n "$tables" ]]; then
-            log_success "数据库表: $tables"
-        fi
-    else
-        log_warn "数据库文件未创建（可能需要首次请求后生成）"
-    fi
-    
-    # 测试管理员接口（需要 ADMIN_TOKEN）
-    if [[ -n "$ADMIN_TOKEN" ]]; then
-        log_info "测试管理员接口..."
-        local response=$(ssh "root@$SERVER_IP" "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' http://127.0.0.1:8787/admin/usage 2>/dev/null" || echo "")
-        
-        if [[ -n "$response" ]]; then
-            log_success "管理员接口响应正常"
-        else
-            log_warn "管理员接口测试失败（可能需要有效的 ADMIN_TOKEN）"
-        fi
-    fi
-    
-    log_success "部署验证完成"
+    # 8. 显示部署信息
+    log_success "quota-proxy SQLite版本部署完成！"
+    echo ""
+    echo -e "${GREEN}部署信息:${NC}"
+    echo -e "  ${BLUE}服务地址:${NC} http://$SERVER:8787"
+    echo -e "  ${BLUE}健康检查:${NC} http://$SERVER:8787/healthz"
+    echo -e "  ${BLUE}管理接口:${NC} 使用ADMIN_TOKEN访问"
+    echo -e "  ${BLUE}ADMIN_TOKEN:${NC} $ADMIN_TOKEN"
+    echo -e "  ${BLUE}部署目录:${NC} $DEPLOY_DIR"
+    echo ""
+    echo -e "${YELLOW}使用示例:${NC}"
+    echo -e "  创建试用密钥:"
+    echo -e "    curl -X POST http://$SERVER:8787/admin/keys \\"
+    echo -e "      -H \"Authorization: Bearer $ADMIN_TOKEN\" \\"
+    echo -e "      -H \"Content-Type: application/json\" \\"
+    echo -e "      -d '{\"label\":\"测试用户\"}'"
+    echo ""
+    echo -e "  查看使用情况:"
+    echo -e "    curl http://$SERVER:8787/admin/usage \\"
+    echo -e "      -H \"Authorization: Bearer $ADMIN_TOKEN\""
+    echo ""
+    echo -e "  使用试用密钥调用API:"
+    echo -e "    curl -X POST http://$SERVER:8787/v1/chat/completions \\"
+    echo -e "      -H \"Authorization: Bearer <TRIAL_KEY>\" \\"
+    echo -e "      -H \"Content-Type: application/json\" \\"
+    echo -e "      -d '{\"model\":\"deepseek-chat\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'"
 }
 
-main() {
-    # 解析参数
-    DRY_RUN="false"
-    FORCE="false"
-    
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --help)
-                show_help
-                exit 0
-                ;;
-            --dry-run)
-                DRY_RUN="true"
-                shift
-                ;;
-            --force)
-                FORCE="true"
-                shift
-                ;;
-            --server-ip)
-                SERVER_IP="$2"
-                shift 2
-                ;;
-            *)
-                log_error "未知参数: $1"
-                show_help
-                exit 1
-                ;;
-        esac
-    done
-    
-    log_info "中华AI共和国 - quota-proxy SQLite 版本部署"
-    log_info "服务器: $SERVER_IP"
-    log_info "时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
-    echo
-    
-    check_dependencies
-    
-    if ! check_current_state; then
-        if [[ "$FORCE" == "true" ]]; then
-            log_warn "强制重新部署..."
-        else
-            log_error "当前已运行 SQLite 版本，如需重新部署请使用 --force"
-            exit 1
-        fi
-    fi
-    
-    backup_current
-    deploy_sqlite
-    restart_service
-    verify_deployment
-    
-    log_success "✅ quota-proxy SQLite 版本部署完成"
-    log_info "后续操作:"
-    log_info "  1. 检查日志: ssh root@$SERVER_IP 'cd /opt/roc/quota-proxy && docker compose logs -f'"
-    log_info "  2. 验证健康: curl http://$SERVER_IP:8787/healthz"
-    log_info "  3. 管理密钥: 使用 ADMIN_TOKEN 访问 /admin/keys 接口"
-}
+# 执行部署
+deploy
 
-# 运行主函数
-main "$@"
+exit 0
