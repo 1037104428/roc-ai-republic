@@ -207,6 +207,66 @@ openclaw models status
 
 **一键诊断**：运行 `curl -fsSL https://clawdrepublic.cn/verify-quickstart.sh \| bash` 检查所有环节。
 
+## 常见问题（FAQ）
+
+### Q1: 安装时提示 "npm: command not found"
+**原因**：Node.js 未安装或未正确配置 PATH。
+**解决**：
+1. 检查 Node.js 是否安装：`node --version`
+2. 如果未安装，从官网下载：https://nodejs.org/（建议 LTS 版本）
+3. 安装后重新打开终端
+
+### Q2: 运行 `openclaw` 命令提示 "command not found"
+**原因**：npm 全局包路径未加入 PATH。
+**解决**：
+1. 找到 npm 全局包路径：`npm config get prefix`
+2. 将该路径下的 `bin` 目录加入 PATH：
+   ```bash
+   export PATH="$(npm config get prefix)/bin:$PATH"
+   ```
+3. 永久生效：将上述命令加入 `~/.bashrc` 或 `~/.zshrc`
+
+### Q3: TRIAL_KEY 验证返回 401/403
+**原因**：
+1. Key 未正确设置到环境变量
+2. Key 已过期或被撤销
+3. 环境变量未生效
+**解决**：
+1. 检查环境变量：`echo $CLAWD_TRIAL_KEY`
+2. 重新申请 Key：https://clawdrepublic.cn/forum/t/trial-key
+3. 确保重启终端或运行 `source ~/.bashrc`
+
+### Q4: API 连接超时或无法访问
+**原因**：网络问题或网关维护。
+**解决**：
+1. 检查网络连接：`ping api.clawdrepublic.cn`
+2. 检查网关状态：`curl -fsS https://api.clawdrepublic.cn/healthz`
+3. 如果网关维护，请等待或查看公告
+
+### Q5: 配置文件格式错误
+**原因**：JSON 格式不正确。
+**解决**：
+1. 验证 JSON 格式：`cat ~/.openclaw/openclaw.json | python3 -m json.tool`
+2. 如果报错，检查引号、逗号、括号是否匹配
+3. 使用在线 JSON 验证工具检查
+
+### Q6: 安装脚本下载慢或失败
+**原因**：网络问题或源不可用。
+**解决**：
+1. 使用 `--dry-run` 查看脚本内容：`curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --dry-run`
+2. 手动下载脚本：`curl -O https://clawdrepublic.cn/install-cn.sh`
+3. 检查脚本权限：`chmod +x install-cn.sh`
+
+### Q7: 如何获取更多帮助？
+**解决**：
+1. 查看完整文档：https://clawdrepublic.cn/
+2. 在论坛提问：https://clawdrepublic.cn/forum/t/help
+3. 按模板发帖，包含：
+   - 你的操作系统和版本
+   - 错误信息全文
+   - 你已经尝试的步骤
+   - 期望的结果
+
 ---
 
 - API 健康检查：https://api.clawdrepublic.cn/healthz
