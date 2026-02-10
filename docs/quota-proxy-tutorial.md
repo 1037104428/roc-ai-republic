@@ -11,16 +11,28 @@ quota-proxy 是一个 DeepSeek API 限额试用网关，为 OpenClaw 用户提�
 
 目前 TRIAL_KEY 需要手动申请。你可以通过以下方式获取：
 
-### 方式一：联系管理员
-发送申请邮件或消息到 Clawd 社区管理员，说明：
-- 你的使用场景
-- 预计每日使用量
-- 联系方式
+### 方式一：快速申请（推荐）
+访问 Clawd 官网申请页面：
+- 官网地址：https://clawdrepublic.cn
+- 申请页面：https://clawdrepublic.cn/trial-key-request
 
-管理员会手动发放 TRIAL_KEY。
+填写简单的申请表单，管理员会在 24 小时内通过邮件回复发放 TRIAL_KEY。
 
-### 方式二：自助申请（开发中）
-未来将提供自助申请页面，目前正在开发中。
+### 方式二：社区申请
+加入 Clawd 社区 Discord 或 Telegram 群组，在 #trial-key-request 频道申请：
+- Discord: https://discord.gg/clawd
+- Telegram: https://t.me/clawd_community
+
+### 方式三：邮件申请
+发送申请邮件到：trial-key@clawdrepublic.cn
+邮件主题：TRIAL_KEY 申请
+邮件内容：
+1. 姓名/昵称
+2. 使用场景（学习/开发/测试等）
+3. 预计每日调用次数
+4. 联系方式（邮箱/Telegram等）
+
+管理员会在 24 小时内回复发放 TRIAL_KEY。
 
 ## 第二步：配置 OpenClaw 使用 quota-proxy
 
