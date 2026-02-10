@@ -14,9 +14,17 @@
  *   ADMIN_TOKEN=your-admin-token
  */
 
-const axios = require('axios');
-const yargs = require('yargs/yargs');
-const { hideBin } = require('yargs/helpers');
+// 检查依赖
+try {
+    var axios = require('axios');
+    var yargs = require('yargs/yargs');
+    var { hideBin } = require('yargs/helpers');
+} catch (error) {
+    console.error('❌ 缺少依赖，请先安装：');
+    console.error('   npm install axios yargs');
+    console.error('   或运行：cd scripts && npm install');
+    process.exit(1);
+}
 
 const QUOTA_PROXY_URL = process.env.QUOTA_PROXY_URL || 'http://127.0.0.1:8787';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN;

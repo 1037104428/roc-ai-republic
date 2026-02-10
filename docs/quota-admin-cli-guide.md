@@ -13,15 +13,17 @@
 ### 1. 安装依赖
 
 ```bash
+# 进入脚本目录
 cd /path/to/roc-ai-republic/scripts
+
+# 安装依赖（使用 package.json）
 npm install
-```
 
-或者直接使用（需要已安装 axios 和 yargs）：
-
-```bash
+# 或者直接安装所需包
 npm install axios yargs
 ```
+
+**注意**：如果未安装依赖，运行时会显示友好提示并退出。
 
 ### 2. 设置环境变量
 
