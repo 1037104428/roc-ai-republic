@@ -963,3 +963,70 @@ ssh root@8.210.185.194 "curl -fsS http://localhost/"
 - [落地页部署验证详细说明](./verify-landing-page.md)
 - [部署指南](./deploy-landing-page.md)
 - [Web服务器配置](./web-server-config.md)
+
+## 10) 管理接口综合测试
+
+### 10.1) 综合测试脚本
+
+使用 `test-admin-comprehensive.sh` 进行端到端管理功能测试：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 设置管理员令牌
+export ADMIN_TOKEN="your-admin-token-here"
+
+# 运行综合测试（本地 quota-proxy）
+./scripts/test-admin-comprehensive.sh
+
+# 远程服务器测试
+./scripts/test-admin-comprehensive.sh --host http://127.0.0.1:8787
+```
+
+测试包括：
+1. 健康检查
+2. 密钥列表
+3. 密钥创建
+4. 密钥验证
+5. 使用情况查询
+6. 密钥删除
+7. 验证删除
+
+### 10.2) 部署增强脚本
+
+部署 quota-proxy 管理接口增强功能：
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+
+# 运行部署脚本
+./scripts/deploy-admin-enhancements.sh
+
+# 脚本功能：
+# 1. 检查服务器配置
+# 2. 本地验证脚本
+# 3. 更新文档
+# 4. 服务器端验证（可选）
+# 5. 生成部署报告
+```
+
+### 10.3) 快速测试命令
+
+```bash
+# 快速测试管理接口（需要 ADMIN_TOKEN）
+ADMIN_TOKEN="your_token" ./scripts/test-admin-comprehensive.sh --host http://127.0.0.1:8787
+
+# 查看测试脚本帮助
+./scripts/test-admin-comprehensive.sh --help
+
+# 查看部署脚本帮助
+./scripts/deploy-admin-enhancements.sh --help
+```
+
+### 10.4) 验证要点
+
+1. **管理接口完整性**：确保所有管理接口（keys/usage/delete）正常工作
+2. **认证安全性**：验证管理员令牌保护有效
+3. **数据持久性**：SQLite 数据库正确存储密钥和用量数据
+4. **错误处理**：无效令牌或请求应返回适当的错误响应
+5. **性能可接受**：管理接口响应时间应在合理范围内
