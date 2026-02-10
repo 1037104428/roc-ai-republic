@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quota Proxy 管理界面</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin: 25px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, select, button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            width: auto;
+            padding: 10px 25px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+        }
+        
+        .btn-success:hover {
+            background: #27ae60;
+        }
+        
+        .message {
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .usage-item {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .usage-item h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .usage-item p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .copy-btn:hover {
+            background: #545b62;
+        }
+        
+        .token-input {
+            font-family: monospace;
+            background: #f8f9fa;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Quota Proxy 管理界面</h1>
+        
+        <div class="message" id="message"></div>
+        
+        <div class="section">
+            <h2>🔐 身份验证</h2>
+            <div class="form-group">
+                <label for="adminToken">管理员令牌 (ADMIN_TOKEN)</label>
+                <input type="password" id="adminToken" class="token-input" placeholder="输入 ADMIN_TOKEN">
+                <small>令牌保存在本地浏览器中，不会发送到服务器</small>
+            </div>
+            <button onclick="saveToken()">保存令牌</button>
+            <button onclick="clearToken()" class="btn-danger">清除令牌</button>
+        </div>
+        
+        <div class="section">
+            <h2>🔑 创建试用密钥</h2>
+            <div class="form-group">
+                <label for="keyLabel">标签 (可选)</label>
+                <input type="text" id="keyLabel" placeholder="例如: user-john-2025-02-09">
+                <small>用于标识密钥用途，便于管理</small>
+            </div>
+            <div class="form-group">
+                <label for="keyLimit">每日请求限制</label>
+                <input type="number" id="keyLimit" value="200" min="1" max="10000">
+            </div>
+            <button onclick="createKey()" class="btn-success">创建试用密钥</button>
+        </div>
+        
+        <div class="section">
+            <h2>📊 使用情况统计</h2>
+            <div class="actions">
+                <button onclick="loadUsage()">刷新使用情况</button>
+                <button onclick="exportUsage()">导出为 JSON</button>
+            </div>
+            <div id="usageContainer">
+                <div class="loading" id="usageLoading">加载中...</div>
+                <div id="usageContent" class="hidden"></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🗑️ 密钥管理</h2>
+            <div class="form-group">
+                <label for="deleteKey">要删除的密钥</label>
+                <input type="text" id="deleteKey" placeholder="输入要删除的密钥">
+            </div>
+            <button onclick="deleteKey()" class="btn-danger">删除密钥</button>
+        </div>
+        
+        <div class="section">
+            <h2>🔄 重置用量</h2>
+            <div class="form-group">
+                <label for="resetKey">要重置用量的密钥 (留空则重置所有)</label>
+                <input type="text" id="resetKey" placeholder="输入密钥，留空则重置所有">
+            </div>
+            <button onclick="resetUsage()" class="btn-danger">重置用量</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin.replace(/^https?:\/\/([^\/]+)/, 'http://$1:8787');
+        let adminToken = localStorage.getItem('quotaProxyAdminToken') || '';
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            if (adminToken) {
+                document.getElementById('adminToken').value = adminToken;
+                showMessage('已加载保存的管理员令牌', 'info');
+            }
+        });
+        
+        function saveToken() {
+            const token = document.getElementById('adminToken').value.trim();
+            if (!token) {
+                showMessage('请输入管理员令牌', 'error');
+                return;
+            }
+            localStorage.setItem('quotaProxyAdminToken', token);
+            adminToken = token;
+            showMessage('令牌已保存到本地', 'success');
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('quotaProxyAdminToken');
+            adminToken = '';
+            document.getElementById('adminToken').value = '';
+            showMessage('令牌已清除', 'info');
+        }
+        
+        function showMessage(text, type = 'info') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = 'message ' + type;
+            messageEl.style.display = 'block';
+            
+            if (type !== 'error') {
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            if (!adminToken) {
+                showMessage('请先设置管理员令牌', 'error');
+                return null;
+            }
+            
+            const headers = {
+                'Authorization': `Bearer ${adminToken}`,
+                'Content-Type': 'application/json'
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method,
+                    headers,
+                    body: body ? JSON.stringify(body) : null
+                });
+                
+                if (response.status === 401 || response.status === 403) {
+                    showMessage('令牌无效或权限不足', 'error');
+                    return null;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                showMessage(`请求失败: ${error.message}`, 'error');
+                return null;
+            }
+        }
+        
+        async function createKey() {
+            const label = document.getElementById('keyLabel').value.trim();
+            const limit = parseInt(document.getElementById('keyLimit').value);
+            
+            if (isNaN(limit) || limit < 1) {
+                showMessage('请输入有效的请求限制', 'error');
+                return;
+            }
+            
+            const data = await apiRequest('/admin/keys', 'POST', {
+                label: label || `manual-${new Date().toISOString().split('T')[0]}`,
+                daily_limit: limit
+            });
+            
+            if (data && data.key) {
+                showMessage(`密钥创建成功！`, 'success');
+                
+                // 显示新创建的密钥
+                const keyDisplay = `新密钥: <code>${data.key}</code>`;
+                const messageEl = document.getElementById('message');
+                messageEl.innerHTML = `${keyDisplay}<br>${messageEl.textContent}`;
+                
+                // 添加复制按钮
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn';
+                copyBtn.textContent = '复制';
+                copyBtn.onclick = () => copyToClipboard(data.key);
+                messageEl.appendChild(copyBtn);
+                
+                // 清空表单
+                document.getElementById('keyLabel').value = '';
+                
+                // 刷新使用情况
+                loadUsage();
+            }
+        }
+        
+        async function loadUsage() {
+            const loadingEl = document.getElementById('usageLoading');
+            const contentEl = document.getElementById('usageContent');
+            
+            loadingEl.style.display = 'block';
+            contentEl.style.display = 'none';
+            contentEl.innerHTML = '';
+            
+            const data = await apiRequest('/admin/usage');
+            
+            loadingEl.style.display = 'none';
+            
+            if (data && data.items) {
+                contentEl.style.display = 'block';
+                
+                if (data.items.length === 0) {
+                    contentEl.innerHTML = '<p>暂无使用数据</p>';
+                    return;
+                }
+                
+                let html = '<table>';
+                html += '<thead><tr><th>标签</th><th>密钥 (前8位)</th><th>今日用量</th><th>每日限制</th><th>创建时间</th><th>最后使用</th></tr></thead>';
+                html += '<tbody>';
+                
+                data.items.forEach(item => {
+                    const keyShort = item.key ? item.key.substring(0, 8) + '...' : 'N/A';
+                    const usagePercent = item.daily_limit > 0 ? Math.round((item.used_today / item.daily_limit) * 100) : 0;
+                    const usageClass = usagePercent >= 90 ? 'style="color: #e74c3c; font-weight: bold;"' : 
+                                      usagePercent >= 70 ? 'style="color: #f39c12;"' : '';
+                    
+                    html += `<tr>
+                        <td>${item.label || '未标记'}</td>
+                        <td><code>${keyShort}</code></td>
+                        <td ${usageClass}>${item.used_today} (${usagePercent}%)</td>
+                        <td>${item.daily_limit}</td>
+                        <td>${formatDate(item.created_at)}</td>
+                        <td>${item.last_used_at ? formatDate(item.last_used_at) : '从未使用'}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                contentEl.innerHTML = html;
+            } else {
+                contentEl.innerHTML = '<p>无法加载使用数据</p>';
+                contentEl.style.display = 'block';
+            }
+        }
+        
+        async function deleteKey() {
+            const key = document.getElementById('deleteKey').value.trim();
+            if (!key) {
+                showMessage('请输入要删除的密钥', 'error');
+                return;
+            }
+            
+            if (!confirm(`确定要删除密钥 ${key.substring(0, 8)}... 吗？此操作不可撤销！`)) {
+                return;
+            }
+            
+            const data = await apiRequest(`/admin/keys/${encodeURIComponent(key)}`, 'DELETE');
+            
+            if (data && data.ok) {
+                showMessage('密钥已删除', 'success');
+                document.getElementById('deleteKey').value = '';
+                loadUsage();
+            }
+        }
+        
+        async function resetUsage() {
+            const key = document.getElementById('resetKey').value.trim();
+            const endpoint = key ? `/admin/usage/reset?key=${encodeURIComponent(key)}` : '/admin/usage/reset';
+            
+            if (!confirm(key ? `确定要重置密钥 ${key.substring(0, 8)}... 的用量吗？` : '确定要重置所有密钥的用量吗？')) {
+                return;
+            }
+            
+            const data = await apiRequest(endpoint, 'POST');
+            
+            if (data && data.ok) {
+                showMessage(key ? '密钥用量已重置' : '所有密钥用量已重置', 'success');
+                document.getElementById('resetKey').value = '';
+                loadUsage();
+            }
+        }
+        
+        function exportUsage() {
+            apiRequest('/admin/usage').then(data => {
+                if (data) {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `quota-usage-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showMessage('数据已导出', 'success');
+                }
+            });
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage('已复制到剪贴板', 'success');
+            }).catch(err => {
+                showMessage('复制失败: ' + err, 'error');
+            });
+        }
+        
+        function formatDate(isoString) {
+            if (!isoString) return 'N/A';
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+</body>
+</html>
