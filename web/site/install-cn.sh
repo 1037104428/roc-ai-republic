@@ -25,6 +25,8 @@ Options:
   --version <ver>          Install a specific OpenClaw version (default: latest)
   --registry-cn <url>      CN npm registry (default: https://registry.npmmirror.com)
   --registry-fallback <u>  Fallback npm registry (default: https://registry.npmjs.org)
+  --network-test           Run network connectivity test before install
+  --force-cn               Force using CN registry (skip fallback)
   --dry-run                Print commands without executing
   -h, --help               Show help
 
@@ -34,6 +36,8 @@ TXT
 }
 
 DRY_RUN=0
+NETWORK_TEST=0
+FORCE_CN=0
 VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
 REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
 REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
@@ -46,6 +50,10 @@ while [[ $# -gt 0 ]]; do
       REG_CN="${2:-}"; shift 2 ;;
     --registry-fallback)
       REG_FALLBACK="${2:-}"; shift 2 ;;
+    --network-test)
+      NETWORK_TEST=1; shift ;;
+    --force-cn)
+      FORCE_CN=1; shift ;;
     --dry-run)
       DRY_RUN=1; shift ;;
     -h|--help)
@@ -72,6 +80,64 @@ run() {
   fi
 }
 
+# Network test function
+run_network_test() {
+  echo "[cn-pack] Running network connectivity test..."
+  echo "[cn-pack] Testing CN registry: $REG_CN"
+  
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsS -m 5 "$REG_CN/-/ping" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ CN registry reachable"
+      CN_OK=1
+    else
+      echo "[cn-pack] ⚠️ CN registry not reachable"
+      CN_OK=0
+    fi
+    
+    echo "[cn-pack] Testing fallback registry: $REG_FALLBACK"
+    if curl -fsS -m 5 "$REG_FALLBACK/-/ping" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ Fallback registry reachable"
+      FALLBACK_OK=1
+    else
+      echo "[cn-pack] ⚠️ Fallback registry not reachable"
+      FALLBACK_OK=0
+    fi
+    
+    # Test GitHub/Gitee for script sources
+    echo "[cn-pack] Testing script sources..."
+    if curl -fsS -m 5 "https://raw.githubusercontent.com/openclaw/openclaw/main/package.json" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ GitHub raw reachable"
+    else
+      echo "[cn-pack] ⚠️ GitHub raw may be slow"
+    fi
+    
+    if curl -fsS -m 5 "https://gitee.com/junkaiWang324/roc-ai-republic/raw/main/README.md" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ Gitee raw reachable"
+    else
+      echo "[cn-pack] ⚠️ Gitee raw not reachable"
+    fi
+    
+    echo ""
+    echo "[cn-pack] === Network Test Summary ==="
+    if [[ "$CN_OK" -eq 1 ]]; then
+      echo "[cn-pack] ✅ Recommended: Use CN registry ($REG_CN)"
+    elif [[ "$FALLBACK_OK" -eq 1 ]]; then
+      echo "[cn-pack] ⚠️ Use fallback registry ($REG_FALLBACK)"
+    else
+      echo "[cn-pack] ❌ No registry reachable. Check network."
+      exit 1
+    fi
+    echo ""
+  else
+    echo "[cn-pack] ℹ️ curl not found, skipping detailed network test"
+  fi
+}
+
+if [[ "$NETWORK_TEST" == "1" ]]; then
+  run_network_test
+  exit 0
+fi
+
 if command -v node >/dev/null 2>&1; then
   NODE_VER_RAW="$(node -v || true)"
   NODE_MAJOR="${NODE_VER_RAW#v}"
@@ -96,6 +162,20 @@ else
   exit 1
 fi
 
+# Quick network connectivity check (optional, can be skipped with env var)
+if [[ -z "${SKIP_NET_CHECK:-}" ]]; then
+  echo "[cn-pack] Checking network connectivity to npm registries..."
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsS -m 5 "$REG_CN" >/dev/null 2>&1; then
+      echo "[cn-pack] ✅ CN registry reachable: $REG_CN"
+    else
+      echo "[cn-pack] ⚠️ CN registry not reachable (will try fallback): $REG_CN"
+    fi
+  else
+    echo "[cn-pack] ℹ️ curl not found, skipping network check"
+  fi
+fi
+
 install_openclaw() {
   local reg="$1"
   local attempt="$2"
@@ -110,24 +190,38 @@ install_openclaw() {
 }
 
 # 尝试CN源
-if install_openclaw "$REG_CN" "CN-registry"; then
-  echo "[cn-pack] ✅ Install OK via CN registry."
-else
-  echo "[cn-pack] ⚠️ Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
-  echo "[cn-pack] This may be due to network issues, registry mirror sync delay, or package availability." >&2
-  echo "[cn-pack] Retrying with fallback registry in 2 seconds..." >&2
-  sleep 2
-  
-  if install_openclaw "$REG_FALLBACK" "fallback-registry"; then
-    echo "[cn-pack] ✅ Install OK via fallback registry."
+if [[ "$FORCE_CN" == "1" ]]; then
+  echo "[cn-pack] Force using CN registry (--force-cn flag)"
+  if install_openclaw "$REG_CN" "CN-registry"; then
+    echo "[cn-pack] ✅ Install OK via CN registry."
   else
-    echo "[cn-pack] ❌ Both registry attempts failed." >&2
-    echo "[cn-pack] Troubleshooting steps:" >&2
-    echo "[cn-pack] 1. Check network connectivity: curl -fsS https://registry.npmjs.org" >&2
-    echo "[cn-pack] 2. Verify Node.js version: node -v (requires >=20)" >&2
-    echo "[cn-pack] 3. Try manual install: npm i -g openclaw@${VERSION}" >&2
-    echo "[cn-pack] 4. Report issue: https://github.com/openclaw/openclaw/issues" >&2
+    echo "[cn-pack] ❌ Install failed via CN registry (force mode)." >&2
+    echo "[cn-pack] Troubleshooting:" >&2
+    echo "[cn-pack] 1. Check CN registry: curl -fsS $REG_CN/-/ping" >&2
+    echo "[cn-pack] 2. Try without --force-cn to use fallback" >&2
     exit 1
+  fi
+else
+  # Normal mode with fallback
+  if install_openclaw "$REG_CN" "CN-registry"; then
+    echo "[cn-pack] ✅ Install OK via CN registry."
+  else
+    echo "[cn-pack] ⚠️ Install failed via CN registry; retrying with fallback: $REG_FALLBACK" >&2
+    echo "[cn-pack] This may be due to network issues, registry mirror sync delay, or package availability." >&2
+    echo "[cn-pack] Retrying with fallback registry in 2 seconds..." >&2
+    sleep 2
+    
+    if install_openclaw "$REG_FALLBACK" "fallback-registry"; then
+      echo "[cn-pack] ✅ Install OK via fallback registry."
+    else
+      echo "[cn-pack] ❌ Both registry attempts failed." >&2
+      echo "[cn-pack] Troubleshooting steps:" >&2
+      echo "[cn-pack] 1. Check network connectivity: curl -fsS https://registry.npmjs.org" >&2
+      echo "[cn-pack] 2. Verify Node.js version: node -v (requires >=20)" >&2
+      echo "[cn-pack] 3. Try manual install: npm i -g openclaw@${VERSION}" >&2
+      echo "[cn-pack] 4. Report issue: https://github.com/openclaw/openclaw/issues" >&2
+      exit 1
+    fi
   fi
 fi
 
@@ -138,7 +232,13 @@ fi
 
 # Self-check
 if command -v openclaw >/dev/null 2>&1; then
-  echo "[cn-pack] Installed. Check: $(openclaw --version)"
+  INSTALLED_VERSION=$(openclaw --version 2>/dev/null | head -n1 | sed 's/^openclaw@//' || echo "unknown")
+  echo "[cn-pack] Installed. Check: openclaw@${INSTALLED_VERSION}"
+  
+  # Check if we're installing the same version
+  if [[ "$VERSION" != "latest" && "$INSTALLED_VERSION" == "$VERSION" ]]; then
+    echo "[cn-pack] ℹ️  Same version ($VERSION) already installed. Skipping reinstall."
+  fi
 else
   echo "[cn-pack] Install finished but 'openclaw' not found in PATH." >&2
   echo "[cn-pack] Tips: reopen your shell, or ensure your npm global bin is on PATH." >&2
@@ -153,13 +253,17 @@ cat <<'TXT'
 2) Add DeepSeek provider snippet (see docs/openclaw-cn-pack-deepseek-v0.md)
 3) Start gateway: openclaw gateway start
 4) Verify: openclaw status && openclaw models status
+5) Quick verification: ./scripts/quick-verify-openclaw.sh (if in repo)
 TXT
 
-# Optional health check
+# Optional health check with detailed diagnostics
 if [[ $DRY_RUN -eq 0 ]]; then
   echo "[cn-pack] Running post-install health check..."
   if command -v openclaw >/dev/null 2>&1; then
-    echo "[cn-pack] ✓ openclaw command found: $(openclaw --version 2>/dev/null || echo 'version check failed')"
+    OPENCLAW_PATH=$(command -v openclaw)
+    OPENCLAW_VERSION_OUTPUT=$(openclaw --version 2>/dev/null || echo "version check failed")
+    echo "[cn-pack] ✓ openclaw command found at: $OPENCLAW_PATH"
+    echo "[cn-pack] ✓ Version: $OPENCLAW_VERSION_OUTPUT"
     
     # Check if gateway is running
     if openclaw gateway status 2>/dev/null | grep -q "running\|active"; then
@@ -174,7 +278,73 @@ if [[ $DRY_RUN -eq 0 ]]; then
     else
       echo "[cn-pack] ℹ️ Config file not found. Create with: openclaw config init"
     fi
+    
+    # Additional diagnostics for troubleshooting
+    echo "[cn-pack] Running additional diagnostics..."
+    
+    # API connectivity check (optional, can be skipped with env var)
+    if [[ -z "${SKIP_API_CHECK:-}" ]] && command -v curl >/dev/null 2>&1; then
+      echo "[cn-pack] Checking API connectivity..."
+      
+      # Check quota-proxy API (if configured)
+      if [[ -f ~/.openclaw/openclaw.json ]] && grep -q "api.clawdrepublic.cn" ~/.openclaw/openclaw.json 2>/dev/null; then
+        echo "[cn-pack] Testing quota-proxy API connectivity..."
+        if curl -fsS -m 5 https://api.clawdrepublic.cn/healthz 2>/dev/null | grep -q '"ok":true'; then
+          echo "[cn-pack] ✓ quota-proxy API is reachable"
+        else
+          echo "[cn-pack] ℹ️ quota-proxy API not reachable (may need TRIAL_KEY)"
+        fi
+      fi
+      
+      # Check forum connectivity
+      echo "[cn-pack] Testing forum connectivity..."
+      if curl -fsS -m 5 https://clawdrepublic.cn/forum/ 2>/dev/null | grep -q "Clawd 国度论坛"; then
+        echo "[cn-pack] ✓ Forum is reachable"
+      else
+        echo "[cn-pack] ℹ️ Forum not reachable (check network or DNS)"
+      fi
+    elif [[ -n "${SKIP_API_CHECK:-}" ]]; then
+      echo "[cn-pack] ℹ️ API connectivity check skipped (SKIP_API_CHECK set)"
+    else
+      echo "[cn-pack] ℹ️ curl not found, skipping API connectivity check"
+    fi
+    
+    # Check npm global installation
+    if npm list -g openclaw 2>/dev/null | grep -q "openclaw@"; then
+      echo "[cn-pack] ✓ OpenClaw is installed globally via npm"
+    else
+      echo "[cn-pack] ⚠️ OpenClaw not found in npm global list. May be installed via npx"
+    fi
+    
+    # Check workspace directory
+    if [[ -d ~/.openclaw/workspace ]]; then
+      echo "[cn-pack] ✓ Workspace directory exists: ~/.openclaw/workspace"
+    else
+      echo "[cn-pack] ℹ️ Workspace directory not found. Will be created on first run"
+    fi
+    
   else
-    echo "[cn-pack] ⚠️ openclaw command not in PATH. Try reopening your terminal or adding npm global bin to PATH"
+    echo "[cn-pack] ⚠️ openclaw command not in PATH. Running diagnostics..."
+    
+    # Check npm global bin path
+    NPM_BIN_PATH=$(npm bin -g 2>/dev/null || echo "/usr/local/bin")
+    echo "[cn-pack]   npm global bin path: $NPM_BIN_PATH"
+    
+    # Check if npm bin is in PATH
+    if echo "$PATH" | tr ':' '\n' | grep -q "^$NPM_BIN_PATH$"; then
+      echo "[cn-pack]   ✓ npm bin path is in PATH"
+    else
+      echo "[cn-pack]   ⚠️ npm bin path NOT in PATH. Add to your shell config:"
+      echo "[cn-pack]      export PATH=\"\$PATH:$NPM_BIN_PATH\""
+    fi
+    
+    # Check if openclaw exists in npm bin
+    if [[ -f "$NPM_BIN_PATH/openclaw" ]]; then
+      echo "[cn-pack]   ✓ openclaw binary found at: $NPM_BIN_PATH/openclaw"
+      echo "[cn-pack]   Try: source ~/.bashrc (or ~/.zshrc) and run 'openclaw --version'"
+    else
+      echo "[cn-pack]   ⚠️ openclaw binary not found in npm bin. Installation may have failed."
+      echo "[cn-pack]   Try: npx openclaw --version (runs via npx without PATH)"
+    fi
   fi
 fi
