@@ -42,14 +42,14 @@ ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "cd /opt/roc/quota-proxy 
 ### [TODO-002] 数据库定期备份机制
 **状态**: 处理中  
 **创建时间**: 2026-02-10 15:13  
-**最后更新**: 2026-02-10 16:10  
+**最后更新**: 2026-02-10 16:29  
 **描述**: 缺少数据库定期备份机制，存在数据丢失风险。  
 **影响**: 数据库损坏或服务器故障时无法恢复数据。  
 **解决方案**: 
 1. ✅ 创建数据库备份脚本 (`scripts/backup-sqlite-db.sh`)
 2. ✅ 设置cron定时备份任务 (`scripts/setup-db-backup-cron.sh`)
 3. ✅ 添加备份验证脚本 (`scripts/verify-db-backup.sh`)
-4. ⏳ 添加备份验证和恢复测试
+4. ✅ 添加备份恢复测试脚本 (`scripts/test-db-backup-recovery.sh`)
 
 **相关文件**:
 - `scripts/backup-sqlite-db.sh` - 数据库备份脚本
