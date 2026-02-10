@@ -113,12 +113,23 @@ check_partition_misplacement() {
     # 检查各分区的文件是否放对了位置
     local misplaced_count=0
     
-    # 检查 operations/ 中是否有配置信息
+    # 检查 operations/ 中是否有配置信息（排除合理的文件引用）
     local config_in_ops=$(grep -r -l -i "config\|setting\|password\|key\|token" "$MEMORY_DIR/operations/" --include="*.md" 2>/dev/null || true)
-    if [[ -n "$config_in_ops" ]]; then
+    
+    # 过滤掉只包含"相关配置:"引用的文件
+    local real_config_files=""
+    while IFS= read -r file; do
+        # 检查文件是否只包含合理的配置引用
+        local suspicious_lines=$(grep -i -v "相关配置:" "$file" | grep -i "config\|setting\|password\|key\|token" | head -1)
+        if [[ -n "$suspicious_lines" ]]; then
+            real_config_files+="$file"$'\n'
+        fi
+    done <<< "$config_in_ops"
+    
+    if [[ -n "$real_config_files" ]]; then
         log "${YELLOW}警告: operations/ 分区中发现配置信息${NC}"
-        echo "$config_in_ops" | while read -r file; do
-            log "  - $file"
+        echo "$real_config_files" | while read -r file; do
+            [[ -n "$file" ]] && log "  - $file"
             misplaced_count=$((misplaced_count + 1))
         done
     fi
