@@ -49,6 +49,14 @@
    - 自动切换到回退源（npmjs.org）重试
 5. 安装成功后运行 `openclaw --version` 自检
 
+#### 详细文档
+
+- [综合安装指南](install-cn-comprehensive-guide.md) - 完整的功能说明、使用示例和故障排查
+- [安装指南](install-cn-guide.md) - 基础使用说明
+- [网络优化指南](install-cn-network-optimization.md) - 网络配置和加速建议
+- [故障排查指南](install-cn-troubleshooting.md) - 常见问题解决方案
+- [快速验证](install-cn-quick-verify.md) - 安装后验证步骤
+
 #### 高级选项
 
 - 更换国内源（例如腾讯云 npm 镜像）：
