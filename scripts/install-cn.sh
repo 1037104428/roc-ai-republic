@@ -357,3 +357,19 @@ echo "[cn-pack] 6. Get help:         openclaw --help"
 echo "[cn-pack] ========================================="
 echo "[cn-pack] 💡 Tip: Run these commands to verify your installation!"
 echo "[cn-pack] ========================================="
+
+# Auto-run verification if in repo and script exists
+if [[ $DRY_RUN -eq 0 ]] && [[ -f "./scripts/verify-openclaw-install.sh" ]]; then
+  echo ""
+  echo "[cn-pack] Running automatic installation verification..."
+  echo "[cn-pack] ========================================="
+  
+  # Run verification with quiet mode for clean output
+  if ./scripts/verify-openclaw-install.sh --quiet; then
+    echo "[cn-pack] ✅ Installation verified successfully!"
+  else
+    echo "[cn-pack] ⚠️ Verification found issues. Run './scripts/verify-openclaw-install.sh' for details."
+  fi
+  
+  echo "[cn-pack] ========================================="
+fi
