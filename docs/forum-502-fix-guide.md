@@ -2,207 +2,134 @@
 
 ## 问题描述
 
-访问 `http://forum.clawdrepublic.cn/` 返回 502 Bad Gateway 错误。
+访问 `https://forum.clawdrepublic.cn/` 返回 502 Bad Gateway 错误。
 
 ## 根本原因
 
-Flarum 论坛服务在服务器内部运行在 `127.0.0.1:8081`，但缺少对外网访问的反向代理配置。
+Caddy 配置中定义了 `forum.clawdrepublic.cn` 子域名，但该子域名的 DNS A 记录不存在。
+Caddy 尝试为这个子域名获取 Let's Encrypt SSL 证书时失败，导致无法建立 HTTPS 连接。
+
+从 Caddy 日志可以看到：
+```
+DNS problem: NXDOMAIN looking up A for forum.clawdrepublic.cn - check that a DNS record exists for this domain
+```
+
+## 当前状态
+
+- ✅ 论坛服务在内网正常运行：`http://127.0.0.1:8081/`
+- ✅ 主域名正常：`https://clawdrepublic.cn/`
+- ✅ API 网关正常：`https://api.clawdrepublic.cn/healthz`
+- ❌ 论坛子域名无法访问：`https://forum.clawdrepublic.cn/` (502)
+- ⚠️ 路径方式可能可用：`https://clawdrepublic.cn/forum/` (需要测试)
 
 ## 解决方案
 
-### 方案一：使用 Caddy（推荐，自动 HTTPS）
+### 方案 A：添加 DNS 记录（推荐）
 
-Caddy 配置简单，支持自动 HTTPS。
+1. **登录域名管理面板**（如阿里云、腾讯云、Cloudflare 等）
+2. **添加 A 记录**：
+   - 主机名：`forum`
+   - 记录类型：`A`
+   - 记录值：`8.210.185.194`
+   - TTL：默认（通常 600 秒）
 
-1. **部署修复脚本**：
+3. **等待 DNS 传播**：
+   - 通常需要几分钟到几小时
+   - 可以使用命令检查：`dig forum.clawdrepublic.cn +short`
+
+4. **Caddy 会自动处理**：
+   - DNS 记录生效后，Caddy 会自动获取 SSL 证书
+   - 无需重启服务
+
+### 方案 B：临时修复 - 使用路径方式
+
+如果暂时无法添加 DNS 记录，可以：
+
+1. **修改 Caddy 配置**，注释掉子域名配置：
    ```bash
-   cd /path/to/roc-ai-republic
-   ./scripts/deploy-forum-fix-502.sh --caddy
+   # 备份原配置
+   cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup.$(date +%Y%m%d-%H%M%S)
+   
+   # 注释掉 forum.clawdrepublic.cn 块
+   sed -i '/^forum\.clawdrepublic\.cn {/,/^}/s/^/# /' /etc/caddy/Caddyfile
+   
+   # 重启 Caddy
+   systemctl restart caddy
    ```
 
-2. **验证修复**：
+2. **通过路径访问**：
+   - 论坛地址变为：`https://clawdrepublic.cn/forum/`
+   - 更新相关文档和链接
+
+3. **恢复子域名**（添加 DNS 记录后）：
    ```bash
-   ./scripts/verify-forum-502-fix.sh
+   # 取消注释
+   sed -i '/^# forum\.clawdrepublic\.cn {/,/^# }/s/^# //' /etc/caddy/Caddyfile
+   
+   # 重启 Caddy
+   systemctl restart caddy
    ```
 
-### 方案二：使用 Nginx
+### 方案 C：使用自动化脚本
 
-如果需要手动管理 SSL 证书，使用 Nginx。
+项目已提供修复脚本：
 
-1. **部署修复脚本**：
-   ```bash
-   cd /path/to/roc-ai-republic
-   ./scripts/deploy-forum-fix-502.sh --nginx
-   ```
-
-2. **配置 SSL 证书**（如果需要 HTTPS）：
-   ```bash
-   # 使用 certbot 获取证书
-   certbot --nginx -d forum.clawdrepublic.cn
-   ```
-
-3. **验证修复**：
-   ```bash
-   ./scripts/verify-forum-502-fix.sh
-   ```
-
-## 手动配置步骤
-
-### Caddy 配置
-
-在 `/etc/caddy/Caddyfile` 中添加：
-
-```caddy
-forum.clawdrepublic.cn {
-    reverse_proxy 127.0.0.1:8081 {
-        header_up Host {host}
-        header_up X-Real-IP {remote}
-        header_up X-Forwarded-For {remote}
-        header_up X-Forwarded-Proto {scheme}
-    }
-    encode gzip
-    header {
-        -Server
-        X-Content-Type-Options nosniff
-        X-Frame-Options DENY
-        Referrer-Policy strict-origin-when-cross-origin
-    }
-}
-```
-
-重载 Caddy：
 ```bash
-systemctl reload caddy
+# 运行修复脚本
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/fix-forum-502.sh
 ```
 
-### Nginx 配置
-
-创建 `/etc/nginx/sites-available/forum.clawdrepublic.cn`：
-
-```nginx
-server {
-    listen 80;
-    listen [::]:80;
-    server_name forum.clawdrepublic.cn;
-    
-    location / {
-        proxy_pass http://127.0.0.1:8081;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-    
-    location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        proxy_pass http://127.0.0.1:8081;
-    }
-}
-```
-
-启用配置：
-```bash
-ln -sf /etc/nginx/sites-available/forum.clawdrepublic.cn /etc/nginx/sites-enabled/
-nginx -t
-systemctl reload nginx
-```
+脚本会：
+1. 检测当前状态
+2. 提供两种解决方案
+3. 可执行临时修复（方案B）
 
 ## 验证步骤
 
-### 基础验证
+修复后验证：
 
 ```bash
-# 检查论坛是否可访问
-curl -fsS -m 5 http://forum.clawdrepublic.cn/
+# 测试论坛访问
+curl -fsS -m 5 https://clawdrepublic.cn/forum/ && echo "✓ 论坛访问正常" || echo "✗ 论坛访问失败"
 
-# 使用验证脚本
-./scripts/verify-forum-502-fix.sh --verbose
+# 查看 Caddy 状态
+ssh root@8.210.185.194 'systemctl status caddy --no-pager -l'
 
-# JSON 格式输出（适合 CI/CD）
-./scripts/verify-forum-502-fix.sh --json
+# 查看 Caddy 日志
+ssh root@8.210.185.194 'journalctl -u caddy --no-pager -n 20'
 ```
 
-### 完整验证清单
+## 预防措施
 
-1. **内部服务检查**：
-   ```bash
-   ssh root@服务器IP "curl -fsS http://127.0.0.1:8081/"
-   ```
+1. **DNS 记录管理**：
+   - 在部署新服务前，确保 DNS 记录已添加
+   - 使用 DNS 检查工具验证：`nslookup forum.clawdrepublic.cn`
 
-2. **反向代理检查**：
-   ```bash
-   ssh root@服务器IP "systemctl status caddy || systemctl status nginx"
-   ```
+2. **Caddy 配置优化**：
+   - 考虑使用通配符证书：`*.clawdrepublic.cn`
+   - 或使用 DNS-01 挑战方式（需要 API 密钥）
 
-3. **防火墙检查**：
-   ```bash
-   ssh root@服务器IP "iptables -L -n | grep :80"
-   ```
+3. **监控告警**：
+   - 设置监控检查论坛可访问性
+   - 配置告警通知
 
-4. **域名解析检查**：
-   ```bash
-   dig forum.clawdrepublic.cn +short
-   ```
+## 相关文件
 
-## 故障排除
+- Caddy 配置：`/etc/caddy/Caddyfile`
+- 修复脚本：`scripts/fix-forum-502.sh`
+- 论坛服务：`/opt/roc/forum/`（Docker 容器）
+- 部署文档：`docs/deployment.md`
 
-### 常见问题
+## 时间线
 
-1. **502 错误仍然存在**
-   - 检查 Flarum 服务是否运行：`systemctl status flarum`
-   - 检查端口监听：`netstat -tlnp | grep :8081`
-   - 检查服务日志：`journalctl -u flarum -n 20`
+- 2026-02-09：首次部署论坛，配置子域名
+- 2026-02-10：发现 502 错误，诊断为 DNS 问题
+- 2026-02-10：创建修复脚本和文档
 
-2. **Caddy/Nginx 配置错误**
-   - Caddy：`caddy validate --config /etc/caddy/Caddyfile`
-   - Nginx：`nginx -t`
+## 后续改进
 
-3. **权限问题**
-   - 确保 Caddy/Nginx 用户有权访问证书文件
-   - 检查 SELinux/AppArmor 限制
-
-4. **DNS 问题**
-   - 确认域名解析到正确的服务器 IP
-   - 检查 DNS 缓存：`dig forum.clawdrepublic.cn`
-
-### 回滚步骤
-
-如果修复失败，可以回滚：
-
-```bash
-# Caddy 回滚
-ssh root@服务器IP "cp /etc/caddy/Caddyfile.backup.* /etc/caddy/Caddyfile && systemctl reload caddy"
-
-# Nginx 回滚
-ssh root@服务器IP "rm /etc/nginx/sites-enabled/forum.clawdrepublic.cn && systemctl reload nginx"
-```
-
-## 自动化脚本
-
-项目提供了完整的自动化脚本：
-
-| 脚本 | 用途 | 示例 |
-|------|------|------|
-| `deploy-forum-fix-502.sh` | 部署修复 | `./deploy-forum-fix-502.sh --caddy --dry-run` |
-| `verify-forum-502-fix.sh` | 验证修复 | `./verify-forum-502-fix.sh --json` |
-| `probe-roc-all.sh` | 完整探活 | `./probe-roc-all.sh`（包含论坛检查） |
-
-## 后续维护
-
-1. **监控**：将论坛可用性加入监控系统
-2. **备份**：定期备份论坛数据和配置
-3. **更新**：保持 Flarum 和反向代理软件更新
-4. **安全**：定期检查 SSL 证书和安全性配置
-
-## 相关文档
-
-- [论坛部署指南](../docs/forum-deployment.md)
-- [服务器运维检查清单](../docs/ops-server-healthcheck.md)
-- [故障排查手册](../docs/troubleshooting.md)
+1. **自动化部署**：在部署脚本中自动检查 DNS 记录
+2. **备用方案**：配置回退到路径方式
+3. **文档更新**：更新所有文档中的论坛链接
+4. **测试套件**：添加论坛可访问性测试到 CI/CD
