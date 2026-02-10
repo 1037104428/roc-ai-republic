@@ -12,9 +12,48 @@
 
 ## 管理员：发放流程（当前：人工）
 
-1) 在服务器本机生成 `TRIAL_KEY`
+### 方法一：通过 admin/keys API 生成（推荐）
+
+在运行 quota-proxy 的服务器上执行：
+
+```bash
+# 1. 设置管理员令牌（启动服务时设置的 ADMIN_TOKEN 环境变量）
+export ADMIN_TOKEN="your_admin_token_here"
+
+# 2. 生成新的 TRIAL_KEY（可添加备注标签）
+curl -X POST "http://127.0.0.1:8787/admin/keys" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"label": "用户:alice 用途:demo测试"}' \
+  | python3 -m json.tool
+```
+
+响应示例：
+```json
+{
+  "key": "trial_4a7b9c2d5e8f1a3b6c9d2e5f8a1b4c7d9e",
+  "label": "用户:alice 用途:demo测试",
+  "created_at": 1739203083000
+}
+```
+
+### 方法二：手动生成（备用）
+
+如果 API 不可用，可以手动生成符合格式的 key：
+
+```bash
+# 生成随机 key（18字节十六进制）
+node -e "console.log('trial_' + require('crypto').randomBytes(18).toString('hex'))"
+```
+
+然后将生成的 key 手动添加到 quota-proxy 的存储中。
+
+### 发放步骤
+
+1) 在服务器本机生成 `TRIAL_KEY`（使用上述方法）
 2) 私信发给用户（不要公开粘贴）
-3) 需要停用时：撤销该 key（或后续版本将其限额设为 0）
+3) 记录 key 的 label 备注，便于后续管理
+4) 需要停用时：通过 `/admin/keys/:key` DELETE 接口撤销该 key
 
 > 管理接口说明与脚本：见仓库文档 `roc-ai-republic/docs/quota-proxy-v1-admin-spec.md`。
 
