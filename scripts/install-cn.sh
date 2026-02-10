@@ -489,4 +489,31 @@ if [[ $DRY_RUN -eq 0 ]]; then
     echo "[cn-pack] ℹ️ Or download the verification script:"
     echo "[cn-pack] ℹ️   curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/verify-openclaw-install.sh -o /tmp/verify-openclaw-install.sh"
   fi
+  
+  # 快速验证（如果完整验证脚本不可用）
+  if [[ -z "$VERIFY_SCRIPT" ]] || [[ ! -f "$VERIFY_SCRIPT" ]]; then
+    echo ""
+    echo "[cn-pack] ========================================="
+    echo "[cn-pack] 🚀 运行快速安装验证..."
+    echo "[cn-pack] ========================================="
+    
+    # 检查当前目录是否有快速验证脚本
+    local quick_verify_script="$(dirname "$0")/quick-verify-openclaw.sh"
+    if [[ -f "$quick_verify_script" ]]; then
+      echo "[cn-pack] 使用快速验证脚本: $quick_verify_script"
+      chmod +x "$quick_verify_script" 2>/dev/null || true
+      
+      if "$quick_verify_script" --quiet; then
+        echo "[cn-pack] ✅ 快速验证通过！"
+      else
+        echo "[cn-pack] ⚠️ 快速验证发现问题。运行 '$quick_verify_script' 查看详情。"
+      fi
+    else
+      echo "[cn-pack] ℹ️ 快速验证脚本未找到。运行以下命令进行基本验证:"
+      echo "[cn-pack] ℹ️   openclaw --version"
+      echo "[cn-pack] ℹ️   openclaw status"
+      echo "[cn-pack] ℹ️   openclaw gateway status"
+    fi
+    echo "[cn-pack] ========================================="
+  fi
 fi
