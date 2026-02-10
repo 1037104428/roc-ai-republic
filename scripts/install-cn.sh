@@ -14,12 +14,13 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.10.01"
+SCRIPT_VERSION="2026.02.10.02"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
 NPM_REGISTRY_FALLBACK_DEFAULT="https://registry.npmjs.org"
 OPENCLAW_VERSION_DEFAULT="latest"
+VERIFY_LEVEL_DEFAULT="auto"  # auto, basic, quick, full, none
 
 # Show script version
 echo "[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION"
@@ -38,10 +39,11 @@ Options:
   --force-cn               Force using CN registry (skip fallback)
   --dry-run                Print commands without executing
   --check-update           Check for script updates
+  --verify-level <level>   Verification level: auto, basic, quick, full, none (default: auto)
   -h, --help               Show help
 
 Env vars (equivalent):
-  OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT
+  OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT, OPENCLAW_VERIFY_LEVEL
 TXT
 }
 
@@ -94,6 +96,7 @@ FORCE_CN=0
 VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
 REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
 REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
+VERIFY_LEVEL="${OPENCLAW_VERIFY_LEVEL:-$VERIFY_LEVEL_DEFAULT}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -105,6 +108,8 @@ while [[ $# -gt 0 ]]; do
       REG_FALLBACK="${2:-}"; shift 2 ;;
     --network-test)
       NETWORK_TEST=1; shift ;;
+    --verify-level)
+      VERIFY_LEVEL="${2:-}"; shift 2 ;;
     --network-optimize)
       NETWORK_OPTIMIZE=1; shift ;;
     --force-cn)
@@ -377,10 +382,8 @@ else
   fi
 fi
 
-if [[ "$DRY_RUN" == "1" ]]; then
-  echo "[cn-pack] Dry-run done (no changes made)."
-  exit 0
-fi
+# Dry-run check will be handled after verification
+# (moved to end of script to allow verification display in dry-run mode)
 
 # Self-check
 if command -v openclaw >/dev/null 2>&1; then
@@ -510,67 +513,129 @@ echo "[cn-pack] ========================================="
 echo "[cn-pack] 💡 Tip: Run these commands to verify your installation!"
 echo "[cn-pack] ========================================="
 
-# Auto-run verification if verification script is available
-if [[ $DRY_RUN -eq 0 ]]; then
-  # Determine verification script path
-  VERIFY_SCRIPT="${OPENCLAW_VERIFY_SCRIPT:-}"
-  if [[ -z "$VERIFY_SCRIPT" ]]; then
-    # Try default paths
-    if [[ -f "./scripts/verify-openclaw-install.sh" ]]; then
-      VERIFY_SCRIPT="./scripts/verify-openclaw-install.sh"
-    elif [[ -f "/tmp/verify-openclaw-install.sh" ]]; then
-      VERIFY_SCRIPT="/tmp/verify-openclaw-install.sh"
-    fi
+# 根据验证级别执行验证
+# Determine verification script path (for full verification level)
+VERIFY_SCRIPT="${OPENCLAW_VERIFY_SCRIPT:-}"
+if [[ -z "$VERIFY_SCRIPT" ]]; then
+  # Try default paths
+  if [[ -f "./scripts/verify-openclaw-install.sh" ]]; then
+    VERIFY_SCRIPT="./scripts/verify-openclaw-install.sh"
+  elif [[ -f "/tmp/verify-openclaw-install.sh" ]]; then
+    VERIFY_SCRIPT="/tmp/verify-openclaw-install.sh"
   fi
+fi
+  echo ""
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] 🔍 安装验证 (级别: $VERIFY_LEVEL)"
+  echo "[cn-pack] ========================================="
   
-  if [[ -n "$VERIFY_SCRIPT" ]] && [[ -f "$VERIFY_SCRIPT" ]]; then
-    echo ""
-    echo "[cn-pack] Running automatic installation verification using: $VERIFY_SCRIPT"
-    echo "[cn-pack] ========================================="
+  # 验证级别处理
+  case "$VERIFY_LEVEL" in
+    none)
+      echo "[cn-pack] ℹ️ 跳过验证 (级别: none)"
+      ;;
     
-    # Make verification script executable
-    chmod +x "$VERIFY_SCRIPT" 2>/dev/null || true
-    
-    # Run verification with quiet mode for clean output
-    if "$VERIFY_SCRIPT" --quiet; then
-      echo "[cn-pack] ✅ Installation verified successfully!"
-    else
-      echo "[cn-pack] ⚠️ Verification found issues. Run '$VERIFY_SCRIPT' for details."
-    fi
-    
-    echo "[cn-pack] ========================================="
-  else
-    echo ""
-    echo "[cn-pack] ℹ️ Verification script not found. Skipping automatic verification."
-    echo "[cn-pack] ℹ️ To enable verification, set OPENCLAW_VERIFY_SCRIPT=/path/to/verify-openclaw-install.sh"
-    echo "[cn-pack] ℹ️ Or download the verification script:"
-    echo "[cn-pack] ℹ️   curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/verify-openclaw-install.sh -o /tmp/verify-openclaw-install.sh"
-  fi
-  
-  # 快速验证（如果完整验证脚本不可用）
-  if [[ -z "$VERIFY_SCRIPT" ]] || [[ ! -f "$VERIFY_SCRIPT" ]]; then
-    echo ""
-    echo "[cn-pack] ========================================="
-    echo "[cn-pack] 🚀 运行快速安装验证..."
-    echo "[cn-pack] ========================================="
-    
-    # 检查当前目录是否有快速验证脚本
-    local quick_verify_script="$(dirname "$0")/quick-verify-openclaw.sh"
-    if [[ -f "$quick_verify_script" ]]; then
-      echo "[cn-pack] 使用快速验证脚本: $quick_verify_script"
-      chmod +x "$quick_verify_script" 2>/dev/null || true
-      
-      if "$quick_verify_script" --quiet; then
-        echo "[cn-pack] ✅ 快速验证通过！"
-      else
-        echo "[cn-pack] ⚠️ 快速验证发现问题。运行 '$quick_verify_script' 查看详情。"
-      fi
-    else
-      echo "[cn-pack] ℹ️ 快速验证脚本未找到。运行以下命令进行基本验证:"
+    basic)
+      echo "[cn-pack] 🚀 运行基本验证..."
+      echo "[cn-pack] ℹ️ 运行以下命令进行基本验证:"
       echo "[cn-pack] ℹ️   openclaw --version"
       echo "[cn-pack] ℹ️   openclaw status"
       echo "[cn-pack] ℹ️   openclaw gateway status"
-    fi
-    echo "[cn-pack] ========================================="
-  fi
+      ;;
+    
+    quick)
+      # 检查当前目录是否有快速验证脚本
+      quick_verify_script="$(dirname "$0")/quick-verify-openclaw.sh"
+      if [[ -f "$quick_verify_script" ]]; then
+        echo "[cn-pack] 使用快速验证脚本: $quick_verify_script"
+        chmod +x "$quick_verify_script" 2>/dev/null || true
+        
+        if "$quick_verify_script" --quiet; then
+          echo "[cn-pack] ✅ 快速验证通过！"
+        else
+          echo "[cn-pack] ⚠️ 快速验证发现问题。运行 '$quick_verify_script' 查看详情。"
+        fi
+      else
+        echo "[cn-pack] ⚠️ 快速验证脚本未找到，降级到基本验证。"
+        echo "[cn-pack] ℹ️ 运行以下命令进行基本验证:"
+        echo "[cn-pack] ℹ️   openclaw --version"
+        echo "[cn-pack] ℹ️   openclaw status"
+        echo "[cn-pack] ℹ️   openclaw gateway status"
+      fi
+      ;;
+    
+    full)
+      # 检查完整验证脚本
+      if [[ -n "$VERIFY_SCRIPT" ]] && [[ -f "$VERIFY_SCRIPT" ]]; then
+        echo "[cn-pack] 运行完整验证脚本: $VERIFY_SCRIPT"
+        chmod +x "$VERIFY_SCRIPT" 2>/dev/null || true
+        
+        if "$VERIFY_SCRIPT" --quiet; then
+          echo "[cn-pack] ✅ 完整验证通过！"
+        else
+          echo "[cn-pack] ⚠️ 完整验证发现问题。运行 '$VERIFY_SCRIPT' 查看详情。"
+        fi
+      else
+        echo "[cn-pack] ⚠️ 完整验证脚本未找到，降级到快速验证。"
+        # 尝试快速验证
+        quick_verify_script="$(dirname "$0")/quick-verify-openclaw.sh"
+        if [[ -f "$quick_verify_script" ]]; then
+          echo "[cn-pack] 使用快速验证脚本: $quick_verify_script"
+          chmod +x "$quick_verify_script" 2>/dev/null || true
+          
+          if "$quick_verify_script" --quiet; then
+            echo "[cn-pack] ✅ 快速验证通过！"
+          else
+            echo "[cn-pack] ⚠️ 快速验证发现问题。运行 '$quick_verify_script' 查看详情。"
+          fi
+        else
+          echo "[cn-pack] ℹ️ 快速验证脚本也未找到，降级到基本验证。"
+          echo "[cn-pack] ℹ️ 运行以下命令进行基本验证:"
+          echo "[cn-pack] ℹ️   openclaw --version"
+          echo "[cn-pack] ℹ️   openclaw status"
+          echo "[cn-pack] ℹ️   openclaw gateway status"
+        fi
+      fi
+      ;;
+    
+    auto|*)
+      # 自动选择验证级别
+      if [[ -n "$VERIFY_SCRIPT" ]] && [[ -f "$VERIFY_SCRIPT" ]]; then
+        echo "[cn-pack] 自动选择: 完整验证"
+        chmod +x "$VERIFY_SCRIPT" 2>/dev/null || true
+        
+        if "$VERIFY_SCRIPT" --quiet; then
+          echo "[cn-pack] ✅ 完整验证通过！"
+        else
+          echo "[cn-pack] ⚠️ 完整验证发现问题。运行 '$VERIFY_SCRIPT' 查看详情。"
+        fi
+      else
+        # 尝试快速验证
+        quick_verify_script="$(dirname "$0")/quick-verify-openclaw.sh"
+        if [[ -f "$quick_verify_script" ]]; then
+          echo "[cn-pack] 自动选择: 快速验证"
+          chmod +x "$quick_verify_script" 2>/dev/null || true
+          
+          if "$quick_verify_script" --quiet; then
+            echo "[cn-pack] ✅ 快速验证通过！"
+          else
+            echo "[cn-pack] ⚠️ 快速验证发现问题。运行 '$quick_verify_script' 查看详情。"
+          fi
+        else
+          echo "[cn-pack] 自动选择: 基本验证"
+          echo "[cn-pack] ℹ️ 运行以下命令进行基本验证:"
+          echo "[cn-pack] ℹ️   openclaw --version"
+          echo "[cn-pack] ℹ️   openclaw status"
+          echo "[cn-pack] ℹ️   openclaw gateway status"
+        fi
+      fi
+      ;;
+  esac
+  
+  echo "[cn-pack] ========================================="
+
+# Dry-run final check (after verification)
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "[cn-pack] Dry-run done (no changes made)."
+  exit 0
 fi
