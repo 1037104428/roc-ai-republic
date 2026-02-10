@@ -217,8 +217,21 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 
 ## 验证脚本
 
-我们提供了完整的验证脚本来测试 SQLite 持久化功能：
+我们提供了多个验证脚本来测试 quota-proxy 功能：
 
+### 快速验证（管理员日常用）
+```bash
+# 快速验证管理接口可用性
+./scripts/verify-admin-api-quick.sh --help
+
+# 本地验证
+./scripts/verify-admin-api-quick.sh --host 127.0.0.1:8787 --token $ADMIN_TOKEN
+
+# 远程验证（通过 SSH）
+./scripts/verify-admin-api-quick.sh --remote --token $ADMIN_TOKEN
+```
+
+### 完整 SQLite 持久化验证
 ```bash
 # 设置环境变量
 export ADMIN_TOKEN=your_admin_token_here
