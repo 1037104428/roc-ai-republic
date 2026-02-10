@@ -501,6 +501,60 @@ app.post('/admin/reset-usage', adminAuth, (req, res) => {
 // 审计日志查询端点（需要管理员认证）
 app.get('/admin/audit-logs', adminAuth, createAuditLogApi());
 
+// 统计信息API
+app.get('/admin/stats', adminAuth, (req, res) => {
+    const stats = {
+        timestamp: new Date().toISOString(),
+        server: {
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            version: 'quota-proxy/v1.0'
+        }
+    };
+    
+    // 获取数据库统计
+    const queries = [
+        'SELECT COUNT(*) as total_keys FROM api_keys',
+        'SELECT COUNT(*) as active_keys FROM api_keys WHERE expires_at IS NULL OR expires_at > datetime("now")',
+        'SELECT COUNT(*) as expired_keys FROM api_keys WHERE expires_at <= datetime("now")',
+        'SELECT SUM(total_quota) as total_quota, SUM(used_quota) as used_quota FROM api_keys',
+        'SELECT COUNT(*) as total_requests FROM usage_log',
+        'SELECT COUNT(*) as today_requests FROM usage_log WHERE date(timestamp) = date("now")'
+    ];
+    
+    let completed = 0;
+    const results = {};
+    
+    queries.forEach((query, index) => {
+        db.get(query, (err, row) => {
+            if (err) {
+                console.error(`统计查询失败: ${query}`, err);
+                results[`query_${index}`] = { error: err.message };
+            } else {
+                results[`query_${index}`] = row;
+            }
+            
+            completed++;
+            if (completed === queries.length) {
+                // 整理统计结果
+                stats.database = {
+                    total_keys: results.query_0?.total_keys || 0,
+                    active_keys: results.query_1?.active_keys || 0,
+                    expired_keys: results.query_2?.expired_keys || 0,
+                    total_quota: results.query_3?.total_quota || 0,
+                    used_quota: results.query_3?.used_quota || 0,
+                    quota_usage_percent: results.query_3?.total_quota ? 
+                        ((results.query_3.used_quota / results.query_3.total_quota) * 100).toFixed(2) : '0.00',
+                    total_requests: results.query_4?.total_requests || 0,
+                    today_requests: results.query_5?.today_requests || 0
+                };
+                
+                res.json(stats);
+            }
+        });
+    });
+});
+
 // 启动服务器
 app.listen(PORT, () => {
     console.log(`Quota proxy server running on port ${PORT}`);
