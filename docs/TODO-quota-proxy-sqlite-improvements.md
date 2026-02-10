@@ -21,7 +21,7 @@
 - [x] `POST /admin/keys` - 生成试用密钥
 - [x] `GET /admin/usage` - 查看使用情况
 - [x] `DELETE /admin/keys/:key` - 删除密钥 (2026-02-10 02:03 完成，包含验证脚本)
-- [ ] `PUT /admin/keys/:key` - 更新密钥标签
+- [x] `PUT /admin/keys/:key` - 更新密钥标签 (2026-02-10 09:50 完成，包含验证脚本)
 - [x] `GET /admin/keys` - 列出所有密钥 (2026-02-10 01:54)
 - [ ] `POST /admin/reset-usage` - 重置使用统计
 

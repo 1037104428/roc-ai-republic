@@ -307,6 +307,41 @@ app.delete('/admin/keys/:key', adminAuth, (req, res) => {
     });
 });
 
+// 更新密钥标签
+app.put('/admin/keys/:key', adminAuth, (req, res) => {
+    const { key } = req.params;
+    const { label } = req.body;
+    
+    if (!key) {
+        return res.status(400).json({ error: 'Key parameter is required' });
+    }
+    
+    if (!label || label.trim() === '') {
+        return res.status(400).json({ error: 'Label is required and cannot be empty' });
+    }
+    
+    const trimmedLabel = label.trim();
+    
+    db.run('UPDATE api_keys SET label = ? WHERE key = ?', [trimmedLabel, key], function(err) {
+        if (err) {
+            console.error('Error updating key label:', err);
+            return res.status(500).json({ error: 'Failed to update key label' });
+        }
+        
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Key not found' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Key ${key} label updated successfully`,
+            key,
+            label: trimmedLabel,
+            updated: this.changes
+        });
+    });
+});
+
 // 数据库性能统计
 app.get('/admin/performance', adminAuth, (req, res) => {
     const stats = queryPerformance.getStats();
