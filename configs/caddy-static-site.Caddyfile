@@ -1,0 +1,118 @@
+# Caddyfile for ROC AI Republic Static Site
+# 中华AI共和国 / OpenClaw 小白中文包 - 静态站点配置
+# 部署命令：caddy run --config ./configs/caddy-static-site.Caddyfile --adapter caddyfile
+
+# 全局配置
+{
+    # 管理API（本地访问）
+    admin localhost:2019
+    # 日志级别
+    log {
+        level INFO
+    }
+}
+
+# 主站点配置
+:8788 {
+    # 根目录 - 静态文件服务
+    root * /opt/roc/web
+    
+    # 启用文件浏览（可选，开发环境）
+    file_server browse
+    
+    # 压缩
+    encode gzip zstd
+    
+    # 安全头
+    header {
+        # 安全相关
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # 缓存控制（静态资源）
+        Cache-Control "public, max-age=3600"
+    }
+    
+    # 默认首页
+    @index {
+        file {
+            try_files {path} {path}/ /index.html
+        }
+    }
+    rewrite @index /index.html
+    
+    # 健康检查端点
+    @health {
+        path /healthz
+    }
+    respond @health "OK" 200 {
+        close
+    }
+    
+    # API文档重定向（如果存在）
+    @apiDocs {
+        path /api/docs
+    }
+    redir @apiDocs /docs/api.html
+    
+    # 错误页面
+    handle_errors {
+        @404 {
+            expression {http.error.status_code} == 404
+        }
+        respond @404 "404 - 页面未找到" 404 {
+            close
+        }
+        
+        @5xx {
+            expression {http.error.status_code} >= 500
+        }
+        respond @5xx "500 - 服务器内部错误" 500 {
+            close
+        }
+    }
+    
+    # 日志
+    log {
+        output stdout
+        format console
+    }
+}
+
+# 配额代理API网关（反向代理）
+:8787 {
+    # 反向代理到quota-proxy服务
+    reverse_proxy http://localhost:3000 {
+        # 保持连接
+        transport http {
+            dial_timeout 10s
+            response_header_timeout 30s
+        }
+        
+        # 健康检查
+        health_uri /healthz
+        health_interval 30s
+        health_timeout 5s
+    }
+    
+    # 安全头
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+    }
+    
+    # 日志
+    log {
+        output stdout
+        format console
+    }
+}
+
+# HTTPS配置（需要域名和证书）
+# example.com {
+#     tls admin@example.com
+#     root * /opt/roc/web
+#     file_server
+# }
