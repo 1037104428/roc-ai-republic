@@ -2,62 +2,84 @@
 
 ## 问题描述
 
-论坛 `forum.clawdrepublic.cn` 外网访问返回 **502 Bad Gateway** 错误，但服务器本地访问正常（`127.0.0.1:8081`）。
+访问 `http://forum.clawdrepublic.cn/` 返回 502 Bad Gateway 错误。
 
 ## 根本原因
 
-Flarum 论坛在服务器上运行于 `127.0.0.1:8081`，但外网访问需要通过反向代理（Caddy/Nginx）转发。当前反向代理配置缺失或错误。
+Flarum 论坛服务在服务器内部运行在 `127.0.0.1:8081`，但缺少对外网访问的反向代理配置。
 
-## 快速修复
+## 解决方案
 
-### 方法一：使用自动修复脚本（推荐）
+### 方案一：使用 Caddy（推荐，自动 HTTPS）
 
-```bash
-cd /home/kai/.openclaw/workspace/roc-ai-republic
-./scripts/fix-forum-502.sh
-```
+Caddy 配置简单，支持自动 HTTPS。
 
-脚本会：
-1. 检查当前论坛状态
-2. 检测使用的 Web 服务器（Caddy/Nginx）
-3. 生成正确的反向代理配置
-4. 提供自动或手动应用选项
+1. **部署修复脚本**：
+   ```bash
+   cd /path/to/roc-ai-republic
+   ./scripts/deploy-forum-fix-502.sh --caddy
+   ```
 
-### 方法二：手动修复 Caddy 配置
+2. **验证修复**：
+   ```bash
+   ./scripts/verify-forum-502-fix.sh
+   ```
 
-如果使用 Caddy，在 `/etc/caddy/Caddyfile` 末尾添加：
+### 方案二：使用 Nginx
+
+如果需要手动管理 SSL 证书，使用 Nginx。
+
+1. **部署修复脚本**：
+   ```bash
+   cd /path/to/roc-ai-republic
+   ./scripts/deploy-forum-fix-502.sh --nginx
+   ```
+
+2. **配置 SSL 证书**（如果需要 HTTPS）：
+   ```bash
+   # 使用 certbot 获取证书
+   certbot --nginx -d forum.clawdrepublic.cn
+   ```
+
+3. **验证修复**：
+   ```bash
+   ./scripts/verify-forum-502-fix.sh
+   ```
+
+## 手动配置步骤
+
+### Caddy 配置
+
+在 `/etc/caddy/Caddyfile` 中添加：
 
 ```caddy
-# forum.clawdrepublic.cn 反向代理配置
 forum.clawdrepublic.cn {
-    # 反向代理到本地 Flarum 论坛
     reverse_proxy 127.0.0.1:8081 {
         header_up Host {host}
         header_up X-Real-IP {remote}
         header_up X-Forwarded-For {remote}
         header_up X-Forwarded-Proto {scheme}
     }
-    
-    # 日志
-    log {
-        output file /var/log/caddy/forum.access.log
-        format json
+    encode gzip
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
     }
 }
 ```
 
-然后重载 Caddy：
+重载 Caddy：
 ```bash
-caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
 
-### 方法三：手动修复 Nginx 配置
+### Nginx 配置
 
-如果使用 Nginx，创建 `/etc/nginx/sites-available/forum.clawdrepublic.cn`：
+创建 `/etc/nginx/sites-available/forum.clawdrepublic.cn`：
 
 ```nginx
-# forum.clawdrepublic.cn 反向代理配置
 server {
     listen 80;
     listen [::]:80;
@@ -69,86 +91,118 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # WebSocket 支持（Flarum 可能需要）
-        proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
     
-    access_log /var/log/nginx/forum.access.log;
-    error_log /var/log/nginx/forum.error.log;
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        proxy_pass http://127.0.0.1:8081;
+    }
 }
 ```
 
-启用配置并重载：
+启用配置：
 ```bash
 ln -sf /etc/nginx/sites-available/forum.clawdrepublic.cn /etc/nginx/sites-enabled/
 nginx -t
 systemctl reload nginx
 ```
 
-## 验证修复
+## 验证步骤
 
-修复后验证：
+### 基础验证
 
 ```bash
-# 1. 检查本地服务
-ssh root@8.210.185.194 'curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null && echo "本地服务正常"'
+# 检查论坛是否可访问
+curl -fsS -m 5 http://forum.clawdrepublic.cn/
 
-# 2. 检查外网访问
-curl -fsS -m 5 http://forum.clawdrepublic.cn/ >/dev/null && echo "外网访问正常"
+# 使用验证脚本
+./scripts/verify-forum-502-fix.sh --verbose
 
-# 3. 使用探活脚本
-cd /home/kai/.openclaw/workspace/roc-ai-republic
-./scripts/probe.sh --no-ssh
+# JSON 格式输出（适合 CI/CD）
+./scripts/verify-forum-502-fix.sh --json
 ```
 
-## 故障排查
+### 完整验证清单
 
-如果修复后仍然 502：
-
-1. **检查 Flarum 服务状态**：
+1. **内部服务检查**：
    ```bash
-   ssh root@8.210.185.194 'systemctl status flarum || docker ps | grep flarum'
+   ssh root@服务器IP "curl -fsS http://127.0.0.1:8081/"
    ```
 
-2. **检查端口监听**：
+2. **反向代理检查**：
    ```bash
-   ssh root@8.210.185.194 'netstat -tlnp | grep :8081'
+   ssh root@服务器IP "systemctl status caddy || systemctl status nginx"
    ```
 
-3. **检查防火墙**：
+3. **防火墙检查**：
    ```bash
-   ssh root@8.210.185.194 'iptables -L -n | grep :80'
+   ssh root@服务器IP "iptables -L -n | grep :80"
    ```
 
-4. **检查 DNS 解析**：
+4. **域名解析检查**：
    ```bash
-   nslookup forum.clawdrepublic.cn
-   dig forum.clawdrepublic.cn
+   dig forum.clawdrepublic.cn +short
    ```
 
-5. **查看 Web 服务器日志**：
-   ```bash
-   ssh root@8.210.185.194 'tail -f /var/log/caddy/forum.access.log'
-   # 或
-   ssh root@8.210.185.194 'tail -f /var/log/nginx/forum.error.log'
-   ```
+## 故障排除
 
-## 预防措施
+### 常见问题
 
-1. **配置监控**：将论坛可用性加入 `probe.sh` 定期检查
-2. **文档更新**：新部署时自动配置反向代理
-3. **备份配置**：定期备份 Caddy/Nginx 配置文件
+1. **502 错误仍然存在**
+   - 检查 Flarum 服务是否运行：`systemctl status flarum`
+   - 检查端口监听：`netstat -tlnp | grep :8081`
+   - 检查服务日志：`journalctl -u flarum -n 20`
 
-## 相关文件
+2. **Caddy/Nginx 配置错误**
+   - Caddy：`caddy validate --config /etc/caddy/Caddyfile`
+   - Nginx：`nginx -t`
 
-- `scripts/fix-forum-502.sh` - 自动修复脚本
-- `docs/tickets.md` - 问题跟踪
-- `scripts/probe.sh` - 探活脚本（包含论坛检查）
+3. **权限问题**
+   - 确保 Caddy/Nginx 用户有权访问证书文件
+   - 检查 SELinux/AppArmor 限制
 
-## 更新记录
+4. **DNS 问题**
+   - 确认域名解析到正确的服务器 IP
+   - 检查 DNS 缓存：`dig forum.clawdrepublic.cn`
 
-- 2026-02-10: 创建修复指南和自动脚本
-- 2026-02-09: 首次发现论坛 502 问题并记录到 tickets.md
+### 回滚步骤
+
+如果修复失败，可以回滚：
+
+```bash
+# Caddy 回滚
+ssh root@服务器IP "cp /etc/caddy/Caddyfile.backup.* /etc/caddy/Caddyfile && systemctl reload caddy"
+
+# Nginx 回滚
+ssh root@服务器IP "rm /etc/nginx/sites-enabled/forum.clawdrepublic.cn && systemctl reload nginx"
+```
+
+## 自动化脚本
+
+项目提供了完整的自动化脚本：
+
+| 脚本 | 用途 | 示例 |
+|------|------|------|
+| `deploy-forum-fix-502.sh` | 部署修复 | `./deploy-forum-fix-502.sh --caddy --dry-run` |
+| `verify-forum-502-fix.sh` | 验证修复 | `./verify-forum-502-fix.sh --json` |
+| `probe-roc-all.sh` | 完整探活 | `./probe-roc-all.sh`（包含论坛检查） |
+
+## 后续维护
+
+1. **监控**：将论坛可用性加入监控系统
+2. **备份**：定期备份论坛数据和配置
+3. **更新**：保持 Flarum 和反向代理软件更新
+4. **安全**：定期检查 SSL 证书和安全性配置
+
+## 相关文档
+
+- [论坛部署指南](../docs/forum-deployment.md)
+- [服务器运维检查清单](../docs/ops-server-healthcheck.md)
+- [故障排查手册](../docs/troubleshooting.md)

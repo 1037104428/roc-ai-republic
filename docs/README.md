@@ -78,6 +78,21 @@
   ```bash
   ./scripts/quick-verify-openclaw.sh
   ```
+
+### 论坛 502 错误修复
+
+如果访问 `http://forum.clawdrepublic.cn/` 遇到 502 错误，请参考：
+
+- 完整修复指南：`docs/forum-502-fix-guide.md`
+- 一键部署脚本：`scripts/deploy-forum-fix-502.sh`
+- 验证脚本：`scripts/verify-forum-502-fix.sh`
+
+快速修复（使用 Caddy）：
+```bash
+cd /path/to/roc-ai-republic
+./scripts/deploy-forum-fix-502.sh --caddy
+./scripts/verify-forum-502-fix.sh
+```
 - 完整使用指南：`docs/install-cn-guide.md`
 - 故障排除指南：`docs/install-cn-troubleshooting.md`
 
