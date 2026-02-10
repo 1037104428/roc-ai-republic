@@ -41,6 +41,24 @@ CREATE TABLE audit_log (
 | VIEW_PERFORMANCE | 查看性能指标 | GET /admin/performance |
 | OTHER_ADMIN_ACTION | 其他管理操作 | 其他 Admin API 路径 |
 
+## 快速验证
+
+要快速验证审计日志功能是否正常工作，可以使用以下命令：
+
+```bash
+# 本地验证
+./scripts/verify-audit-log.sh --local
+
+# 远程验证（针对已部署的服务器）
+./scripts/verify-audit-log.sh --remote 8.210.185.194:8787
+```
+
+验证脚本会：
+1. 创建一个测试密钥
+2. 查询使用情况
+3. 检查审计日志中是否记录了这些操作
+4. 清理测试数据
+
 ## API 端点
 
 ### GET /admin/audit-logs
