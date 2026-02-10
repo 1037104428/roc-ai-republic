@@ -1,0 +1,66 @@
+# Docker Compose 配置 - 带数据持久化的 quota-proxy SQLite 版本
+# 使用此配置确保数据库文件在容器重启后不丢失
+
+version: '3.8'
+
+services:
+  quota-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile-sqlite-correct
+    container_name: quota-proxy-sqlite-persistent
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      - NODE_ENV=production
+      - PORT=8787
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-86107c4b19f1c2b7a4f67550752c4854dba8263eac19340d}
+      - STORE_PATH=/data/quota.db
+      - LOG_LEVEL=info
+      - ENABLE_RATE_LIMIT=true
+      - MAX_REQUESTS_PER_MINUTE=60
+      - ENABLE_IP_WHITELIST=false
+      - ENABLE_OPERATION_LOG=true
+      - KEY_EXPIRY_DAYS=30
+    volumes:
+      # 持久化数据卷 - 数据库文件
+      - quota-data:/data
+      # 可选：挂载配置文件
+      # - ./config:/config:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8787/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+volumes:
+  quota-data:
+    # 使用命名卷持久化数据
+    # 数据存储在 Docker 卷中，不会随容器删除而丢失
+    # 查看卷位置：docker volume inspect quota-proxy_quota-data
+    driver: local
+    # 可选：指定本地路径（便于备份）
+    # driver_opts:
+    #   type: none
+    #   device: /opt/roc/quota-proxy/data
+    #   o: bind
+
+# 网络配置（可选）
+networks:
+  default:
+    name: quota-proxy-network
+    driver: bridge
