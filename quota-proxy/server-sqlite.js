@@ -209,12 +209,22 @@ const adminAuth = (req, res, next) => {
 
 // 生成试用密钥
 app.post('/admin/keys', adminAuth, (req, res) => {
-    const { label, totalQuota = 1000 } = req.body;
+    const { label, totalQuota = 1000, expiresAt } = req.body;
     const key = `sk-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
+    // 验证过期时间格式（如果提供）
+    let expiresAtValue = null;
+    if (expiresAt) {
+        const expiresDate = new Date(expiresAt);
+        if (isNaN(expiresDate.getTime())) {
+            return res.status(400).json({ error: 'Invalid expiresAt format. Use ISO 8601 format (e.g., 2026-12-31T23:59:59Z)' });
+        }
+        expiresAtValue = expiresDate.toISOString();
+    }
+    
     db.run(
-        'INSERT INTO api_keys (key, label, total_quota) VALUES (?, ?, ?)',
-        [key, label, totalQuota],
+        'INSERT INTO api_keys (key, label, total_quota, expires_at) VALUES (?, ?, ?, ?)',
+        [key, label, totalQuota, expiresAtValue],
         function(err) {
             if (err) {
                 return res.status(500).json({ error: 'Failed to create key' });
@@ -224,6 +234,7 @@ app.post('/admin/keys', adminAuth, (req, res) => {
                 key,
                 label,
                 totalQuota,
+                expiresAt: expiresAtValue,
                 id: this.lastID
             });
         }
@@ -320,22 +331,57 @@ app.delete('/admin/keys/:key', adminAuth, (req, res) => {
 // 更新密钥标签
 app.put('/admin/keys/:key', adminAuth, (req, res) => {
     const { key } = req.params;
-    const { label } = req.body;
+    const { label, expiresAt } = req.body;
     
     if (!key) {
         return res.status(400).json({ error: 'Key parameter is required' });
     }
     
-    if (!label || label.trim() === '') {
-        return res.status(400).json({ error: 'Label is required and cannot be empty' });
+    // 至少需要一个字段来更新
+    if (!label && !expiresAt) {
+        return res.status(400).json({ error: 'At least one field (label or expiresAt) is required for update' });
     }
     
-    const trimmedLabel = label.trim();
+    // 验证过期时间格式（如果提供）
+    let expiresAtValue = null;
+    if (expiresAt !== undefined) {
+        if (expiresAt === null) {
+            expiresAtValue = null; // 清除过期时间
+        } else {
+            const expiresDate = new Date(expiresAt);
+            if (isNaN(expiresDate.getTime())) {
+                return res.status(400).json({ error: 'Invalid expiresAt format. Use ISO 8601 format (e.g., 2026-12-31T23:59:59Z) or null to clear expiration' });
+            }
+            expiresAtValue = expiresDate.toISOString();
+        }
+    }
     
-    db.run('UPDATE api_keys SET label = ? WHERE key = ?', [trimmedLabel, key], function(err) {
+    // 构建更新语句
+    const updates = [];
+    const params = [];
+    
+    if (label !== undefined) {
+        const trimmedLabel = label ? label.trim() : '';
+        if (trimmedLabel === '') {
+            return res.status(400).json({ error: 'Label cannot be empty if provided' });
+        }
+        updates.push('label = ?');
+        params.push(trimmedLabel);
+    }
+    
+    if (expiresAt !== undefined) {
+        updates.push('expires_at = ?');
+        params.push(expiresAtValue);
+    }
+    
+    params.push(key);
+    
+    const updateQuery = `UPDATE api_keys SET ${updates.join(', ')} WHERE key = ?`;
+    
+    db.run(updateQuery, params, function(err) {
         if (err) {
-            console.error('Error updating key label:', err);
-            return res.status(500).json({ error: 'Failed to update key label' });
+            console.error('Error updating key:', err);
+            return res.status(500).json({ error: 'Failed to update key' });
         }
         
         if (this.changes === 0) {
@@ -344,9 +390,10 @@ app.put('/admin/keys/:key', adminAuth, (req, res) => {
         
         res.json({ 
             success: true, 
-            message: `Key ${key} label updated successfully`,
+            message: `Key ${key} updated successfully`,
             key,
-            label: trimmedLabel,
+            label: label !== undefined ? (label ? label.trim() : '') : undefined,
+            expiresAt: expiresAt !== undefined ? expiresAtValue : undefined,
             updated: this.changes
         });
     });
