@@ -1,12 +1,41 @@
 #!/bin/bash
 # 综合测试 quota-proxy 管理接口
-# 用法: ./test-admin-comprehensive.sh [--host HOST] [--token TOKEN]
+# 用法: ./test-admin-comprehensive.sh [--host HOST] [--token TOKEN] [--help]
 
 set -e
 
 HOST="http://127.0.0.1:8787"
 TOKEN="${ADMIN_TOKEN:-}"
 LABEL_PREFIX="test-$(date +%Y%m%d-%H%M%S)"
+
+# 显示帮助信息
+show_help() {
+    cat << EOF
+综合测试 quota-proxy 管理接口
+
+用法: $0 [选项]
+
+选项:
+  --host HOST     quota-proxy 主机地址 (默认: http://127.0.0.1:8787)
+  --token TOKEN   管理员令牌 (默认: 从 ADMIN_TOKEN 环境变量读取)
+  --help          显示此帮助信息
+
+环境变量:
+  ADMIN_TOKEN     管理员令牌，如果未通过 --token 指定则使用此变量
+
+示例:
+  # 使用环境变量中的令牌
+  export ADMIN_TOKEN="your-admin-token"
+  $0
+
+  # 指定令牌和主机
+  $0 --token "your-admin-token" --host "http://127.0.0.1:8787"
+
+  # 测试远程服务器
+  $0 --token "your-admin-token" --host "http://your-server:8787"
+EOF
+    exit 0
+}
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
@@ -19,8 +48,12 @@ while [[ $# -gt 0 ]]; do
             TOKEN="$2"
             shift 2
             ;;
+        --help)
+            show_help
+            ;;
         *)
-            echo "未知参数: $1"
+            echo "错误: 未知参数: $1"
+            echo "使用 --help 查看用法"
             exit 1
             ;;
     esac
