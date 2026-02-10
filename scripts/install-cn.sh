@@ -342,3 +342,18 @@ if [[ $DRY_RUN -eq 0 ]]; then
     fi
   fi
 fi
+
+# Quick verification summary
+echo ""
+echo "[cn-pack] ========================================="
+echo "[cn-pack] 🚀 QUICK VERIFICATION COMMANDS:"
+echo "[cn-pack] ========================================="
+echo "[cn-pack] 1. Check version:    openclaw --version"
+echo "[cn-pack] 2. Check status:     openclaw status"
+echo "[cn-pack] 3. Start gateway:    openclaw gateway start"
+echo "[cn-pack] 4. Check gateway:    openclaw gateway status"
+echo "[cn-pack] 5. Test models:      openclaw models status"
+echo "[cn-pack] 6. Get help:         openclaw --help"
+echo "[cn-pack] ========================================="
+echo "[cn-pack] 💡 Tip: Run these commands to verify your installation!"
+echo "[cn-pack] ========================================="
