@@ -65,36 +65,101 @@ TRIAL_KEY 是 Clawd Republic 提供的试用密钥，允许开发者免费体验
 - 调用限额：每日 100 次调用
 - 可续期：试用期满后可申请续期
 
-### 调用示例
-使用 curl 调用 API：
+### 快速验证密钥
+拿到密钥后，建议先进行快速验证：
 
 ```bash
-# 基础调用示例
+# 设置环境变量（避免反复复制）
+export TRIAL_KEY="YOUR_TRIAL_KEY_HERE"
+
+# 1. 健康检查（不消耗额度）
+curl -fsS https://api.clawdrepublic.cn/healthz
+
+# 2. 查看可用模型（确认密钥生效）
+curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer $TRIAL_KEY" \
+  | head -20
+
+# 3. 检查配额使用情况
+curl -fsS https://api.clawdrepublic.cn/v1/quota/usage \
+  -H "Authorization: Bearer $TRIAL_KEY" \
+  | python3 -m json.tool
+```
+
+### 完整调用示例
+
+```bash
+# 基础调用示例（同步响应）
 curl -X POST https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TRIAL_KEY" \
+  -H "Authorization: Bearer $TRIAL_KEY" \
   -d '{
-    "model": "gpt-3.5-turbo",
+    "model": "deepseek-chat",
     "messages": [
       {"role": "user", "content": "你好，请介绍一下 Clawd Republic"}
     ]
   }'
 
-# 流式响应示例
+# 流式响应示例（适合长文本）
 curl -X POST https://api.clawdrepublic.cn/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TRIAL_KEY" \
+  -H "Authorization: Bearer $TRIAL_KEY" \
   -d '{
-    "model": "gpt-3.5-turbo",
+    "model": "deepseek-chat",
     "messages": [
       {"role": "user", "content": "写一首关于AI的诗"}
     ],
     "stream": true
   }'
 
-# 检查配额使用情况
-curl -X GET https://api.clawdrepublic.cn/v1/quota/usage \
-  -H "Authorization: Bearer YOUR_TRIAL_KEY"
+# 带参数的调用示例
+curl -X POST https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TRIAL_KEY" \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [
+      {"role": "system", "content": "你是一个有帮助的AI助手"},
+      {"role": "user", "content": "帮我写一个Python函数，计算斐波那契数列"}
+    ],
+    "temperature": 0.7,
+    "max_tokens": 500
+  }'
+```
+
+### 实际使用脚本示例
+
+```bash
+#!/bin/bash
+# 示例：使用TRIAL_KEY调用AI API的完整脚本
+
+TRIAL_KEY="YOUR_TRIAL_KEY_HERE"
+API_URL="https://api.clawdrepublic.cn/v1/chat/completions"
+
+# 函数：调用AI
+call_ai() {
+    local prompt="$1"
+    curl -s -X POST "$API_URL" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $TRIAL_KEY" \
+        -d "{
+            \"model\": \"deepseek-chat\",
+            \"messages\": [{\"role\": \"user\", \"content\": \"$prompt\"}],
+            \"temperature\": 0.7
+        }" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data['choices'][0]['message']['content'])
+except:
+    print('调用失败')
+"
+}
+
+# 示例调用
+echo "测试AI调用..."
+response=$(call_ai "用一句话介绍Clawd Republic")
+echo "AI回复：$response"
 ```
 
 ### 使用限制
