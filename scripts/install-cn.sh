@@ -26,6 +26,7 @@ Options:
   --registry-cn <url>      CN npm registry (default: https://registry.npmmirror.com)
   --registry-fallback <u>  Fallback npm registry (default: https://registry.npmjs.org)
   --network-test           Run network connectivity test before install
+  --network-optimize       Run advanced network optimization (detect best mirrors)
   --force-cn               Force using CN registry (skip fallback)
   --dry-run                Print commands without executing
   -h, --help               Show help
@@ -37,6 +38,7 @@ TXT
 
 DRY_RUN=0
 NETWORK_TEST=0
+NETWORK_OPTIMIZE=0
 FORCE_CN=0
 VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
 REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
@@ -52,6 +54,8 @@ while [[ $# -gt 0 ]]; do
       REG_FALLBACK="${2:-}"; shift 2 ;;
     --network-test)
       NETWORK_TEST=1; shift ;;
+    --network-optimize)
+      NETWORK_OPTIMIZE=1; shift ;;
     --force-cn)
       FORCE_CN=1; shift ;;
     --dry-run)
@@ -133,9 +137,62 @@ run_network_test() {
   fi
 }
 
+# 网络优化功能
+run_network_optimization() {
+  echo "[cn-pack] 运行高级网络优化检测..."
+  echo "[cn-pack] 这将测试多个镜像源并选择最快的"
+  
+  # 检查优化脚本是否存在
+  local optimize_script="$(dirname "$0")/optimize-network-sources.sh"
+  if [[ -f "$optimize_script" ]]; then
+    echo "[cn-pack] 找到网络优化脚本: $optimize_script"
+    
+    # 运行优化脚本
+    if bash "$optimize_script"; then
+      echo ""
+      echo "[cn-pack] ✅ 网络优化完成"
+      echo "[cn-pack] 优化配置已保存到 ~/.openclaw-network-optimization.conf"
+      echo "[cn-pack] 下次安装时可以使用: source ~/.openclaw-network-optimization.conf"
+    else
+      echo "[cn-pack] ⚠️ 网络优化脚本执行失败，使用基本网络测试"
+      run_network_test
+    fi
+  else
+    echo "[cn-pack] ⚠️ 网络优化脚本未找到，使用基本网络测试"
+    run_network_test
+  fi
+}
+
+if [[ "$NETWORK_OPTIMIZE" == "1" ]]; then
+  run_network_optimization
+  exit 0
+fi
+
+if [[ "$NETWORK_OPTIMIZE" == "1" ]]; then
+  run_network_optimization
+  exit 0
+fi
+
 if [[ "$NETWORK_TEST" == "1" ]]; then
   run_network_test
   exit 0
+fi
+
+# 检查是否有优化配置文件
+if [[ -f "${HOME}/.openclaw-network-optimization.conf" ]]; then
+  echo "[cn-pack] 检测到网络优化配置，正在加载..."
+  # 安全地加载配置，只设置镜像源相关变量
+  if source "${HOME}/.openclaw-network-optimization.conf" 2>/dev/null; then
+    if [[ -n "${NPM_REGISTRY:-}" ]]; then
+      REG_CN="$NPM_REGISTRY"
+      echo "[cn-pack] ✅ 使用优化后的 npm 镜像源: $REG_CN"
+    fi
+    if [[ -n "${NPM_REGISTRY_FALLBACK:-}" ]]; then
+      REG_FALLBACK="$NPM_REGISTRY_FALLBACK"
+    fi
+  else
+    echo "[cn-pack] ⚠️ 优化配置文件加载失败，使用默认配置"
+  fi
 fi
 
 if command -v node >/dev/null 2>&1; then
