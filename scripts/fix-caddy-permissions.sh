@@ -60,7 +60,7 @@ if [[ "$DRY_RUN" == false ]]; then
         if grep -q "forum.log" /etc/caddy/Caddyfile; then
             echo "Found forum.log reference, creating simplified Caddyfile..."
             # Create a simplified Caddyfile without forum.log
-            cat > /tmp/Caddyfile.simple << EOF
+            cat > /tmp/Caddyfile.simple << 'EOF'
 # Caddyfile for ROC AI Republic static site
 # Simplified version without forum.log
 
