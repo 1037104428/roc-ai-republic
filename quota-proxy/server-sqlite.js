@@ -3,6 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const { adminRateLimit } = require('./middleware/rate-limit');
+const { createAdminIpWhitelist } = require('./middleware/ip-whitelist');
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -182,8 +183,12 @@ app.post('/gateway', (req, res) => {
     });
 });
 
-// Admin API - 受速率限制保护
+// Admin API - 受速率限制、IP白名单保护
 app.use('/admin', adminRateLimit);
+
+// Admin IP 白名单中间件（如果设置了 ADMIN_IP_WHITELIST 环境变量）
+const adminIpWhitelist = createAdminIpWhitelist();
+app.use('/admin', adminIpWhitelist);
 
 // Admin 认证中间件
 const adminAuth = (req, res, next) => {
