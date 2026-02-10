@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRIAL_KEY 获取指南 - Clawd 国度</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #10b981;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --border: #e2e8f0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: var(--light);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .logo i {
+            font-size: 1.8rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+        }
+        
+        .btn-secondary:hover {
+            background: #0da271;
+        }
+        
+        .hero {
+            padding: 4rem 0;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 3rem;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            background: white;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 3rem;
+        }
+        
+        h2 {
+            color: var(--primary);
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        h3 {
+            color: var(--dark);
+            margin: 1.5rem 0 0.8rem;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: var(--gray);
+        }
+        
+        .card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+        
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+        }
+        
+        .faq-item {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .faq-question {
+            font-weight: bold;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .steps {
+            counter-reset: step;
+            margin: 2rem 0;
+        }
+        
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 1.5rem 0;
+            padding-left: 3rem;
+            position: relative;
+        }
+        
+        .step:before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2rem;
+            height: 2rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+        
+        .warning i {
+            color: #f59e0b;
+            margin-right: 0.5rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--gray);
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 1.5rem;
+            }
+            
+            .step {
+                padding-left: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="nav-container">
+                <a href="/" class="logo">
+                    <i class="fas fa-paw"></i>
+                    Clawd 国度
+                </a>
+                <div class="nav-links">
+                    <a href="/">首页</a>
+                    <a href="/quickstart.html">快速开始</a>
+                    <a href="/quota-proxy.html">API网关</a>
+                    <a href="/downloads.html">下载</a>
+                    <a href="/forum/" target="_blank">论坛</a>
+                    <a href="https://github.com/1037104428/roc-ai-republic" target="_blank">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1><i class="fas fa-key"></i> TRIAL_KEY 获取指南</h1>
+            <p>获取免费 DeepSeek API 试用密钥，开始你的 AI 开发之旅</p>
+            <a href="#apply" class="btn btn-secondary">立即申请</a>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="content">
+            <h2>什么是 TRIAL_KEY？</h2>
+            <p>TRIAL_KEY 是 Clawd 国度提供的免费试用密钥，用于访问 DeepSeek API 网关服务。每个密钥每日有 <strong>200 次</strong>请求限制，适合学习、开发和测试使用。</p>
+            
+            <div class="card">
+                <h3><i class="fas fa-info-circle"></i> 关键特性</h3>
+                <ul>
+                    <li>免费使用 DeepSeek API</li>
+                    <li>每日 200 次请求限制</li>
+                    <li>支持所有 DeepSeek 模型</li>
+                    <li>自动用量统计</li>
+                    <li>24 小时技术支持</li>
+                </ul>
+            </div>
+
+            <h2 id="apply">如何获取 TRIAL_KEY？</h2>
+            
+            <div class="steps">
+                <div class="step">
+                    <div class="step-content">
+                        <h3>方式一：论坛申请（推荐）</h3>
+                        <p>通过官方论坛申请，适合所有用户：</p>
+                        <ol>
+                            <li>访问 <a href="https://clawdrepublic.cn/forum/" target="_blank">Clawd 国度论坛</a></li>
+                            <li>注册账号并登录</li>
+                            <li>在「TRIAL_KEY 申请」板块发帖</li>
+                            <li>按照模板填写申请信息</li>
+                            <li>管理员会在 24 小时内审核并发放密钥</li>
+                        </ol>
+                        <a href="https://clawdrepublic.cn/forum/" class="btn" target="_blank">前往论坛</a>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-content">
+                        <h3>方式二：管理员接口（内部使用）</h3>
+                        <p>如果你是项目贡献者或内部成员：</p>
+                        <pre><code># 在服务器本地执行（需要管理员权限）
+curl -X POST http://127.0.0.1:8787/admin/keys \
+  -H "Authorization: Bearer \$ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "贡献者-你的名字-202502",
+    "dailyLimit": 200,
+    "expiresAt": "2026-12-31T23:59:59Z"
+  }'</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <h2>如何使用 TRIAL_KEY？</h2>
+            
+            <h3>1. 设置环境变量</h3>
+            <pre><code># Linux/macOS
+export CLAWD_TRIAL_KEY="sk-your-trial-key-here"
+echo "export CLAWD_TRIAL_KEY=\"sk-your-trial-key-here\"" >> ~/.bashrc
+
+# Windows PowerShell
+$env:CLAWD_TRIAL_KEY = "sk-your-trial-key-here"
+[System.Environment]::SetEnvironmentVariable('CLAWD_TRIAL_KEY', 'sk-your-trial-key-here', 'User')</code></pre>
+            
+            <h3>2. 验证密钥是否有效</h3>
+            <pre><code># 检查 API 网关健康状态
+curl -fsS https://api.clawdrepublic.cn/healthz
+
+# 验证密钥权限（返回 200 表示有效）
+curl -fsS https://api.clawdrepublic.cn/v1/models \
+  -H "Authorization: Bearer \$CLAWD_TRIAL_KEY"</code></pre>
+            
+            <h3>3. 调用 DeepSeek API</h3>
+            <pre><code># 简单对话示例
+curl https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer \$CLAWD_TRIAL_KEY" \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [
+      {"role": "user", "content": "你好，请介绍一下自己"}
+    ],
+    "max_tokens": 100
+  }'</code></pre>
+
+            <h2>查看使用情况</h2>
+            
+            <div class="card">
+                <h3><i class="fas fa-chart-line"></i> 用户查看自己的用量</h3>
+                <pre><code>curl https://api.clawdrepublic.cn/v1/usage \
+  -H "Authorization: Bearer \$CLAWD_TRIAL_KEY"</code></pre>
+            </div>
+            
+            <div class="card">
+                <h3><i class="fas fa-user-shield"></i> 管理员查看所有密钥用量</h3>
+                <pre><code># 需要管理员权限
+curl http://127.0.0.1:8787/admin/usage \
+  -H "Authorization: Bearer \$ADMIN_TOKEN"</code></pre>
+            </div>
+
+            <h2>常见问题</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">Q: 密钥失效了怎么办？</div>
+                <p>A: 检查是否超过每日限制（200次）或已过期。如需续期，请在论坛申请。</p>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">Q: 收到 401/403 错误？</div>
+                <p>A: 确保：1) 密钥正确（无多余空格） 2) 环境变量已设置 3) 密钥未过期</p>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">Q: 如何重置用量？</div>
+                <p>A: 个人用户无法重置，每日 0 点自动重置。如有特殊需求，请联系管理员。</p>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">Q: 可以分享密钥吗？</div>
+                <p>A: 不可以。每个密钥绑定个人使用，分享会导致双方都被封禁。</p>
+            </div>
+
+            <div class="warning">
+                <h3><i class="fas fa-exclamation-triangle"></i> 安全提醒</h3>
+                <ul>
+                    <li><strong>不要公开密钥</strong>：不要在 GitHub、论坛、聊天中公开你的 TRIAL_KEY</li>
+                    <li><strong>定期更换</strong>：建议每 3 个月申请新密钥</li>
+                    <li><strong>监控用量</strong>：定期检查使用情况，避免超限</li>
+                    <li><strong>举报滥用</strong>：发现密钥被盗用，立即联系管理员</li>
+                </ul>
+            </div>
+
+            <h2>技术支持</h2>
+            <p>如果你遇到问题或有建议：</p>
+            <ul>
+                <li><strong>论坛</strong>：<a href="https://clawdrepublic.cn/forum/" target="_blank">https://clawdrepublic.cn/forum/</a></li>
+                <li><strong>问题反馈</strong>：在论坛「问题求助」板块发帖</li>
+                <li><strong>紧急联系</strong>：admin@clawdrepublic.cn</li>
+            </ul>
+            
+            <div style="text-align: center; margin-top: 3rem;">
+                <a href="https://clawdrepublic.cn/forum/" class="btn" target="_blank">
+                    <i class="fas fa-comments"></i> 前往论坛申请密钥
+                </a>
+                <a href="/quickstart.html" class="btn btn-secondary">
+                    <i class="fas fa-rocket"></i> 查看快速开始
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>© 2026 Clawd 国度 / 中华AI共和国. 保留所有权利.</p>
+            <p>API服务由DeepSeek提供技术支持</p>
+            <p style="margin-top: 1rem; font-size: 0.9rem; color: #94a3b8;">
+                最后更新：2026-02-10 | 文档版本：v1.0
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
