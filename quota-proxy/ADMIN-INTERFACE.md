@@ -60,6 +60,56 @@ http://localhost:8787/admin
 2. 检查文件权限
 3. 查看浏览器控制台错误信息
 
+## API 调用示例
+
+### 创建试用密钥 (cURL)
+
+```bash
+# 创建带标签的试用密钥（默认1000次请求限额）
+curl -X POST http://localhost:8787/admin/keys \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "用户张三试用密钥",
+    "totalQuota": 1000
+  }'
+
+# 创建带过期时间的试用密钥
+curl -X POST http://localhost:8787/admin/keys \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "限时试用密钥",
+    "totalQuota": 500,
+    "expiresAt": "2026-12-31T23:59:59Z"
+  }'
+```
+
+### 查看所有密钥
+
+```bash
+curl -X GET http://localhost:8787/admin/keys \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### 查看使用情况
+
+```bash
+curl -X GET http://localhost:8787/admin/usage \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### 重置使用计数（谨慎使用）
+
+```bash
+curl -X POST http://localhost:8787/admin/usage/reset \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "sk-xxxxxxxxx"
+  }'
+```
+
 ## 开发说明
 
 管理界面是一个纯前端 HTML/JavaScript 应用，通过 REST API 与后端通信。所有敏感操作都需要提供 `ADMIN_TOKEN`。
