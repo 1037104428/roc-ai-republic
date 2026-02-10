@@ -1,174 +1,202 @@
 #!/bin/bash
-# verify-sqlite-deployment.sh - 验证 SQLite 版本 quota-proxy 部署
-# 用法: ./scripts/verify-sqlite-deployment.sh [--help]
-
 set -e
 
+# 验证 SQLite 版本 quota-proxy 部署
+# 用法: ./scripts/verify-sqlite-deployment.sh [--server-ip IP]
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SERVER_INFO="$REPO_ROOT/scripts/server-info.txt"
-
-# 颜色输出
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+SERVER_FILE="${SERVER_FILE:-/tmp/server.txt}"
 
 show_help() {
-    cat << EOF
+    cat <<EOF
 验证 SQLite 版本 quota-proxy 部署
 
 用法: $0 [选项]
 
 选项:
-  --help     显示此帮助信息
-
-验证步骤:
-  1. 检查服务健康状态
-  2. 验证 API 端点
-  3. 测试管理接口（如果 ADMIN_TOKEN 可用）
-  4. 检查数据库持久化
+  --server-ip   IP 地址 (默认从 $SERVER_FILE 读取)
+  --help        显示此帮助信息
 
 环境变量:
-  ADMIN_TOKEN - 管理令牌（用于测试管理接口）
+  SERVER_FILE   服务器信息文件路径 (默认: /tmp/server.txt)
+  SSH_KEY       SSH 私钥路径 (默认: ~/.ssh/id_ed25519_roc_server)
 
 示例:
-  $0
-  ADMIN_TOKEN=secret $0
+  $0                     # 从 /tmp/server.txt 读取 IP 并验证
+  $0 --server-ip 1.2.3.4 # 指定服务器 IP
 EOF
 }
 
 # 解析参数
+SERVER_IP=""
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --help) show_help; exit 0 ;;
-        *) log_error "未知参数: $1"; show_help; exit 1 ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        --server-ip)
+            SERVER_IP="$2"
+            shift 2
+            ;;
+        *)
+            echo "错误: 未知参数 $1"
+            show_help
+            exit 1
+            ;;
     esac
 done
 
-# 检查必需文件
-if [[ ! -f "$SERVER_INFO" ]]; then
-    log_error "服务器信息文件不存在: $SERVER_INFO"
-    exit 1
-fi
-
-# 读取服务器信息
-SERVER_IP=$(grep -E '^ip:' "$SERVER_INFO" | cut -d: -f2 | tr -d '[:space:]')
+# 获取服务器 IP
 if [[ -z "$SERVER_IP" ]]; then
-    log_error "无法从 $SERVER_INFO 读取服务器 IP"
+    if [[ -f "$SERVER_FILE" ]]; then
+        # 支持格式: ip:8.210.185.194 或裸 IP
+        SERVER_IP=$(head -1 "$SERVER_FILE" | sed 's/^ip://')
+        if [[ -z "$SERVER_IP" ]]; then
+            echo "错误: 无法从 $SERVER_FILE 解析 IP 地址"
+            exit 1
+        fi
+    else
+        echo "错误: 未指定 --server-ip 且 $SERVER_FILE 不存在"
+        exit 1
+    fi
+fi
+
+# SSH 配置
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519_roc_server}"
+SSH_OPTS="-i $SSH_KEY -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no"
+
+# 颜色输出
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+run_ssh() {
+    local cmd="$1"
+    ssh $SSH_OPTS "root@$SERVER_IP" "$cmd"
+}
+
+# 检查服务器连接
+log_info "检查服务器连接: $SERVER_IP"
+if ! run_ssh "echo '连接成功'" >/dev/null 2>&1; then
+    log_error "无法连接到服务器 $SERVER_IP"
     exit 1
 fi
 
-log_info "目标服务器: $SERVER_IP"
-log_info "开始验证 SQLite 版本 quota-proxy 部署..."
+# 验证步骤
+PASS=0
+FAIL=0
+TOTAL=0
 
-# 步骤1: 检查服务健康状态
-log_info "1. 检查服务健康状态..."
-if curl -fsS "http://$SERVER_IP:8788/healthz" > /dev/null 2>&1; then
-    HEALTH_RESPONSE=$(curl -fsS "http://$SERVER_IP:8788/healthz")
-    if echo "$HEALTH_RESPONSE" | grep -q '"ok":true'; then
-        log_success "✓ 服务健康检查通过: $HEALTH_RESPONSE"
+check() {
+    local desc="$1"
+    local cmd="$2"
+    local expected="${3:-}"
+    
+    ((TOTAL++))
+    echo -n "检查: $desc ... "
+    
+    if output=$(run_ssh "$cmd" 2>/dev/null); then
+        if [[ -n "$expected" ]]; then
+            if echo "$output" | grep -q "$expected"; then
+                echo -e "${GREEN}通过${NC}"
+                ((PASS++))
+            else
+                echo -e "${RED}失败${NC}"
+                echo "  输出: $output"
+                echo "  期望包含: $expected"
+                ((FAIL++))
+            fi
+        else
+            echo -e "${GREEN}通过${NC}"
+            ((PASS++))
+        fi
     else
-        log_warn "⚠ 服务响应异常: $HEALTH_RESPONSE"
+        echo -e "${RED}失败${NC}"
+        ((FAIL++))
     fi
+}
+
+echo "="
+echo "SQLite 版本 quota-proxy 部署验证"
+echo "服务器: $SERVER_IP"
+echo "="
+
+# 1. 检查目录是否存在
+check "SQLite 部署目录" "ls -d /opt/roc/quota-proxy-sqlite 2>/dev/null"
+
+# 2. 检查 docker-compose.yml
+check "docker-compose.yml 文件" "ls /opt/roc/quota-proxy-sqlite/docker-compose.yml 2>/dev/null"
+
+# 3. 检查服务状态
+check "Docker 容器运行状态" "cd /opt/roc/quota-proxy-sqlite 2>/dev/null && docker compose ps 2>/dev/null | grep quota-proxy-sqlite" "Up"
+
+# 4. 检查健康接口
+check "健康检查接口" "curl -fsS http://127.0.0.1:8787/healthz 2>/dev/null" "ok"
+
+# 5. 检查 SQLite 数据库文件
+check "SQLite 数据库文件" "ls /opt/roc/quota-proxy-sqlite/data/quota.db 2>/dev/null"
+
+# 6. 检查 .env 文件
+check ".env 配置文件" "ls /opt/roc/quota-proxy-sqlite/.env 2>/dev/null"
+
+# 7. 测试管理接口（需要 ADMIN_TOKEN）
+log_info "测试管理接口..."
+if ADMIN_TOKEN=$(run_ssh "grep ADMIN_TOKEN /opt/roc/quota-proxy-sqlite/.env 2>/dev/null | cut -d= -f2"); then
+    check "管理接口 /admin/usage" "curl -fsS -H 'Authorization: Bearer $ADMIN_TOKEN' http://127.0.0.1:8787/admin/usage 2>/dev/null" "items"
 else
-    log_error "✗ 服务不可访问: http://$SERVER_IP:8788/healthz"
+    log_warn "无法获取 ADMIN_TOKEN，跳过管理接口测试"
+fi
+
+# 8. 检查日志目录
+check "日志目录" "ls /opt/roc/quota-proxy-sqlite/logs 2>/dev/null"
+
+# 9. 检查原版本是否仍然存在
+check "原版本备份目录" "ls -d /opt/roc/quota-proxy 2>/dev/null"
+
+# 10. 检查端口绑定
+check "端口绑定 (8787)" "netstat -tlnp 2>/dev/null | grep :8787 || ss -tlnp 2>/dev/null | grep :8787" "8787"
+
+echo "="
+echo "验证结果:"
+echo "  总计检查: $TOTAL"
+echo "  通过: $PASS"
+echo "  失败: $FAIL"
+echo "="
+
+if [[ $FAIL -eq 0 ]]; then
+    log_info "✅ SQLite 版本部署验证通过！"
+    echo ""
+    echo "部署信息:"
+    echo "  目录: /opt/roc/quota-proxy-sqlite"
+    echo "  健康检查: curl -fsS http://127.0.0.1:8787/healthz"
+    echo "  管理接口: 使用 .env 中的 ADMIN_TOKEN"
+    echo "  查看日志: cd /opt/roc/quota-proxy-sqlite && docker compose logs"
+    echo ""
+    echo "要切换回原版本:"
+    echo "  cd /opt/roc/quota-proxy && docker compose up -d"
+    exit 0
+else
+    log_error "❌ SQLite 版本部署验证失败 ($FAIL/$TOTAL 项失败)"
+    echo ""
+    echo "故障排除:"
+    echo "  1. 检查服务状态: cd /opt/roc/quota-proxy-sqlite && docker compose ps"
+    echo "  2. 查看日志: cd /opt/roc/quota-proxy-sqlite && docker compose logs"
+    echo "  3. 重启服务: cd /opt/roc/quota-proxy-sqlite && docker compose restart"
+    echo "  4. 重新部署: 运行 scripts/deploy-sqlite-quick.sh"
     exit 1
-fi
-
-# 步骤2: 验证 API 端点
-log_info "2. 验证 API 端点..."
-MODELS_RESPONSE=$(curl -fsS "http://$SERVER_IP:8788/v1/models" 2>/dev/null || echo "{}")
-if echo "$MODELS_RESPONSE" | grep -q '"object":"list"'; then
-    log_success "✓ /v1/models 端点正常"
-else
-    log_warn "⚠ /v1/models 端点响应异常: $MODELS_RESPONSE"
-fi
-
-# 步骤3: 测试管理接口（如果 ADMIN_TOKEN 可用）
-if [[ -n "$ADMIN_TOKEN" ]]; then
-    log_info "3. 测试管理接口..."
-    
-    # 测试 /admin/keys
-    KEYS_RESPONSE=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \
-        "http://$SERVER_IP:8788/admin/keys" 2>/dev/null || echo "{}")
-    
-    if echo "$KEYS_RESPONSE" | grep -q '"mode":"sqlite"'; then
-        log_success "✓ /admin/keys 端点正常"
-    else
-        log_warn "⚠ /admin/keys 端点响应异常: $KEYS_RESPONSE"
-    fi
-    
-    # 测试 /admin/usage
-    USAGE_RESPONSE=$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" \
-        "http://$SERVER_IP:8788/admin/usage" 2>/dev/null || echo "{}")
-    
-    if echo "$USAGE_RESPONSE" | grep -q '"mode":"sqlite"'; then
-        log_success "✓ /admin/usage 端点正常"
-    else
-        log_warn "⚠ /admin/usage 端点响应异常: $USAGE_RESPONSE"
-    fi
-    
-    # 测试创建试用密钥
-    CREATE_KEY_RESPONSE=$(curl -fsS -X POST -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $ADMIN_TOKEN" \
-        -d '{"label":"test-verification"}' \
-        "http://$SERVER_IP:8788/admin/keys" 2>/dev/null || echo "{}")
-    
-    if echo "$CREATE_KEY_RESPONSE" | grep -q '"key":"trial_'; then
-        TRIAL_KEY=$(echo "$CREATE_KEY_RESPONSE" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
-        log_success "✓ 试用密钥创建成功: ${TRIAL_KEY:0:20}..."
-    else
-        log_warn "⚠ 试用密钥创建失败: $CREATE_KEY_RESPONSE"
-    fi
-else
-    log_info "3. 跳过管理接口测试（ADMIN_TOKEN 未设置）"
-fi
-
-# 步骤4: 检查服务器状态
-log_info "4. 检查服务器状态..."
-SERVER_STATUS=$(ssh -i "$REPO_ROOT/scripts/roc-key.pem" "root@$SERVER_IP" \
-    "cd /opt/roc/quota-proxy-sqlite && docker compose ps 2>/dev/null || echo '服务未运行'")
-
-if echo "$SERVER_STATUS" | grep -q "quota-proxy-sqlite.*Up"; then
-    log_success "✓ 容器运行正常"
-    echo "$SERVER_STATUS"
-else
-    log_error "✗ 容器未运行或状态异常"
-    echo "$SERVER_STATUS"
-fi
-
-# 步骤5: 检查数据库文件
-log_info "5. 检查数据库文件..."
-DB_CHECK=$(ssh -i "$REPO_ROOT/scripts/roc-key.pem" "root@$SERVER_IP" \
-    "docker exec quota-proxy-sqlite sh -c 'ls -la /data/ 2>/dev/null || echo \"数据目录不存在\"'")
-
-if echo "$DB_CHECK" | grep -q "\.db"; then
-    log_success "✓ 数据库文件存在"
-    echo "$DB_CHECK"
-else
-    log_warn "⚠ 数据库文件可能不存在"
-    echo "$DB_CHECK"
-fi
-
-log_success "验证完成"
-log_info "总结:"
-log_info "  - 服务地址: http://$SERVER_IP:8788"
-log_info "  - 健康检查: http://$SERVER_IP:8788/healthz"
-log_info "  - API 文档: 查看项目 docs/ 目录"
-log_info "  - 管理接口: 需要 ADMIN_TOKEN"
-
-if [[ -n "$ADMIN_TOKEN" ]]; then
-    log_info "管理命令示例:"
-    log_info "  # 创建试用密钥"
-    log_info "  curl -H 'Authorization: Bearer $ADMIN_TOKEN' -X POST http://$SERVER_IP:8788/admin/keys"
-    log_info ""
-    log_info "  # 查看使用情况"
-    log_info "  curl -H 'Authorization: Bearer $ADMIN_TOKEN' http://$SERVER_IP:8788/admin/usage"
 fi
