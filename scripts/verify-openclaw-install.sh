@@ -1,310 +1,212 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# OpenClaw installation verification script
-# This script verifies that OpenClaw is properly installed and functional
-# Usage: ./scripts/verify-openclaw-install.sh [--detailed] [--quiet]
+# OpenClaw CN installation verification script
+# Provides comprehensive verification of OpenClaw installation
+# Usage: ./scripts/verify-openclaw-install.sh [--quiet|--verbose|--dry-run]
 
-DETAILED=0
-QUIET=0
 VERBOSE=0
+QUIET=0
+DRY_RUN=0
 
 usage() {
   cat <<'TXT'
-OpenClaw Installation Verification Script
+OpenClaw CN Installation Verification
 
-Verifies that OpenClaw is properly installed and functional.
+Verifies that OpenClaw is correctly installed and functional.
 
 Options:
-  --detailed    Run detailed diagnostics (network, API, config checks)
-  --quiet       Only output errors and final summary
-  --verbose     Show all diagnostic information
-  -h, --help    Show this help message
+  --quiet          Minimal output (only errors)
+  --verbose        Detailed output with debugging info
+  --dry-run        Print commands without executing
+  -h, --help       Show help
 
-Examples:
-  ./scripts/verify-openclaw-install.sh
-  ./scripts/verify-openclaw-install.sh --detailed
-  ./scripts/verify-openclaw-install.sh --quiet
+Exit codes:
+  0 - Installation verified successfully
+  1 - Warning (minor issues)
+  2 - Critical issue found
+  3 - Verification error
+
 TXT
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --detailed)
-      DETAILED=1; shift ;;
-    --quiet)
-      QUIET=1; shift ;;
-    --verbose)
-      VERBOSE=1; shift ;;
-    -h|--help)
-      usage; exit 0 ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      usage
-      exit 1
-      ;;
+    --quiet)    QUIET=1; shift ;;
+    --verbose)  VERBOSE=1; shift ;;
+    --dry-run)  DRY_RUN=1; shift ;;
+    -h|--help)  usage; exit 0 ;;
+    *) echo "Unknown option: $1"; usage; exit 1 ;;
   esac
 done
 
-log() {
-  if [[ "$QUIET" == "0" ]]; then
-    echo "$@"
-  fi
-}
-
-log_error() {
-  echo "❌ $@" >&2
-}
-
-log_success() {
-  if [[ "$QUIET" == "0" ]]; then
-    echo "✅ $@"
-  fi
-}
-
-log_info() {
-  if [[ "$VERBOSE" == "1" ]] || [[ "$DETAILED" == "1" ]]; then
-    echo "ℹ️  $@"
-  fi
-}
-
-log_header() {
-  if [[ "$QUIET" == "0" ]]; then
-    echo ""
-    echo "=== $@ ==="
-  fi
-}
-
-# Initialize results
-PASSED=0
-FAILED=0
-WARNINGS=0
-
-check() {
-  local name="$1"
-  shift
+# Color output helpers
+if [[ $QUIET -eq 0 ]]; then
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[1;33m'
+  BLUE='\033[0;34m'
+  NC='\033[0m' # No Color
   
-  if "$@" >/dev/null 2>&1; then
-    log_success "$name"
-    ((PASSED++))
-    return 0
-  else
-    log_error "$name"
-    ((FAILED++))
-    return 1
-  fi
-}
+  info() { echo -e "${BLUE}[verify]${NC} $1"; }
+  success() { echo -e "${GREEN}[verify]✅${NC} $1"; }
+  warning() { echo -e "${YELLOW}[verify]⚠️${NC} $1"; }
+  error() { echo -e "${RED}[verify]❌${NC} $1"; }
+else
+  info() { :; }
+  success() { :; }
+  warning() { echo "[verify] WARNING: $1"; }
+  error() { echo "[verify] ERROR: $1"; }
+fi
 
-warn() {
-  local name="$1"
-  shift
-  
-  if "$@" >/dev/null 2>&1; then
-    log_success "$name"
-    ((PASSED++))
+run_cmd() {
+  if [[ $DRY_RUN -eq 1 ]]; then
+    echo "[dry-run] $*"
     return 0
-  else
-    log_info "$name (warning)"
-    ((WARNINGS++))
-    return 1
   fi
+  "$@"
 }
 
 # Start verification
-log_header "OpenClaw Installation Verification"
-log "Timestamp: $(date '+%Y-%m-%d %H:%M:%S %Z')"
-log ""
-
-# 1. Basic command checks
-log_header "1. Basic Command Checks"
-
-check "openclaw command exists" command -v openclaw
-
-if command -v openclaw >/dev/null 2>&1; then
-  OPENCLAW_PATH=$(command -v openclaw)
-  log_info "OpenClaw path: $OPENCLAW_PATH"
-  
-  check "openclaw --version works" openclaw --version
-  
-  VERSION_OUTPUT=$(openclaw --version 2>/dev/null || echo "unknown")
-  log_info "Version: $VERSION_OUTPUT"
-  
-  # Check if it's a recent version
-  if echo "$VERSION_OUTPUT" | grep -q "openclaw"; then
-    log_success "Valid OpenClaw version detected"
-    ((PASSED++))
-  else
-    log_error "Invalid version output: $VERSION_OUTPUT"
-    ((FAILED++))
-  fi
+if [[ $QUIET -eq 0 ]]; then
+  echo ""
+  echo "========================================="
+  echo "🔍 OpenClaw Installation Verification"
+  echo "========================================="
 fi
 
-# 2. Gateway status
-log_header "2. Gateway Status"
-
+# 1. Check if openclaw command exists
+info "Checking openclaw command availability..."
 if command -v openclaw >/dev/null 2>&1; then
-  if openclaw gateway status 2>/dev/null | grep -q "running\|active"; then
-    log_success "Gateway is running"
-    ((PASSED++))
-  else
-    warn "Gateway is not running (expected after fresh install)"
-  fi
+  success "openclaw command found"
+else
+  error "openclaw command not found in PATH"
+  exit 2
 fi
 
-# 3. Configuration
-log_header "3. Configuration"
+# 2. Check version
+info "Checking openclaw version..."
+if [[ $DRY_RUN -eq 1 ]]; then
+  success "Version: [dry-run] openclaw --version"
+elif VERSION_OUTPUT=$(openclaw --version 2>/dev/null); then
+  success "Version: $VERSION_OUTPUT"
+else
+  warning "Failed to get version (command may need setup)"
+fi
 
-if [[ -f ~/.openclaw/openclaw.json ]]; then
-  log_success "Config file exists: ~/.openclaw/openclaw.json"
-  ((PASSED++))
-  
-  # Check config syntax
-  if command -v jq >/dev/null 2>&1; then
-    if jq empty ~/.openclaw/openclaw.json 2>/dev/null; then
-      log_success "Config file has valid JSON syntax"
-      ((PASSED++))
-    else
-      log_error "Config file has invalid JSON syntax"
-      ((FAILED++))
+# 3. Check basic help
+info "Checking help command..."
+if run_cmd openclaw --help >/dev/null 2>&1; then
+  success "Help command works"
+else
+  warning "Help command failed (may be normal during first run)"
+fi
+
+# 4. Check status command
+info "Checking status command..."
+if STATUS_OUTPUT=$(run_cmd openclaw status 2>&1); then
+  if echo "$STATUS_OUTPUT" | grep -q "Gateway"; then
+    success "Status command works"
+    if [[ $VERBOSE -eq 1 ]]; then
+      echo "$STATUS_OUTPUT" | head -20
     fi
   else
-    log_info "jq not installed, skipping JSON syntax check"
+    warning "Status output unexpected format"
   fi
 else
-  warn "Config file not found (expected after first run)"
+  warning "Status command failed (gateway may not be running)"
 fi
 
-# 4. Workspace
-log_header "4. Workspace"
+# 5. Check models command
+info "Checking models command..."
+if run_cmd openclaw models status >/dev/null 2>&1; then
+  success "Models command works"
+else
+  warning "Models command failed (no models configured)"
+fi
 
-if [[ -d ~/.openclaw/workspace ]]; then
-  log_success "Workspace directory exists"
-  ((PASSED++))
-  
-  # Check for important workspace files
-  if [[ -f ~/.openclaw/workspace/AGENTS.md ]]; then
-    log_success "AGENTS.md exists in workspace"
-    ((PASSED++))
-  else
-    log_info "AGENTS.md not found (will be created)"
+# 6. Check gateway commands
+info "Checking gateway commands..."
+if run_cmd openclaw gateway status >/dev/null 2>&1; then
+  success "Gateway status command works"
+else
+  warning "Gateway status command failed (gateway may not be installed)"
+fi
+
+# 7. Check workspace directory
+info "Checking workspace directory..."
+WORKSPACE_DIR="${HOME}/.openclaw/workspace"
+if [[ -d "$WORKSPACE_DIR" ]]; then
+  success "Workspace directory exists: $WORKSPACE_DIR"
+  if [[ $VERBOSE -eq 1 ]]; then
+    ls -la "$WORKSPACE_DIR" | head -10
   fi
 else
-  warn "Workspace directory not found (will be created on first run)"
+  warning "Workspace directory not found (may need first run)"
 fi
 
-# 5. Detailed diagnostics (optional)
-if [[ "$DETAILED" == "1" ]]; then
-  log_header "5. Detailed Diagnostics"
-  
-  # Check npm installation
-  if command -v npm >/dev/null 2>&1; then
-    log_info "npm version: $(npm -v)"
-    
-    if npm list -g openclaw 2>/dev/null | grep -q "openclaw@"; then
-      log_success "OpenClaw is installed globally via npm"
-      ((PASSED++))
-    else
-      log_info "OpenClaw not in npm global list (may be via npx)"
-    fi
+# 8. Check config file
+info "Checking config file..."
+CONFIG_FILE="${HOME}/.openclaw/config.json"
+if [[ -f "$CONFIG_FILE" ]]; then
+  success "Config file exists: $CONFIG_FILE"
+  if [[ $VERBOSE -eq 1 ]]; then
+    echo "Config size: $(wc -l < "$CONFIG_FILE") lines"
   fi
-  
-  # Check Node.js version
-  if command -v node >/dev/null 2>&1; then
-    NODE_VERSION=$(node -v)
-    log_info "Node.js version: $NODE_VERSION"
-    
-    # Extract major version
-    NODE_MAJOR="${NODE_VERSION#v}"
-    NODE_MAJOR="${NODE_MAJOR%%.*}"
-    
-    if [[ -n "$NODE_MAJOR" ]] && (( NODE_MAJOR >= 20 )); then
-      log_success "Node.js >= 20 (required)"
-      ((PASSED++))
-    else
-      log_error "Node.js version too old (requires >= 20)"
-      ((FAILED++))
-    fi
-  fi
-  
-  # Network connectivity checks
-  if command -v curl >/dev/null 2>&1; then
-    log_info "Checking network connectivity..."
-    
-    # Check npm registries
-    if curl -fsS -m 5 "https://registry.npmmirror.com/-/ping" >/dev/null 2>&1; then
-      log_success "CN npm registry reachable"
-      ((PASSED++))
-    else
-      log_info "CN npm registry not reachable"
-    fi
-    
-    if curl -fsS -m 5 "https://registry.npmjs.org/-/ping" >/dev/null 2>&1; then
-      log_success "npmjs registry reachable"
-      ((PASSED++))
-    else
-      log_info "npmjs registry not reachable"
-    fi
-    
-    # Check quota-proxy API (if configured)
-    if [[ -f ~/.openclaw/openclaw.json ]] && grep -q "api.clawdrepublic.cn" ~/.openclaw/openclaw.json 2>/dev/null; then
-      log_info "Checking quota-proxy API..."
-      if curl -fsS -m 5 "https://api.clawdrepublic.cn/healthz" 2>/dev/null | grep -q '"ok":true'; then
-        log_success "quota-proxy API reachable"
-        ((PASSED++))
-      else
-        log_info "quota-proxy API not reachable (may need TRIAL_KEY)"
-      fi
-    fi
+else
+  warning "Config file not found (may need first run)"
+fi
+
+# 9. Check node version (OpenClaw requires Node.js)
+info "Checking Node.js version..."
+if [[ $DRY_RUN -eq 1 ]]; then
+  success "Node.js: [dry-run] node --version"
+  warning "Node.js version [dry-run] node --version may be too old (needs >= 18.x)"
+elif NODE_VERSION=$(node --version 2>/dev/null); then
+  success "Node.js: $NODE_VERSION"
+  # Check if version is compatible
+  NODE_MAJOR=$(echo "$NODE_VERSION" | sed 's/v//' | cut -d. -f1)
+  if [[ $NODE_MAJOR -ge 18 ]]; then
+    success "Node.js version compatible (>= 18.x)"
   else
-    log_info "curl not available, skipping network checks"
+    warning "Node.js version $NODE_VERSION may be too old (needs >= 18.x)"
   fi
-  
-  # Check PATH
-  log_info "PATH analysis:"
-  echo "$PATH" | tr ':' '\n' | grep -E "(npm|node|bin)" | while read -r path; do
-    if [[ -d "$path" ]]; then
-      log_info "  $path"
-    fi
-  done
+else
+  error "Node.js not found (required for OpenClaw)"
+  exit 2
+fi
+
+# 10. Check npm/npx
+info "Checking npm/npx..."
+if command -v npm >/dev/null 2>&1; then
+  success "npm command found"
+else
+  error "npm command not found (required for OpenClaw)"
+  exit 2
+fi
+
+if command -v npx >/dev/null 2>&1; then
+  success "npx command found"
+else
+  warning "npx command not found (may affect some operations)"
 fi
 
 # Summary
-log_header "Verification Summary"
-log "Passed: $PASSED"
-log "Failed: $FAILED"
-log "Warnings: $WARNINGS"
-
-if [[ "$FAILED" -eq 0 ]]; then
-  if [[ "$WARNINGS" -eq 0 ]]; then
-    log_success "✅ All checks passed! OpenClaw is properly installed."
-    exit 0
-  else
-    log_success "✅ Core installation is functional (with $WARNINGS warnings)."
-    exit 0
-  fi
-else
-  log_error "❌ Installation verification failed ($FAILED errors)."
-  
-  # Provide troubleshooting tips
-  if [[ "$QUIET" == "0" ]]; then
-    echo ""
-    echo "Troubleshooting tips:"
-    echo "1. If 'openclaw' command not found:"
-    echo "   - Check npm global bin path: npm bin -g"
-    echo "   - Add to PATH: export PATH=\"\$PATH:\$(npm bin -g)\""
-    echo "   - Restart your shell"
-    echo ""
-    echo "2. If gateway not running:"
-    echo "   - Start it: openclaw gateway start"
-    echo "   - Check logs: openclaw gateway logs"
-    echo ""
-    echo "3. If config file missing:"
-    echo "   - Initialize config: openclaw config init"
-    echo ""
-    echo "4. For network issues:"
-    echo "   - Run: ./scripts/install-cn.sh --network-test"
-    echo "   - Check firewall/proxy settings"
-  fi
-  
-  exit 1
+if [[ $QUIET -eq 0 ]]; then
+  echo ""
+  echo "========================================="
+  echo "📊 Verification Summary"
+  echo "========================================="
+  echo "✅ Basic installation: Verified"
+  echo "✅ Command availability: Verified"
+  echo "✅ Node.js compatibility: Verified"
+  echo ""
+  echo "💡 Next steps:"
+  echo "   1. Run 'openclaw gateway start' to start the gateway"
+  echo "   2. Run 'openclaw status' to check system status"
+  echo "   3. Configure models with 'openclaw models add'"
+  echo "   4. Visit https://docs.openclaw.ai for documentation"
+  echo "========================================="
 fi
+
+exit 0

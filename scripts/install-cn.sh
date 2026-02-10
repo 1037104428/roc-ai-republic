@@ -421,6 +421,9 @@ if [[ $DRY_RUN -eq 0 ]] && [[ -f "./scripts/verify-openclaw-install.sh" ]]; then
   echo "[cn-pack] Running automatic installation verification..."
   echo "[cn-pack] ========================================="
   
+  # Make verification script executable
+  chmod +x ./scripts/verify-openclaw-install.sh 2>/dev/null || true
+  
   # Run verification with quiet mode for clean output
   if ./scripts/verify-openclaw-install.sh --quiet; then
     echo "[cn-pack] ✅ Installation verified successfully!"
