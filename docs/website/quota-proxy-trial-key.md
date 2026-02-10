@@ -40,6 +40,38 @@ TRIAL_KEY 是 Clawd Republic 提供的试用密钥，允许开发者免费体验
 - 调用限额：每日 100 次调用
 - 可续期：试用期满后可申请续期
 
+### 调用示例
+使用 curl 调用 API：
+
+```bash
+# 基础调用示例
+curl -X POST https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TRIAL_KEY" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [
+      {"role": "user", "content": "你好，请介绍一下 Clawd Republic"}
+    ]
+  }'
+
+# 流式响应示例
+curl -X POST https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TRIAL_KEY" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [
+      {"role": "user", "content": "写一首关于AI的诗"}
+    ],
+    "stream": true
+  }'
+
+# 检查配额使用情况
+curl -X GET https://api.clawdrepublic.cn/v1/quota/usage \
+  -H "Authorization: Bearer YOUR_TRIAL_KEY"
+```
+
 ### 使用限制
 1. **禁止公开分享**：密钥仅限个人使用
 2. **禁止商业用途**：试用期间禁止用于商业生产环境
