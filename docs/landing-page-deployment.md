@@ -1,138 +1,245 @@
-# Landing Page 部署指南
+# 静态落地页部署指南
 
-中华AI共和国 / OpenClaw 小白中文包的官方 landing page 部署指南。
+本文档介绍如何部署中华AI共和国 / OpenClaw 小白中文包项目的静态落地页。
 
 ## 概述
 
-Landing page 是一个静态 HTML 页面，提供：
-- 项目介绍
-- 一键安装指南
-- API 试用申请
-- 社区论坛入口
-- 下载链接
+静态落地页是一个响应式网站，提供以下功能：
+- 项目介绍和快速开始指南
+- 一键安装命令（国内优化版）
+- API网关服务（quota-proxy）功能介绍
+- 完整的工具链文档链接
+- 试用密钥获取方式
 
 ## 文件结构
 
 ```
-web-landing/
-├── index.html                    # 主页面
-└── (未来可添加更多资源文件)
-
-scripts/
-├── deploy-landing-page.sh        # 部署脚本
-└── verify-landing-deployment.sh  # 验证脚本
+web/
+├── index.html          # 主页面
+└── (未来可添加更多静态资源)
 ```
 
-## 快速部署
+## 部署方式
 
-### 1. 前提条件
+### 1. 使用部署脚本（推荐）
 
-- 服务器 SSH 访问权限
-- 服务器上已安装 curl、scp 等基本工具
-- Web 服务器（Nginx/Caddy/Apache）已安装或计划安装
-
-### 2. 部署步骤
+项目提供了自动化部署脚本：
 
 ```bash
-# 进入项目目录
-cd /home/kai/.openclaw/workspace/roc-ai-republic
+# 查看帮助
+./scripts/deploy-landing-page.sh --help
 
-# 预览部署命令（不实际执行）
+# 模拟运行（不实际执行）
 ./scripts/deploy-landing-page.sh --dry-run
 
-# 实际部署
-./scripts/deploy-landing-page.sh
+# 详细模式部署
+./scripts/deploy-landing-page.sh --verbose
+
+# 部署到指定服务器
+./scripts/deploy-landing-page.sh --server 192.168.1.100
+
+# 部署到指定目录
+./scripts/deploy-landing-page.sh --path /var/www/html
 ```
 
-### 3. 验证部署
+### 2. 手动部署
+
+#### 2.1 准备服务器
+
+确保服务器满足以下条件：
+- 已安装SSH服务
+- 有足够的磁盘空间
+- 有Web服务器（Nginx/Caddy/Apache）或计划安装
+
+#### 2.2 上传文件
 
 ```bash
-# 验证部署状态
-./scripts/verify-landing-deployment.sh
+# 创建web目录
+ssh root@服务器IP "mkdir -p /opt/roc/web"
 
-# 或使用综合探活脚本（包含 landing page 检查）
-./scripts/probe.sh
+# 上传文件
+scp -r web/* root@服务器IP:/opt/roc/web/
 ```
 
-## 配置选项
+#### 2.3 配置Web服务器
 
-### 环境变量
-
-```bash
-# 服务器信息文件（默认: /tmp/server.txt）
-export SERVER_FILE=/path/to/server.txt
-
-# SSH 密钥路径（可选）
-export SSH_KEY=~/.ssh/id_ed25519_roc_server
-
-# 部署目录（默认: /opt/roc/web）
-export WEB_DIR=/var/www/html
-```
-
-### 命令行参数
-
-```bash
-# 指定服务器IP
-./scripts/deploy-landing-page.sh --server-ip 1.2.3.4
-
-# 指定部署目录
-./scripts/deploy-landing-page.sh --web-dir /var/www/landing
-
-# 组合使用
-./scripts/deploy-landing-page.sh --server-ip 1.2.3.4 --web-dir /var/www/html
-```
-
-## Web 服务器配置
-
-### Nginx 配置示例
+##### Nginx配置示例：
 
 ```nginx
 server {
     listen 80;
-    server_name clawdrepublic.cn www.clawdrepublic.cn;
-    
+    server_name your-domain.com;
     root /opt/roc/web;
     index index.html;
-    
+
     location / {
         try_files $uri $uri/ =404;
     }
-    
-    # 启用 gzip 压缩
+
+    # 启用gzip压缩
     gzip on;
-    gzip_types text/html text/css application/javascript;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 }
 ```
 
-### Caddy 配置示例
+##### Caddy配置示例：
 
-```caddy
-clawdrepublic.cn {
+```
+your-domain.com {
     root * /opt/roc/web
     file_server
     encode gzip
 }
 ```
 
-## 自动化部署
+### 3. 服务器端快速部署
 
-### 通过 cron 定期同步
+如果已经在服务器上，可以直接从仓库拉取：
 
 ```bash
-# 每天凌晨3点同步 landing page
-0 3 * * * cd /home/kai/.openclaw/workspace/roc-ai-republic && ./scripts/deploy-landing-page.sh >> /var/log/landing-deploy.log 2>&1
+# 克隆仓库
+cd /opt/roc
+git clone https://github.com/1037104428/roc-ai-republic.git
+# 或使用Gitee镜像
+git clone https://gitee.com/junkaiWang324/roc-ai-republic.git
+
+# 复制web文件
+cp -r roc-ai-republic/web/* /opt/roc/web/
 ```
 
-### CI/CD 集成示例
+## 部署验证
+
+部署完成后，验证步骤：
+
+1. **检查文件是否存在**：
+   ```bash
+   ssh root@服务器IP "ls -la /opt/roc/web/"
+   ```
+
+2. **检查index.html内容**：
+   ```bash
+   ssh root@服务器IP "head -20 /opt/roc/web/index.html"
+   ```
+
+3. **测试Web服务器**：
+   ```bash
+   curl -I http://服务器IP/
+   # 或
+   curl -fsS http://服务器IP/healthz
+   ```
+
+4. **使用部署脚本验证**：
+   ```bash
+   ./scripts/deploy-landing-page.sh --dry-run --verbose
+   ```
+
+## 配置选项
+
+### 部署脚本选项
+
+| 选项 | 描述 | 默认值 |
+|------|------|--------|
+| `-h, --help` | 显示帮助信息 | - |
+| `-v, --verbose` | 详细输出模式 | false |
+| `-q, --quiet` | 安静模式 | false |
+| `-d, --dry-run` | 模拟运行 | false |
+| `-s, --server` | 服务器IP地址 | 8.210.185.194 |
+| `-p, --path` | 服务器web根目录 | /opt/roc/web |
+| `-l, --local` | 本地web目录 | 项目根目录下的web目录 |
+| `--skip-ssh-check` | 跳过SSH连接检查 | false |
+| `--skip-backup` | 跳过备份现有文件 | false |
+
+### 环境变量
+
+可以通过环境变量覆盖默认值：
+
+```bash
+export ROC_SERVER_IP="192.168.1.100"
+export ROC_WEB_ROOT="/var/www/html"
+export ROC_SSH_KEY="$HOME/.ssh/id_rsa"
+```
+
+## 备份与恢复
+
+### 自动备份
+
+部署脚本会自动备份现有文件到 `${WEB_ROOT}.backup.时间戳` 目录。
+
+### 手动备份
+
+```bash
+# 备份
+ssh root@服务器IP "cp -r /opt/roc/web /opt/roc/web.backup.$(date +%Y%m%d)"
+
+# 恢复
+ssh root@服务器IP "rm -rf /opt/roc/web && cp -r /opt/roc/web.backup.时间戳 /opt/roc/web"
+```
+
+## 故障排除
+
+### 常见问题
+
+1. **SSH连接失败**
+   - 检查服务器IP是否正确
+   - 检查SSH密钥是否存在：`ls -la ~/.ssh/id_ed25519_roc_server`
+   - 检查防火墙设置
+   - 尝试手动连接：`ssh -i ~/.ssh/id_ed25519_roc_server root@服务器IP`
+
+2. **文件上传失败**
+   - 检查磁盘空间：`ssh root@服务器IP "df -h"`
+   - 检查目录权限：`ssh root@服务器IP "ls -la /opt/roc/"`
+   - 尝试使用scp手动上传
+
+3. **Web服务器不响应**
+   - 检查Web服务是否运行：`systemctl status nginx` 或 `systemctl status caddy`
+   - 检查端口是否开放：`netstat -tlnp | grep :80`
+   - 检查防火墙：`firewall-cmd --list-all` 或 `ufw status`
+
+### 调试模式
+
+使用详细模式获取更多信息：
+
+```bash
+./scripts/deploy-landing-page.sh --verbose --dry-run
+```
+
+## 安全建议
+
+1. **使用HTTPS**
+   - 为生产环境配置SSL证书
+   - 使用Let's Encrypt免费证书
+   - 配置HTTP到HTTPS重定向
+
+2. **访问控制**
+   - 配置防火墙，只开放必要端口
+   - 使用Web服务器的访问控制功能
+   - 定期更新系统和软件
+
+3. **监控与日志**
+   - 配置Web服务器日志
+   - 设置日志轮转
+   - 监控磁盘空间和系统负载
+
+## 更新流程
+
+当需要更新落地页时：
+
+1. 修改本地web文件
+2. 测试修改：`./scripts/deploy-landing-page.sh --dry-run`
+3. 部署更新：`./scripts/deploy-landing-page.sh --verbose`
+4. 验证更新：访问网站检查更改
+
+## 集成到CI/CD
+
+可以将部署脚本集成到CI/CD流程中：
 
 ```yaml
-# GitHub Actions 示例
+# GitHub Actions示例
 name: Deploy Landing Page
-
 on:
   push:
     paths:
-      - 'web-landing/**'
+      - 'web/**'
       - 'scripts/deploy-landing-page.sh'
 
 jobs:
@@ -140,135 +247,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
       - name: Deploy to Server
+        run: |
+          chmod +x ./scripts/deploy-landing-page.sh
+          ./scripts/deploy-landing-page.sh --verbose
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
-        run: |
-          echo "$SSH_PRIVATE_KEY" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          SSH_KEY=/tmp/deploy_key SERVER_IP="$SERVER_IP" ./scripts/deploy-landing-page.sh
 ```
 
-## 故障排除
+## 相关文档
 
-### 常见问题
+- [quota-proxy 部署指南](../docs/quota-proxy-deployment.md)
+- [安装脚本使用指南](../docs/install-cn-guide.md)
+- [API 网关文档](../docs/quota-proxy-api.md)
+- [工具链概览](../docs/quota-proxy-toolchain-overview.md)
 
-1. **部署失败：SSH 连接超时**
-   - 检查服务器IP是否正确
-   - 检查防火墙设置
-   - 验证SSH密钥权限
+## 支持与反馈
 
-2. **页面无法访问**
-   - 检查Web服务器是否运行：`systemctl status nginx`
-   - 检查防火墙端口：`sudo ufw status`
-   - 检查文件权限：`ls -la /opt/roc/web/`
-
-3. **页面内容不正确**
-   - 验证文件是否成功复制：`cat /opt/roc/web/index.html | head -5`
-   - 检查文件大小：`stat -c%s /opt/roc/web/index.html`
-
-### 调试命令
-
-```bash
-# 检查服务器连接
-ssh -o BatchMode=yes -o ConnectTimeout=5 root@服务器IP "echo connected"
-
-# 检查文件是否存在
-ssh root@服务器IP "test -f /opt/roc/web/index.html && echo '文件存在'"
-
-# 检查Web服务器响应
-curl -v http://服务器IP/
-
-# 查看部署日志
-tail -f /var/log/landing-deploy.log
-```
-
-## 更新与维护
-
-### 更新 landing page
-
-1. 修改 `web-landing/index.html`
-2. 测试本地修改
-3. 部署到服务器
-
-```bash
-# 本地测试
-cd /home/kai/.openclaw/workspace/roc-ai-republic
-python3 -m http.server 8000 &
-# 访问 http://localhost:8000/web-landing/
-
-# 部署更新
-./scripts/deploy-landing-page.sh
-```
-
-### 回滚到上一版本
-
-```bash
-# 从git恢复上一版本
-git checkout HEAD~1 -- web-landing/index.html
-
-# 重新部署
-./scripts/deploy-landing-page.sh
-```
-
-## 监控与告警
-
-### 健康检查脚本
-
-```bash
-#!/bin/bash
-# health-check-landing.sh
-
-URL="http://clawdrepublic.cn/"
-TIMEOUT=5
-
-if curl -fsS -m "$TIMEOUT" "$URL" | grep -q "中华AI共和国"; then
-    echo "✅ Landing page is healthy"
-    exit 0
-else
-    echo "❌ Landing page check failed"
-    # 发送告警（示例）
-    # curl -X POST -H "Content-Type: application/json" -d '{"text":"Landing page down!"}' $SLACK_WEBHOOK
-    exit 1
-fi
-```
-
-### 集成到现有监控
-
-```bash
-# 添加到 probe-roc-all.sh
-./scripts/probe-roc-all.sh --json | jq '.landing_ok'
-```
-
-## 安全建议
-
-1. **文件权限**
-   ```bash
-   chmod 644 /opt/roc/web/index.html
-   chown www-data:www-data /opt/roc/web/index.html
-   ```
-
-2. **Web服务器安全**
-   - 启用 HTTPS
-   - 设置安全头部
-   - 限制访问频率
-
-3. **部署安全**
-   - 使用SSH密钥认证
-   - 限制部署脚本执行权限
-   - 记录部署日志
-
-## 相关资源
-
-- [Nginx 配置指南](https://nginx.org/en/docs/)
-- [Caddy 文档](https://caddyserver.com/docs/)
-- [Let's Encrypt SSL](https://letsencrypt.org/)
-- [项目主文档](../README.md)
+如有问题或建议：
+1. 查看项目文档
+2. 提交GitHub Issue
+3. 联系项目维护者
 
 ---
 
-**最后更新**: 2026-02-09  
-**维护者**: 中华AI共和国运维团队  
-**状态**: 生产就绪 ✅
+**最后更新**: 2026-02-10  
+**版本**: 1.0.0
