@@ -4,3 +4,7 @@
 ✓ 完成：推送主仓库提交 acd16b1 (chore: 添加24小时冲刺循环进度日志)
 URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/4efdb6c
 下一步：检查论坛MVP状态，准备编写信息架构文档
+=== 2026-02-10 14:01:00 CST ===
+✓ 完成：推送主仓库提交 2bafd97 (docs: 添加TRIAL_KEY curl调用示例到官网文档)
+URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/2bafd97
+下一步：检查论坛部署状态，准备部署脚本或配置
