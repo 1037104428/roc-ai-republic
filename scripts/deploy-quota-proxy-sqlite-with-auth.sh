@@ -96,6 +96,7 @@ services:
       - NODE_ENV=production
       - PORT=8787
       - ADMIN_TOKEN=${ADMIN_TOKEN:-admin-token-change-me}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DB_PATH=/data/quota.db
       - LOG_LEVEL=info
     volumes:
@@ -105,6 +106,7 @@ COMPOSE_EOF
 # 创建 .env 文件
 cat > .env <<ENV_EOF
 ADMIN_TOKEN=$ADMIN_TOKEN
+DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
 ENV_EOF
 
 echo "创建数据目录..."
