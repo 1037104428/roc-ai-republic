@@ -8,3 +8,8 @@ URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/4efdb6c
 ✓ 完成：推送主仓库提交 2bafd97 (docs: 添加TRIAL_KEY curl调用示例到官网文档)
 URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/2bafd97
 下一步：检查论坛部署状态，准备部署脚本或配置
+=== 2026-02-10 15:44:10 CST ===
+✓ 完成：推送roc-ai-republic子模块提交 7bf895c (docs: 添加TRIAL_KEY手动发放流程文档)
+✓ 完成：推送主仓库提交 f6363aa (docs: 添加Clawd国度教程索引页面)
+URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/7bf895c
+下一步：继续完善论坛MVP，准备部署脚本或编写论坛引擎配置
