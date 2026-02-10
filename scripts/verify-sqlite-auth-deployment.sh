@@ -97,6 +97,11 @@ echo "8. 检查 SQLite 数据库..."
 ssh -i "$SSH_KEY" "root@$HOST" "cd /opt/roc/quota-proxy && docker compose exec quota-proxy-sqlite ls -la /data/ 2>/dev/null || echo '无法访问容器'" || true
 
 echo ""
+echo "9. 检查 DEEPSEEK_API_KEY 环境变量..."
+DEEPSEEK_CHECK=$(ssh -i "$SSH_KEY" "root@$HOST" "cd /opt/roc/quota-proxy && grep -q '^DEEPSEEK_API_KEY=' .env 2>/dev/null && echo '已配置' || echo '未配置'")
+echo "DEEPSEEK_API_KEY 状态: $DEEPSEEK_CHECK"
+
+echo ""
 echo "=== 验证完成 ==="
 echo "总结:"
 echo "- SQLite 版本已部署: ✓"
@@ -104,3 +109,4 @@ echo "- ADMIN_TOKEN 保护已启用: ✓"
 echo "- 管理员接口正常工作: ✓"
 echo "- Trial key 创建功能: ✓"
 echo "- 使用情况查询: ✓"
+echo "- DEEPSEEK_API_KEY 配置: $DEEPSEEK_CHECK"
