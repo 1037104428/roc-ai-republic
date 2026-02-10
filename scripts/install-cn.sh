@@ -32,7 +32,7 @@ Options:
   -h, --help               Show help
 
 Env vars (equivalent):
-  OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK
+  OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT
 TXT
 }
 
@@ -415,21 +415,40 @@ echo "[cn-pack] ========================================="
 echo "[cn-pack] 💡 Tip: Run these commands to verify your installation!"
 echo "[cn-pack] ========================================="
 
-# Auto-run verification if in repo and script exists
-if [[ $DRY_RUN -eq 0 ]] && [[ -f "./scripts/verify-openclaw-install.sh" ]]; then
-  echo ""
-  echo "[cn-pack] Running automatic installation verification..."
-  echo "[cn-pack] ========================================="
-  
-  # Make verification script executable
-  chmod +x ./scripts/verify-openclaw-install.sh 2>/dev/null || true
-  
-  # Run verification with quiet mode for clean output
-  if ./scripts/verify-openclaw-install.sh --quiet; then
-    echo "[cn-pack] ✅ Installation verified successfully!"
-  else
-    echo "[cn-pack] ⚠️ Verification found issues. Run './scripts/verify-openclaw-install.sh' for details."
+# Auto-run verification if verification script is available
+if [[ $DRY_RUN -eq 0 ]]; then
+  # Determine verification script path
+  VERIFY_SCRIPT="${OPENCLAW_VERIFY_SCRIPT:-}"
+  if [[ -z "$VERIFY_SCRIPT" ]]; then
+    # Try default paths
+    if [[ -f "./scripts/verify-openclaw-install.sh" ]]; then
+      VERIFY_SCRIPT="./scripts/verify-openclaw-install.sh"
+    elif [[ -f "/tmp/verify-openclaw-install.sh" ]]; then
+      VERIFY_SCRIPT="/tmp/verify-openclaw-install.sh"
+    fi
   fi
   
-  echo "[cn-pack] ========================================="
+  if [[ -n "$VERIFY_SCRIPT" ]] && [[ -f "$VERIFY_SCRIPT" ]]; then
+    echo ""
+    echo "[cn-pack] Running automatic installation verification using: $VERIFY_SCRIPT"
+    echo "[cn-pack] ========================================="
+    
+    # Make verification script executable
+    chmod +x "$VERIFY_SCRIPT" 2>/dev/null || true
+    
+    # Run verification with quiet mode for clean output
+    if "$VERIFY_SCRIPT" --quiet; then
+      echo "[cn-pack] ✅ Installation verified successfully!"
+    else
+      echo "[cn-pack] ⚠️ Verification found issues. Run '$VERIFY_SCRIPT' for details."
+    fi
+    
+    echo "[cn-pack] ========================================="
+  else
+    echo ""
+    echo "[cn-pack] ℹ️ Verification script not found. Skipping automatic verification."
+    echo "[cn-pack] ℹ️ To enable verification, set OPENCLAW_VERIFY_SCRIPT=/path/to/verify-openclaw-install.sh"
+    echo "[cn-pack] ℹ️ Or download the verification script:"
+    echo "[cn-pack] ℹ️   curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/verify-openclaw-install.sh -o /tmp/verify-openclaw-install.sh"
+  fi
 fi
