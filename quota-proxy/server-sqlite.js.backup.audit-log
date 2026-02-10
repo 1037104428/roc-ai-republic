@@ -4,7 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const { adminRateLimit } = require('./middleware/rate-limit');
 const { createAdminIpWhitelist } = require('./middleware/ip-whitelist');
-const { createAuditLogMiddleware, createAuditLogApi } = require('./middleware/audit-log');
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -190,10 +189,6 @@ app.use('/admin', adminRateLimit);
 // Admin IP 白名单中间件（如果设置了 ADMIN_IP_WHITELIST 环境变量）
 const adminIpWhitelist = createAdminIpWhitelist();
 app.use('/admin', adminIpWhitelist);
-
-// 审计日志中间件（记录所有 Admin API 操作）
-const auditLogMiddleware = createAuditLogMiddleware();
-app.use('/admin', auditLogMiddleware);
 
 // Admin 认证中间件
 const adminAuth = (req, res, next) => {
@@ -451,14 +446,10 @@ app.post('/admin/reset-usage', adminAuth, (req, res) => {
     }
 });
 
-// 审计日志查询端点（需要管理员认证）
-app.get('/admin/audit-logs', adminAuth, createAuditLogApi());
-
 // 启动服务器
 app.listen(PORT, () => {
     console.log(`Quota proxy server running on port ${PORT}`);
     console.log(`Admin token: ${ADMIN_TOKEN}`);
     console.log(`Health check: http://localhost:${PORT}/healthz`);
     console.log(`Apply page: http://localhost:${PORT}/apply/`);
-    console.log(`Audit logs: http://localhost:${PORT}/admin/audit-logs`);
 });
