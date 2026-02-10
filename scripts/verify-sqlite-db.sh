@@ -34,8 +34,29 @@ error() {
 check_sqlite_installed() {
     if command -v sqlite3 &> /dev/null; then
         success "SQLite3已安装: $(sqlite3 --version)"
+        return 0
     else
         error "SQLite3未安装"
+        
+        # 提供安装指导
+        echo ""
+        echo "SQLite3安装选项:"
+        echo "1. 使用项目提供的自动化安装脚本:"
+        echo "   ./scripts/install-sqlite3-on-server.sh"
+        echo ""
+        echo "2. 手动安装命令:"
+        echo "   # Ubuntu/Debian"
+        echo "   sudo apt-get update && sudo apt-get install -y sqlite3"
+        echo ""
+        echo "   # CentOS/RHEL"
+        echo "   sudo yum install -y sqlite"
+        echo ""
+        echo "   # Alpine"
+        echo "   sudo apk add sqlite"
+        echo ""
+        echo "3. 在部署脚本中自动安装:"
+        echo "   ./scripts/deploy-quota-proxy-sqlite-with-auth.sh 会自动检查并安装sqlite3"
+        
         return 1
     fi
 }

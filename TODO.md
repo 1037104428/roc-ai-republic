@@ -3,16 +3,16 @@
 ## 高优先级
 
 ### [TODO-001] 服务器SQLite3安装
-**状态**: 处理中  
+**状态**: 已完成  
 **创建时间**: 2026-02-10 15:13  
-**最后更新**: 2026-02-10 15:21  
+**最后更新**: 2026-02-10 15:45  
 **描述**: 服务器(8.210.185.194)未安装sqlite3，导致无法进行数据库完整性检查和验证。  
 **影响**: 数据库验证脚本无法在服务器上运行，影响监控和维护。  
 **解决方案**: 
 1. ✅ 创建单独的sqlite3安装脚本 (`scripts/install-sqlite3-on-server.sh`)
 2. ✅ 添加安装文档 (`docs/sqlite3-server-installation.md`)
 3. ✅ 在部署脚本中添加sqlite3安装步骤 (`scripts/deploy-quota-proxy-sqlite-with-auth.sh`)
-4. ⏳ 更新验证脚本以处理sqlite3未安装的情况
+4. ✅ 更新验证脚本以处理sqlite3未安装的情况 (`scripts/verify-sqlite-db.sh`)
 
 **相关文件**:
 - `scripts/install-sqlite3-on-server.sh` - 自动化安装脚本
