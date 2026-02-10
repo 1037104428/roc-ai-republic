@@ -70,6 +70,9 @@ sudo ./scripts/setup-db-backup-cron.sh --dry-run
 
 # 检查现有备份
 ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "ls -la /opt/roc/quota-proxy/backups/ 2>/dev/null || echo '备份目录不存在'"
+
+# 检查服务器备份状态（新增）
+./scripts/check-server-backup-status.sh --dry-run
 ```
 
 **进展**:
