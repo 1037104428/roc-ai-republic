@@ -58,6 +58,24 @@ set -e
 
 cd /opt/roc/quota-proxy
 
+echo "检查并安装 sqlite3..."
+if ! command -v sqlite3 >/dev/null 2>&1; then
+  echo "sqlite3 未安装，开始安装..."
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get update && apt-get install -y sqlite3
+  elif command -v yum >/dev/null 2>&1; then
+    yum install -y sqlite
+  elif command -v apk >/dev/null 2>&1; then
+    apk add sqlite
+  else
+    echo "警告: 无法自动安装 sqlite3，请手动安装"
+  fi
+  echo "验证 sqlite3 安装: \$(command -v sqlite3)"
+  sqlite3 --version || echo "sqlite3 安装失败，但继续部署"
+else
+  echo "sqlite3 已安装: \$(sqlite3 --version)"
+fi
+
 echo "备份当前配置..."
 cp -f docker-compose.yml docker-compose.yml.backup.\$(date +%s) 2>/dev/null || true
 cp -f .env .env.backup.\$(date +%s) 2>/dev/null || true

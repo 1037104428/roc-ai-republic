@@ -11,7 +11,7 @@
 **解决方案**: 
 1. ✅ 创建单独的sqlite3安装脚本 (`scripts/install-sqlite3-on-server.sh`)
 2. ✅ 添加安装文档 (`docs/sqlite3-server-installation.md`)
-3. ⏳ 在部署脚本中添加sqlite3安装步骤
+3. ✅ 在部署脚本中添加sqlite3安装步骤 (`scripts/deploy-quota-proxy-sqlite-with-auth.sh`)
 4. ⏳ 更新验证脚本以处理sqlite3未安装的情况
 
 **相关文件**:
