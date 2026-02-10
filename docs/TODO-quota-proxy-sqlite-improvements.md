@@ -23,7 +23,7 @@
 - [x] `DELETE /admin/keys/:key` - 删除密钥 (2026-02-10 02:03 完成，包含验证脚本)
 - [x] `PUT /admin/keys/:key` - 更新密钥标签 (2026-02-10 09:50 完成，包含验证脚本)
 - [x] `GET /admin/keys` - 列出所有密钥 (2026-02-10 01:54)
-- [ ] `POST /admin/reset-usage` - 重置使用统计
+- [x] `POST /admin/reset-usage` - 重置使用统计 (2026-02-10 10:06 完成，包含验证脚本)
 
 ### 3. 安全性增强
 - [x] ADMIN_TOKEN 基础验证

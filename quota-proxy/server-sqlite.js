@@ -386,6 +386,61 @@ app.get('/admin/usage', adminAuth, (req, res) => {
     });
 });
 
+// POST /admin/reset-usage - 重置使用统计
+app.post('/admin/reset-usage', adminAuth, (req, res) => {
+    const { key, reset_logs = false } = req.body;
+    
+    if (key) {
+        // 重置特定密钥的使用量
+        db.run('UPDATE api_keys SET used_quota = 0 WHERE key = ?', [key], function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            if (this.changes === 0) {
+                return res.status(404).json({ error: 'Key not found' });
+            }
+            
+            let message = `Successfully reset usage for key: ${key}`;
+            
+            // 如果请求重置日志，则删除相关日志
+            if (reset_logs === true || reset_logs === 'true') {
+                db.run('DELETE FROM usage_log WHERE api_key = ?', [key], function(logErr) {
+                    if (logErr) {
+                        return res.status(500).json({ error: 'Failed to delete usage logs' });
+                    }
+                    message += ` and deleted ${this.changes} usage log entries`;
+                    res.json({ success: true, message });
+                });
+            } else {
+                res.json({ success: true, message });
+            }
+        });
+    } else {
+        // 重置所有密钥的使用量
+        db.run('UPDATE api_keys SET used_quota = 0', function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            let message = `Successfully reset usage for all ${this.changes} keys`;
+            
+            // 如果请求重置日志，则删除所有日志
+            if (reset_logs === true || reset_logs === 'true') {
+                db.run('DELETE FROM usage_log', function(logErr) {
+                    if (logErr) {
+                        return res.status(500).json({ error: 'Failed to delete usage logs' });
+                    }
+                    message += ` and deleted all usage log entries`;
+                    res.json({ success: true, message });
+                });
+            } else {
+                res.json({ success: true, message });
+            }
+        });
+    }
+});
+
 // 启动服务器
 app.listen(PORT, () => {
     console.log(`Quota proxy server running on port ${PORT}`);
