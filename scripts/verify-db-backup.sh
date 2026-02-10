@@ -1,8 +1,9 @@
 #!/bin/bash
-# 数据库备份验证脚本
-# 验证数据库备份脚本和cron设置脚本的功能
+# quota-proxy数据库备份验证脚本
+# 功能：验证数据库备份的完整性和可用性
+# 用法：./verify-db-backup.sh [--dry-run] [--verbose] [--quiet]
 
-set -e
+set -euo pipefail
 
 # 颜色输出
 RED='\033[0;31m'
@@ -11,340 +12,301 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 日志函数
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# 显示帮助
-show_help() {
-    cat << EOF
-数据库备份验证脚本
-
-用法: $0 [选项]
-
-选项:
-  --dry-run          模拟运行，不实际执行任何操作
-  --help             显示此帮助信息
-  --test-backup      测试备份脚本功能
-  --test-cron        测试cron设置脚本功能
-  --test-all         测试所有功能（默认）
-
-示例:
-  $0 --dry-run       模拟运行验证
-  $0 --test-backup   仅测试备份脚本
-  $0                 测试所有功能
-EOF
-}
-
-# 默认参数
+# 默认配置
 DRY_RUN=false
-TEST_BACKUP=false
-TEST_CRON=false
-TEST_ALL=true
+VERBOSE=false
+QUIET=false
+BACKUP_DIR="/opt/roc/quota-proxy/backups"
+DB_FILE="/opt/roc/quota-proxy/data/quota-proxy.db"
+SERVER_IP="8.210.185.194"
+SSH_KEY="$HOME/.ssh/id_ed25519_roc_server"
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        --dry-run)
-            DRY_RUN=true
-            shift
-            ;;
-        --help)
-            show_help
-            exit 0
-            ;;
-        --test-backup)
-            TEST_BACKUP=true
-            TEST_ALL=false
-            shift
-            ;;
-        --test-cron)
-            TEST_CRON=true
-            TEST_ALL=false
-            shift
-            ;;
-        --test-all)
-            TEST_ALL=true
-            shift
-            ;;
-        *)
-            log_error "未知参数: $1"
-            show_help
-            exit 1
-            ;;
-    esac
+  case $1 in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --verbose)
+      VERBOSE=true
+      shift
+      ;;
+    --quiet)
+      QUIET=true
+      shift
+      ;;
+    --help)
+      echo "用法: $0 [选项]"
+      echo "选项:"
+      echo "  --dry-run   只显示将要执行的操作，不实际执行"
+      echo "  --verbose   显示详细输出"
+      echo "  --quiet     只显示关键信息"
+      echo "  --help      显示此帮助信息"
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}错误: 未知参数 '$1'${NC}"
+      echo "使用 --help 查看用法"
+      exit 1
+      ;;
+  esac
 done
 
-# 检查脚本目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-log_info "项目根目录: $PROJECT_ROOT"
-log_info "验证模式: $([ "$DRY_RUN" = true ] && echo "模拟运行" || echo "实际执行")"
-
-# 验证备份脚本
-verify_backup_script() {
-    log_info "验证数据库备份脚本..."
-    
-    local backup_script="$PROJECT_ROOT/scripts/backup-sqlite-db.sh"
-    
-    # 检查脚本是否存在
-    if [[ ! -f "$backup_script" ]]; then
-        log_error "备份脚本不存在: $backup_script"
-        return 1
-    fi
-    
-    log_success "备份脚本存在: $(basename "$backup_script")"
-    
-    # 检查脚本权限
-    if [[ ! -x "$backup_script" ]]; then
-        log_warning "备份脚本不可执行，尝试添加执行权限..."
-        if [[ "$DRY_RUN" = false ]]; then
-            chmod +x "$backup_script"
-            log_success "已添加执行权限"
-        else
-            log_info "[模拟] 将添加执行权限: chmod +x $backup_script"
-        fi
-    else
-        log_success "备份脚本具有执行权限"
-    fi
-    
-    # 测试--help选项
-    log_info "测试备份脚本帮助信息..."
-    if [[ "$DRY_RUN" = false ]]; then
-        if "$backup_script" --help 2>&1 | grep -q "用法:"; then
-            log_success "备份脚本帮助信息正常"
-        else
-            log_error "备份脚本帮助信息异常"
-            return 1
-        fi
-    else
-        log_info "[模拟] 将执行: $backup_script --help"
-    fi
-    
-    # 测试--dry-run选项
-    log_info "测试备份脚本模拟运行..."
-    if [[ "$DRY_RUN" = false ]]; then
-        if "$backup_script" --dry-run 2>&1 | grep -q "模拟运行"; then
-            log_success "备份脚本模拟运行正常"
-        else
-            log_warning "备份脚本模拟运行可能异常，但继续验证"
-        fi
-    else
-        log_info "[模拟] 将执行: $backup_script --dry-run"
-    fi
-    
-    # 检查脚本内容
-    log_info "检查备份脚本关键功能..."
-    local missing_functions=0
-    
-    # 检查关键函数
-    for func in "backup_database" "compress_backup" "cleanup_old_backups" "generate_report"; do
-        if grep -q "function $func\|$func()" "$backup_script"; then
-            log_success "找到函数: $func"
-        else
-            log_warning "未找到函数: $func"
-            missing_functions=$((missing_functions + 1))
-        fi
-    done
-    
-    if [[ $missing_functions -eq 0 ]]; then
-        log_success "备份脚本关键函数完整"
-    else
-        log_warning "备份脚本缺少 $missing_functions 个关键函数"
-    fi
-    
-    return 0
+# 日志函数
+log_info() {
+  if [ "$QUIET" = false ]; then
+    echo -e "${BLUE}[INFO]${NC} $1"
+  fi
 }
 
-# 验证cron设置脚本
-verify_cron_script() {
-    log_info "验证cron设置脚本..."
-    
-    local cron_script="$PROJECT_ROOT/scripts/setup-db-backup-cron.sh"
-    
-    # 检查脚本是否存在
-    if [[ ! -f "$cron_script" ]]; then
-        log_error "cron设置脚本不存在: $cron_script"
-        return 1
-    fi
-    
-    log_success "cron设置脚本存在: $(basename "$cron_script")"
-    
-    # 检查脚本权限
-    if [[ ! -x "$cron_script" ]]; then
-        log_warning "cron设置脚本不可执行，尝试添加执行权限..."
-        if [[ "$DRY_RUN" = false ]]; then
-            chmod +x "$cron_script"
-            log_success "已添加执行权限"
-        else
-            log_info "[模拟] 将添加执行权限: chmod +x $cron_script"
-        fi
-    else
-        log_success "cron设置脚本具有执行权限"
-    fi
-    
-    # 测试--help选项
-    log_info "测试cron设置脚本帮助信息..."
-    if [[ "$DRY_RUN" = false ]]; then
-        if "$cron_script" --help 2>&1 | grep -q "用法:"; then
-            log_success "cron设置脚本帮助信息正常"
-        else
-            log_error "cron设置脚本帮助信息异常"
-            return 1
-        fi
-    else
-        log_info "[模拟] 将执行: $cron_script --help"
-    fi
-    
-    # 测试--dry-run选项
-    log_info "测试cron设置脚本模拟运行..."
-    if [[ "$DRY_RUN" = false ]]; then
-        if "$cron_script" --dry-run 2>&1 | grep -q "模拟运行"; then
-            log_success "cron设置脚本模拟运行正常"
-        else
-            log_warning "cron设置脚本模拟运行可能异常，但继续验证"
-        fi
-    else
-        log_info "[模拟] 将执行: $cron_script --dry-run"
-    fi
-    
-    # 检查脚本内容
-    log_info "检查cron设置脚本关键功能..."
-    local missing_functions=0
-    
-    # 检查关键函数
-    for func in "add_cron_job" "remove_cron_job" "list_cron_jobs" "validate_cron_schedule"; do
-        if grep -q "function $func\|$func()" "$cron_script"; then
-            log_success "找到函数: $func"
-        else
-            log_warning "未找到函数: $func"
-            missing_functions=$((missing_functions + 1))
-        fi
-    done
-    
-    if [[ $missing_functions -eq 0 ]]; then
-        log_success "cron设置脚本关键函数完整"
-    else
-        log_warning "cron设置脚本缺少 $missing_functions 个关键函数"
-    fi
-    
-    return 0
+log_success() {
+  if [ "$QUIET" = false ]; then
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+  fi
 }
 
-# 验证备份文档
-verify_backup_docs() {
-    log_info "验证备份相关文档..."
-    
-    local docs_dir="$PROJECT_ROOT/docs"
-    local backup_docs=(
-        "database-backup-guide.md"
-        "cron-backup-setup.md"
-    )
-    
-    local missing_docs=0
-    
-    for doc in "${backup_docs[@]}"; do
-        if [[ -f "$docs_dir/$doc" ]]; then
-            log_success "文档存在: $doc"
-        else
-            log_warning "文档不存在: $doc"
-            missing_docs=$((missing_docs + 1))
-        fi
-    done
-    
-    if [[ $missing_docs -eq 0 ]]; then
-        log_success "备份相关文档完整"
-    else
-        log_warning "缺少 $missing_docs 个备份相关文档"
-    fi
-    
+log_warning() {
+  echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+  echo -e "${RED}[ERROR]${NC} $1"
+}
+
+log_verbose() {
+  if [ "$VERBOSE" = true ]; then
+    echo -e "${BLUE}[VERBOSE]${NC} $1"
+  fi
+}
+
+# 检查服务器连接
+check_server_connection() {
+  log_info "检查服务器连接..."
+  
+  if [ "$DRY_RUN" = true ]; then
+    log_verbose "DRY-RUN: 将检查服务器连接: ssh -i $SSH_KEY root@$SERVER_IP 'echo connected'"
     return 0
+  fi
+  
+  if ssh -i "$SSH_KEY" -o BatchMode=yes -o ConnectTimeout=8 root@"$SERVER_IP" 'echo connected' >/dev/null 2>&1; then
+    log_success "服务器连接正常"
+    return 0
+  else
+    log_error "无法连接到服务器"
+    return 1
+  fi
+}
+
+# 检查备份目录
+check_backup_directory() {
+  log_info "检查备份目录..."
+  
+  if [ "$DRY_RUN" = true ]; then
+    log_verbose "DRY-RUN: 将检查备份目录: $BACKUP_DIR"
+    return 0
+  fi
+  
+  local result
+  result=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "
+    if [ -d '$BACKUP_DIR' ]; then
+      echo '目录存在'
+      ls -la '$BACKUP_DIR' | wc -l
+    else
+      echo '目录不存在'
+    fi
+  " 2>/dev/null)
+  
+  if echo "$result" | grep -q "目录存在"; then
+    local file_count
+    file_count=$(echo "$result" | tail -1)
+    log_success "备份目录存在 ($BACKUP_DIR)，包含 $file_count 个文件"
+    return 0
+  else
+    log_warning "备份目录不存在: $BACKUP_DIR"
+    return 1
+  fi
+}
+
+# 检查备份文件
+check_backup_files() {
+  log_info "检查备份文件..."
+  
+  if [ "$DRY_RUN" = true ]; then
+    log_verbose "DRY-RUN: 将列出备份文件"
+    return 0
+  fi
+  
+  local backups
+  backups=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "
+    if [ -d '$BACKUP_DIR' ]; then
+      find '$BACKUP_DIR' -name '*.db' -o -name '*.db.backup' -o -name '*.sqlite' | sort -r | head -5
+    fi
+  " 2>/dev/null)
+  
+  if [ -n "$backups" ]; then
+    log_success "找到备份文件:"
+    echo "$backups" | while read -r file; do
+      local size
+      size=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "stat -c '%s' '$file' 2>/dev/null || echo '0'")
+      local mtime
+      mtime=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "stat -c '%y' '$file' 2>/dev/null || echo '未知'")
+      echo "  - $file ($((size/1024))KB, 修改时间: $mtime)"
+    done
+    return 0
+  else
+    log_warning "未找到备份文件"
+    return 1
+  fi
+}
+
+# 检查数据库文件
+check_database_file() {
+  log_info "检查数据库文件..."
+  
+  if [ "$DRY_RUN" = true ]; then
+    log_verbose "DRY-RUN: 将检查数据库文件: $DB_FILE"
+    return 0
+  fi
+  
+  local db_info
+  db_info=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "
+    if [ -f '$DB_FILE' ]; then
+      echo '文件存在'
+      stat -c '%s' '$DB_FILE'
+      sqlite3 '$DB_FILE' '.tables' 2>/dev/null | wc -l
+    else
+      echo '文件不存在'
+    fi
+  " 2>/dev/null)
+  
+  if echo "$db_info" | grep -q "文件存在"; then
+    local size
+    size=$(echo "$db_info" | sed -n '2p')
+    local table_count
+    table_count=$(echo "$db_info" | sed -n '3p')
+    log_success "数据库文件存在 ($DB_FILE, $((size/1024))KB, $table_count 个表)"
+    return 0
+  else
+    log_error "数据库文件不存在: $DB_FILE"
+    return 1
+  fi
+}
+
+# 验证备份完整性
+verify_backup_integrity() {
+  log_info "验证备份完整性..."
+  
+  if [ "$DRY_RUN" = true ]; then
+    log_verbose "DRY-RUN: 将验证最新的备份文件"
+    return 0
+  fi
+  
+  local latest_backup
+  latest_backup=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "
+    if [ -d '$BACKUP_DIR' ]; then
+      find '$BACKUP_DIR' -name '*.db' -o -name '*.db.backup' -o -name '*.sqlite' -type f -printf '%T@ %p\n' | sort -rn | head -1 | cut -d' ' -f2-
+    fi
+  " 2>/dev/null)
+  
+  if [ -n "$latest_backup" ]; then
+    log_info "验证备份文件: $latest_backup"
+    
+    # 检查文件是否可以读取
+    if ssh -i "$SSH_KEY" root@"$SERVER_IP" "sqlite3 '$latest_backup' '.schema' >/dev/null 2>&1"; then
+      log_success "备份文件可读取"
+      
+      # 检查表结构
+      local tables
+      tables=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "sqlite3 '$latest_backup' '.tables'" 2>/dev/null)
+      if echo "$tables" | grep -q "api_keys" && echo "$tables" | grep -q "usage_stats"; then
+        log_success "备份包含正确的表结构 (api_keys, usage_stats)"
+        
+        # 检查数据行数
+        local key_count
+        key_count=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "sqlite3 '$latest_backup' 'SELECT COUNT(*) FROM api_keys'" 2>/dev/null || echo "0")
+        local usage_count
+        usage_count=$(ssh -i "$SSH_KEY" root@"$SERVER_IP" "sqlite3 '$latest_backup' 'SELECT COUNT(*) FROM usage_stats'" 2>/dev/null || echo "0")
+        
+        log_info "备份数据统计:"
+        log_info "  - api_keys 表: $key_count 行"
+        log_info "  - usage_stats 表: $usage_count 行"
+        
+        return 0
+      else
+        log_warning "备份缺少必要的表结构"
+        return 1
+      fi
+    else
+      log_error "备份文件损坏或无法读取"
+      return 1
+    fi
+  else
+    log_warning "没有可验证的备份文件"
+    return 1
+  fi
 }
 
 # 生成验证报告
 generate_report() {
-    log_info "生成验证报告..."
-    
-    local report_file="/tmp/db-backup-verification-report-$(date +%Y%m%d-%H%M%S).txt"
-    
-    cat > "$report_file" << EOF
+  log_info "生成验证报告..."
+  
+  local report_file="/tmp/db-backup-verification-$(date +%Y%m%d-%H%M%S).txt"
+  
+  cat > "$report_file" << EOF
 数据库备份验证报告
-生成时间: $(date '+%Y-%m-%d %H:%M:%S %Z')
-验证模式: $([ "$DRY_RUN" = true ] && echo "模拟运行" || echo "实际执行")
+生成时间: $(date '+%Y-%m-%d %H:%M:%S')
+服务器: $SERVER_IP
 
-脚本验证结果:
-1. 备份脚本: $([ -f "$PROJECT_ROOT/scripts/backup-sqlite-db.sh" ] && echo "存在" || echo "不存在")
-2. cron设置脚本: $([ -f "$PROJECT_ROOT/scripts/setup-db-backup-cron.sh" ] && echo "存在" || echo "不存在")
-3. 验证脚本: $([ -f "$PROJECT_ROOT/scripts/verify-db-backup.sh" ] && echo "存在" || echo "不存在")
-
-执行权限:
-- backup-sqlite-db.sh: $([ -x "$PROJECT_ROOT/scripts/backup-sqlite-db.sh" ] && echo "可执行" || echo "不可执行")
-- setup-db-backup-cron.sh: $([ -x "$PROJECT_ROOT/scripts/setup-db-backup-cron.sh" ] && echo "可执行" || echo "不可执行")
+验证结果:
+1. 服务器连接: $(if check_server_connection >/dev/null 2>&1; then echo "✓ 正常"; else echo "✗ 失败"; fi)
+2. 备份目录: $(if check_backup_directory >/dev/null 2>&1; then echo "✓ 存在"; else echo "✗ 不存在"; fi)
+3. 数据库文件: $(if check_database_file >/dev/null 2>&1; then echo "✓ 存在"; else echo "✗ 不存在"; fi)
+4. 备份完整性: $(if verify_backup_integrity >/dev/null 2>&1; then echo "✓ 验证通过"; else echo "✗ 验证失败"; fi)
 
 建议:
-1. 确保所有脚本具有执行权限
-2. 测试实际备份功能
-3. 设置cron定时任务
-4. 定期验证备份完整性
+$(if [ "$DRY_RUN" = false ]; then
+  if check_server_connection >/dev/null 2>&1 && check_database_file >/dev/null 2>&1; then
+    echo "- 数据库运行正常，建议定期验证备份"
+  else
+    echo "- 请检查数据库状态和备份配置"
+  fi
+else
+  echo "- 这是dry-run模式，实际验证需要移除--dry-run参数"
+fi)
 
-验证完成时间: $(date '+%Y-%m-%d %H:%M:%S')
 EOF
-    
-    log_success "验证报告已生成: $report_file"
-    echo "=== 验证报告内容 ==="
-    cat "$report_file"
-    echo "==================="
+  
+  log_success "验证报告已保存到: $report_file"
+  cat "$report_file"
 }
 
-# 主验证流程
+# 主函数
 main() {
-    log_info "开始数据库备份验证..."
-    
-    local errors=0
-    
-    # 根据参数执行验证
-    if [[ "$TEST_ALL" = true || "$TEST_BACKUP" = true ]]; then
-        if ! verify_backup_script; then
-            errors=$((errors + 1))
-        fi
-    fi
-    
-    if [[ "$TEST_ALL" = true || "$TEST_CRON" = true ]]; then
-        if ! verify_cron_script; then
-            errors=$((errors + 1))
-        fi
-    fi
-    
-    # 验证文档
-    if ! verify_backup_docs; then
-        errors=$((errors + 1))
-    fi
-    
-    # 生成报告
-    generate_report
-    
-    # 总结
-    if [[ $errors -eq 0 ]]; then
-        log_success "数据库备份验证完成，所有检查通过！"
-        return 0
-    else
-        log_error "数据库备份验证完成，发现 $errors 个问题"
-        return 1
-    fi
+  log_info "开始数据库备份验证..."
+  log_info "服务器: $SERVER_IP"
+  log_info "数据库: $DB_FILE"
+  log_info "备份目录: $BACKUP_DIR"
+  
+  if [ "$DRY_RUN" = true ]; then
+    log_warning "DRY-RUN模式: 只显示将要执行的操作"
+  fi
+  
+  # 执行验证步骤
+  check_server_connection || {
+    log_error "服务器连接失败，跳过后续验证"
+    exit 1
+  }
+  
+  check_backup_directory
+  check_backup_files
+  check_database_file
+  verify_backup_integrity
+  
+  # 生成报告
+  generate_report
+  
+  log_success "数据库备份验证完成"
 }
 
 # 执行主函数
