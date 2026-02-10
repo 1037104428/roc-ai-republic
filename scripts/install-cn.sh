@@ -223,10 +223,48 @@ fi
 if [[ -z "${SKIP_NET_CHECK:-}" ]]; then
   echo "[cn-pack] Checking network connectivity to npm registries..."
   if command -v curl >/dev/null 2>&1; then
+    # Test CN registry with latency measurement
+    echo "[cn-pack] Testing CN registry: $REG_CN"
+    CN_START=$(date +%s%N)
     if curl -fsS -m 5 "$REG_CN" >/dev/null 2>&1; then
-      echo "[cn-pack] ✅ CN registry reachable: $REG_CN"
+      CN_END=$(date +%s%N)
+      CN_LATENCY=$(( (CN_END - CN_START) / 1000000 ))
+      echo "[cn-pack] ✅ CN registry reachable: $REG_CN (latency: ${CN_LATENCY}ms)"
+      CN_REACHABLE=1
+      CN_LATENCY_MS=${CN_LATENCY}
     else
       echo "[cn-pack] ⚠️ CN registry not reachable (will try fallback): $REG_CN"
+      CN_REACHABLE=0
+    fi
+    
+    # Test fallback registry with latency measurement
+    echo "[cn-pack] Testing fallback registry: $REG_FALLBACK"
+    FALLBACK_START=$(date +%s%N)
+    if curl -fsS -m 5 "$REG_FALLBACK" >/dev/null 2>&1; then
+      FALLBACK_END=$(date +%s%N)
+      FALLBACK_LATENCY=$(( (FALLBACK_END - FALLBACK_START) / 1000000 ))
+      echo "[cn-pack] ✅ Fallback registry reachable: $REG_FALLBACK (latency: ${FALLBACK_LATENCY}ms)"
+      FALLBACK_REACHABLE=1
+      FALLBACK_LATENCY_MS=${FALLBACK_LATENCY}
+    else
+      echo "[cn-pack] ⚠️ Fallback registry not reachable: $REG_FALLBACK"
+      FALLBACK_REACHABLE=0
+    fi
+    
+    # Provide intelligent recommendation
+    if [[ "${CN_REACHABLE:-0}" -eq 1 && "${FALLBACK_REACHABLE:-0}" -eq 1 ]]; then
+      if [[ "${CN_LATENCY_MS:-9999}" -lt "${FALLBACK_LATENCY_MS:-9999}" ]]; then
+        echo "[cn-pack] 💡 Recommendation: CN registry is faster (${CN_LATENCY_MS}ms vs ${FALLBACK_LATENCY_MS}ms)"
+      else
+        echo "[cn-pack] 💡 Recommendation: Fallback registry is faster (${FALLBACK_LATENCY_MS}ms vs ${CN_LATENCY_MS}ms)"
+      fi
+    elif [[ "${CN_REACHABLE:-0}" -eq 1 ]]; then
+      echo "[cn-pack] 💡 Only CN registry reachable, will use it"
+    elif [[ "${FALLBACK_REACHABLE:-0}" -eq 1 ]]; then
+      echo "[cn-pack] 💡 Only fallback registry reachable, will use it"
+    else
+      echo "[cn-pack] ❌ No npm registries reachable. Check your network connection." >&2
+      exit 1
     fi
   else
     echo "[cn-pack] ℹ️ curl not found, skipping network check"
