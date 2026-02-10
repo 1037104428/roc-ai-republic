@@ -267,6 +267,56 @@ openclaw models status
    - 你已经尝试的步骤
    - 期望的结果
 
+## 🚀 快速验证（安装后必做）
+
+完成安装后，运行以下命令验证系统是否正常工作：
+
+### 1. 验证 API 网关
+```bash
+# 检查健康状态
+curl -fsS https://api.clawdrepublic.cn/healthz
+
+# 检查版本信息
+curl -fsS https://api.clawdrepublic.cn/version
+```
+
+### 2. 验证试用密钥（可选）
+```bash
+# 获取试用密钥（需要注册）
+curl -fsS https://clawdrepublic.cn/trial-key-guide.html
+
+# 使用密钥测试 API
+curl -H "Authorization: Bearer YOUR_TRIAL_KEY" \
+  https://api.clawdrepublic.cn/v1/chat/completions \
+  -d '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+### 3. 验证安装脚本
+```bash
+# 检查安装脚本版本
+./install-cn.sh --version
+
+# 查看帮助信息
+./install-cn.sh --help
+```
+
+### 4. 一键验证脚本
+我们提供了完整的验证脚本，一键检查所有组件：
+```bash
+# 下载验证脚本
+curl -O https://clawdrepublic.cn/scripts/verify-all.sh
+chmod +x verify-all.sh
+
+# 运行验证
+./verify-all.sh --local
+```
+
+**预期结果**：
+- ✅ API 网关返回 `{"ok":true}`
+- ✅ 版本信息显示当前版本
+- ✅ 安装脚本正常运行
+- ✅ 验证脚本通过所有检查
+
 ---
 
 - API 健康检查：https://api.clawdrepublic.cn/healthz
