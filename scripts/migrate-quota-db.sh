@@ -316,15 +316,15 @@ main() {
         DRY_RUN=true
     fi
     
-    # 检查必需工具
-    if ! check_requirements; then
-        return 1
-    fi
-    
-    # 列出迁移脚本
+    # 列出迁移脚本（不需要sqlite3）
     if [[ "$list_only" == "true" ]]; then
         list_migrations "$migrations_dir"
         return 0
+    fi
+    
+    # 检查必需工具
+    if ! check_requirements; then
+        return 1
     fi
     
     # 检查数据库
