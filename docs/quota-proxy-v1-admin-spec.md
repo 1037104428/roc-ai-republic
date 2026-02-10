@@ -639,3 +639,145 @@ ADMIN_TOKEN="your_admin_token_here" ./scripts/verify-admin-endpoints.sh
 4. **可读性**：清晰的输出格式和进度指示
 
 此脚本特别适合在生产环境中进行全面的管理接口验证，确保所有功能正常工作。
+
+---
+
+## 常见问题排查（FAQ）
+
+### 1. 健康检查通过但管理接口返回 401/403
+
+**可能原因：**
+- `ADMIN_TOKEN` 环境变量未设置或设置错误
+- 鉴权头格式不正确（应为 `Authorization: Bearer $ADMIN_TOKEN`）
+- 服务器上的 `.env` 文件未正确加载
+
+**排查步骤：**
+```bash
+# 1. 检查容器环境变量
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && docker compose exec quota-proxy env | grep ADMIN_TOKEN'
+
+# 2. 验证 .env 文件内容
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && grep ADMIN_TOKEN .env'
+
+# 3. 测试鉴权头格式
+ADMIN_TOKEN="your_token_here"
+curl -v -H "Authorization: Bearer $ADMIN_TOKEN" http://127.0.0.1:8787/admin/usage
+```
+
+### 2. 生成 key 成功但无法使用
+
+**可能原因：**
+- 环境变量 `CLAWD_TRIAL_KEY` 未正确设置
+- 请求头格式不正确（应为 `Authorization: Bearer $CLAWD_TRIAL_KEY`）
+- 上游 DeepSeek API 密钥问题
+
+**排查步骤：**
+```bash
+# 1. 验证 key 格式
+echo "Key: $CLAWD_TRIAL_KEY"
+echo "Key length: ${#CLAWD_TRIAL_KEY}"
+
+# 2. 测试 key 可用性（需要有效的 key）
+curl -s -H "Authorization: Bearer $CLAWD_TRIAL_KEY" \
+  https://api.clawdrepublic.cn/v1/models | jq '.data[0].id'
+
+# 3. 检查上游配置
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && grep DEEPSEEK_API_KEY .env'
+```
+
+### 3. 用量统计不准确或未更新
+
+**可能原因：**
+- SQLite 数据库文件权限问题
+- 容器重启导致内存中的数据丢失（如果未正确持久化）
+- 计数逻辑问题
+
+**排查步骤：**
+```bash
+# 1. 检查数据库文件权限
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && ls -la data/'
+
+# 2. 直接查询数据库
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && \
+  sqlite3 data/quota.db "SELECT key, label, req_count, updated_at FROM quota_usage ORDER BY updated_at DESC LIMIT 5;"'
+
+# 3. 检查日志中的计数逻辑
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && docker compose logs --tail=50 | grep -i "count\|usage"'
+```
+
+### 4. 容器启动失败
+
+**可能原因：**
+- 端口 8787 已被占用
+- 缺少必要的环境变量
+- Docker 镜像拉取失败
+
+**排查步骤：**
+```bash
+# 1. 检查端口占用
+ssh root@<server_ip> 'netstat -tlnp | grep :8787'
+
+# 2. 查看详细错误日志
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && docker compose logs'
+
+# 3. 检查 compose 文件语法
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && docker compose config'
+```
+
+### 5. 性能问题（响应慢）
+
+**可能原因：**
+- SQLite 数据库文件过大
+- 上游 DeepSeek API 响应慢
+- 服务器资源不足
+
+**排查步骤：**
+```bash
+# 1. 检查数据库大小
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && du -sh data/quota.db'
+
+# 2. 测试上游 API 响应时间
+curl -w "Total: %{time_total}s\n" -o /dev/null -s https://api.deepseek.com/v1/chat/completions
+
+# 3. 监控容器资源使用
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && docker stats --no-stream quota-proxy-quota-proxy-1'
+```
+
+### 6. 数据备份与恢复
+
+**备份：**
+```bash
+# 备份 SQLite 数据库
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && \
+  cp data/quota.db data/quota.db.backup.$(date +%Y%m%d_%H%M%S)'
+
+# 备份环境变量
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && cp .env .env.backup.$(date +%Y%m%d_%H%M%S)'
+```
+
+**恢复：**
+```bash
+# 停止服务
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && docker compose down'
+
+# 恢复数据库
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && \
+  cp data/quota.db.backup.20260210_100000 data/quota.db'
+
+# 恢复环境变量
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && \
+  cp .env.backup.20260210_100000 .env'
+
+# 启动服务
+ssh root@<server_ip> 'cd /opt/roc/quota-proxy && docker compose up -d'
+```
+
+### 7. 紧急联系方式
+
+遇到无法解决的问题时：
+1. **查看详细日志**：`docker compose logs --tail=100`
+2. **检查服务器状态**：`docker compose ps`, `df -h`, `free -m`
+3. **回滚到上一个版本**：使用 git 回滚或恢复备份
+4. **联系维护人员**：通过论坛或 issue 报告问题
+
+**重要提醒**：生产环境修改前务必先备份！
