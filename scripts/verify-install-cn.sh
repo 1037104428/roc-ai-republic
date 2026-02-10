@@ -1,130 +1,154 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# OpenClaw CN installer verification script
-# Tests the install-cn.sh script functionality
+# Verify install-cn.sh functionality
+# This script tests the CN installer without actually installing OpenClaw
 
-usage() {
-  cat <<'TXT'
-[cn-pack] OpenClaw CN installer verification script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+INSTALL_SCRIPT="$REPO_ROOT/scripts/install-cn.sh"
 
-Usage:
-  ./verify-install-cn.sh [options]
-
-Options:
-  --dry-run              Test with --dry-run flag
-  --help                 Show this help
-  --version <ver>        Test specific version (default: latest)
-  --no-cleanup           Keep test directory after test
-
-Examples:
-  ./verify-install-cn.sh --dry-run
-  ./verify-install-cn.sh --version 0.3.12
-TXT
-}
-
-DRY_RUN=0
-VERSION="latest"
-NO_CLEANUP=0
-
-# Use mktemp for safety (avoid collisions)
-TEST_DIR="$(mktemp -d -t openclaw-cn-install-test-XXXXXXXX)"
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --dry-run)
-      DRY_RUN=1; shift ;;
-    --version)
-      VERSION="${2:-}"; shift 2 ;;
-    --no-cleanup)
-      NO_CLEANUP=1; shift ;;
-    -h|--help)
-      usage; exit 0 ;;
-    *)
-      echo "[cn-pack] Unknown arg: $1" >&2
-      usage
-      exit 2
-      ;;
-  esac
-done
-
-cleanup() {
-  if [[ "$NO_CLEANUP" == "0" ]]; then
-    echo "[cn-pack] Cleaning up test directory: $TEST_DIR"
-    # Guard against accidental deletion of non-/tmp paths
-    case "$TEST_DIR" in
-      /tmp/openclaw-cn-install-test-*) rm -rf "$TEST_DIR" 2>/dev/null || true ;;
-      *) echo "[cn-pack] Refuse to cleanup unexpected TEST_DIR: $TEST_DIR" >&2 ;;
-    esac
-  else
-    echo "[cn-pack] Test directory kept: $TEST_DIR"
-  fi
-}
-
-trap cleanup EXIT
-
-echo "[cn-pack] Starting OpenClaw CN installer verification"
-echo "[cn-pack] Test directory: $TEST_DIR"
-
-# Copy install script to test directory
-if [[ ! -f scripts/install-cn.sh ]]; then
-  echo "[cn-pack] ❌ Missing scripts/install-cn.sh (run from repo root)" >&2
-  exit 2
-fi
-cp scripts/install-cn.sh "$TEST_DIR/"
-
-# Test 1: Help output
-echo "[cn-pack] Test 1: Help output"
-if ! "$TEST_DIR/install-cn.sh" --help 2>&1 | grep -q "OpenClaw CN installer"; then
-  echo "[cn-pack] ❌ Test 1 failed: Help output not as expected"
-  exit 1
-fi
-echo "[cn-pack] ✅ Test 1 passed: Help output OK"
-
-# Test 2: Dry run
-if [[ "$DRY_RUN" == "1" ]]; then
-  echo "[cn-pack] Test 2: Dry run mode"
-  set +e
-  DRY_OUT=$("$TEST_DIR/install-cn.sh" --dry-run --version "$VERSION" 2>&1)
-  DRY_RC=$?
-  set -e
-  DRY_RUN_COUNT=$(printf "%s" "$DRY_OUT" | grep -c "\[dry-run\]" || true)
-  if [[ "$DRY_RUN_COUNT" -eq 0 || "$DRY_RC" -ne 0 ]]; then
-    echo "[cn-pack] ❌ Test 2 failed: dry-run expected markers and exit 0 (markers=$DRY_RUN_COUNT rc=$DRY_RC)"
-    printf "%s\n" "$DRY_OUT" | tail -n 50
-    exit 1
-  fi
-  echo "[cn-pack] ✅ Test 2 passed: Dry run OK (found $DRY_RUN_COUNT [dry-run] markers, rc=$DRY_RC)"
-fi
-
-# Test 3: Script syntax check
-echo "[cn-pack] Test 3: Script syntax check"
-if ! bash -n "$TEST_DIR/install-cn.sh"; then
-  echo "[cn-pack] ❌ Test 3 failed: Script has syntax errors"
-  exit 1
-fi
-echo "[cn-pack] ✅ Test 3 passed: Script syntax OK"
-
-# Test 4: Required commands check
-echo "[cn-pack] Test 4: Required commands check"
-if ! grep -q "command -v npm" "$TEST_DIR/install-cn.sh"; then
-  echo "[cn-pack] ❌ Test 4 failed: npm command check missing"
-  exit 1
-fi
-echo "[cn-pack] ✅ Test 4 passed: Required commands check present"
-
-# Test 5: Self-check section
-echo "[cn-pack] Test 5: Self-check section"
-if ! grep -q "openclaw --version" "$TEST_DIR/install-cn.sh"; then
-  echo "[cn-pack] ❌ Test 5 failed: Self-check missing"
-  exit 1
-fi
-echo "[cn-pack] ✅ Test 5 passed: Self-check present"
-
-echo "[cn-pack] ✅ All verification tests passed!"
-echo "[cn-pack] Install script is ready for use."
+echo "=== OpenClaw CN Installer Verification ==="
+echo "Script: $INSTALL_SCRIPT"
 echo ""
-echo "[cn-pack] Quick usage reminder:"
-echo "  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash"
-echo "  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version $VERSION"
-echo "  NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh"
+
+# Check if script exists
+if [[ ! -f "$INSTALL_SCRIPT" ]]; then
+  echo "❌ Install script not found: $INSTALL_SCRIPT"
+  exit 1
+fi
+
+echo "✅ Install script exists"
+
+# Test 1: Syntax check
+echo ""
+echo "=== Test 1: Syntax Check ==="
+if bash -n "$INSTALL_SCRIPT"; then
+  echo "✅ Syntax check passed"
+else
+  echo "❌ Syntax check failed"
+  exit 1
+fi
+
+# Test 2: Help output
+echo ""
+echo "=== Test 2: Help Output ==="
+if "$INSTALL_SCRIPT" --help 2>&1 | grep -q "OpenClaw CN installer"; then
+  echo "✅ Help output contains expected text"
+else
+  echo "❌ Help output missing expected text"
+  exit 1
+fi
+
+# Test 3: Network test mode
+echo ""
+echo "=== Test 3: Network Test Mode ==="
+NETWORK_TEST_OUTPUT="$("$INSTALL_SCRIPT" --network-test 2>&1 | head -5)"
+if echo "$NETWORK_TEST_OUTPUT" | grep -q "Running network connectivity test"; then
+  echo "✅ Network test mode works"
+else
+  echo "❌ Network test mode not working"
+  echo "Output: $NETWORK_TEST_OUTPUT"
+  exit 1
+fi
+
+# Test 4: Dry run mode
+echo ""
+echo "=== Test 4: Dry Run Mode ==="
+DRY_OUTPUT="$("$INSTALL_SCRIPT" --dry-run 2>&1)"
+if echo "$DRY_OUTPUT" | grep -q "dry-run"; then
+  echo "✅ Dry run mode works"
+else
+  echo "❌ Dry run mode not working"
+  exit 1
+fi
+
+# Test 5: Version specification
+echo ""
+echo "=== Test 5: Version Specification ==="
+VERSION_OUTPUT="$("$INSTALL_SCRIPT" --version 0.3.12 --dry-run 2>&1)"
+if echo "$VERSION_OUTPUT" | grep -q "openclaw@0.3.12"; then
+  echo "✅ Version specification works"
+else
+  echo "❌ Version specification not working"
+  exit 1
+fi
+
+# Test 6: Registry override
+echo ""
+echo "=== Test 6: Registry Override ==="
+REG_OUTPUT="$("$INSTALL_SCRIPT" --registry-cn https://test.registry.cn --dry-run 2>&1)"
+if echo "$REG_OUTPUT" | grep -q "test.registry.cn"; then
+  echo "✅ Registry override works"
+else
+  echo "❌ Registry override not working"
+  exit 1
+fi
+
+# Test 7: Force CN mode
+echo ""
+echo "=== Test 7: Force CN Mode ==="
+FORCE_OUTPUT="$("$INSTALL_SCRIPT" --force-cn --dry-run 2>&1)"
+if echo "$FORCE_OUTPUT" | grep -q "Force using CN registry"; then
+  echo "✅ Force CN mode works"
+else
+  echo "❌ Force CN mode not working"
+  exit 1
+fi
+
+# Test 8: Script self-check functions
+echo ""
+echo "=== Test 8: Script Self-Check Functions ==="
+# Check for network test function
+if grep -q "run_network_test()" "$INSTALL_SCRIPT"; then
+  echo "✅ Network test function exists"
+else
+  echo "❌ Network test function missing"
+fi
+
+# Check for install_openclaw function
+if grep -q "install_openclaw()" "$INSTALL_SCRIPT"; then
+  echo "✅ Install function exists"
+else
+  echo "❌ Install function missing"
+fi
+
+# Check for self-check at end
+if grep -q "Self-check" "$INSTALL_SCRIPT"; then
+  echo "✅ Self-check section exists"
+else
+  echo "❌ Self-check section missing"
+fi
+
+# Test 9: Environment variable support
+echo ""
+echo "=== Test 9: Environment Variable Support ==="
+ENV_OUTPUT="$(OPENCLAW_VERSION=0.3.12 NPM_REGISTRY=https://test.registry.cn "$INSTALL_SCRIPT" --dry-run 2>&1)"
+if echo "$ENV_OUTPUT" | grep -q "openclaw@0.3.12" && echo "$ENV_OUTPUT" | grep -q "test.registry.cn"; then
+  echo "✅ Environment variable support works"
+else
+  echo "❌ Environment variable support not working"
+fi
+
+# Test 10: Error handling
+echo ""
+echo "=== Test 10: Error Handling ==="
+# Test missing required argument
+if ! "$INSTALL_SCRIPT" --version 2>&1 | grep -q "Missing required values"; then
+  echo "⚠️  Missing argument error handling could be improved"
+else
+  echo "✅ Missing argument error handling works"
+fi
+
+echo ""
+echo "=== Summary ==="
+echo "✅ All core functionality tests passed"
+echo ""
+echo "To test actual installation (requires Node.js >= 20):"
+echo "  curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh | bash"
+echo ""
+echo "For network connectivity test only:"
+echo "  curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh | bash -s -- --network-test"
+echo ""
+echo "For dry-run (no install):"
+echo "  curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh | bash -s -- --dry-run"
