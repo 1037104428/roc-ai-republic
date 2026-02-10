@@ -42,17 +42,19 @@ ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "cd /opt/roc/quota-proxy 
 ### [TODO-002] 数据库定期备份机制
 **状态**: 处理中  
 **创建时间**: 2026-02-10 15:13  
-**最后更新**: 2026-02-10 15:53  
+**最后更新**: 2026-02-10 16:10  
 **描述**: 缺少数据库定期备份机制，存在数据丢失风险。  
 **影响**: 数据库损坏或服务器故障时无法恢复数据。  
 **解决方案**: 
 1. ✅ 创建数据库备份脚本 (`scripts/backup-sqlite-db.sh`)
-2. 🔄 设置cron定时备份任务 (`scripts/setup-db-backup-cron.sh`)
-3. ⏳ 添加备份验证和恢复测试
+2. ✅ 设置cron定时备份任务 (`scripts/setup-db-backup-cron.sh`)
+3. ✅ 添加备份验证脚本 (`scripts/verify-db-backup.sh`)
+4. ⏳ 添加备份验证和恢复测试
 
 **相关文件**:
 - `scripts/backup-sqlite-db.sh` - 数据库备份脚本
 - `scripts/setup-db-backup-cron.sh` - cron设置脚本
+- `scripts/verify-db-backup.sh` - 备份验证脚本
 - `/opt/roc/quota-proxy/backups/` - 服务器备份目录
 
 **验证命令**:
@@ -63,6 +65,9 @@ ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "cd /opt/roc/quota-proxy 
 # 设置cron任务（需要sudo）
 sudo ./scripts/setup-db-backup-cron.sh --dry-run
 
+# 验证备份系统完整性
+./scripts/verify-db-backup.sh --dry-run
+
 # 检查现有备份
 ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "ls -la /opt/roc/quota-proxy/backups/ 2>/dev/null || echo '备份目录不存在'"
 ```
@@ -70,6 +75,7 @@ ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "ls -la /opt/roc/quota-pr
 **进展**:
 - 2026-02-10 15:53: 创建数据库备份脚本，支持完整备份、压缩、清理旧备份、生成报告
 - 2026-02-10 15:53: 创建cron设置脚本，支持添加/移除定时任务
+- 2026-02-10 16:10: 创建备份验证脚本，支持模拟运行、功能检查、报告生成
 - 下一步: 实际设置cron任务并测试备份恢复功能
 
 ## 中优先级
