@@ -57,7 +57,7 @@ color_log() {
   esac
   
   # Check if we're in a terminal that supports colors
-  if [[ -t 1 ]] && [[ "$TERM" != "dumb" ]]; then
+  if [[ -t 1 ]] && [[ "$TERM" != "dumb" ]] && [[ "${FORCE_NO_COLOR:-0}" != "1" ]]; then
     echo -e "${color_code}[cn-pack:${level}]${reset} ${message}"
   else
     echo "[cn-pack:${level}] ${message}"
@@ -1220,12 +1220,14 @@ if [[ "${CI_MODE:-0}" == "1" ]] || [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS
   CI_MODE=1
   SKIP_INTERACTIVE="${SKIP_INTERACTIVE:-1}"
   VERIFY_LEVEL="${VERIFY_LEVEL:-minimal}"
-  color_log "INFO" "📦 检测到CI/CD环境，启用CI模式"
+  # 在CI模式下强制禁用颜色
+  export FORCE_NO_COLOR=1
+  echo "[cn-pack:INFO] 📦 检测到CI/CD环境，启用CI模式"
 fi
 
 # 如果设置了SKIP_INTERACTIVE，禁用交互式提示
 if [[ "${SKIP_INTERACTIVE:-0}" == "1" ]]; then
-  color_log "INFO" "⏭️  跳过交互式提示（CI/CD模式）"
+  echo "[cn-pack:INFO] ⏭️  跳过交互式提示（CI/CD模式）"
   # 设置默认值以避免交互
   AUTO_FIX_PERMISSIONS="${AUTO_FIX_PERMISSIONS:-1}"
   AUTO_SELECT_REGISTRY="${AUTO_SELECT_REGISTRY:-1}"
@@ -1233,7 +1235,7 @@ fi
 
 # 安装日志文件设置
 if [[ -n "${INSTALL_LOG:-}" ]]; then
-  color_log "INFO" "📝 安装日志将保存到: ${INSTALL_LOG}"
+  echo "[cn-pack:INFO] 📝 安装日志将保存到: ${INSTALL_LOG}"
   exec > >(tee -a "${INSTALL_LOG}") 2>&1
 fi
 
