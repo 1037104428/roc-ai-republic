@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.1533"
+SCRIPT_VERSION="2026.02.11.1638"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -62,6 +62,37 @@ color_log() {
   else
     echo "[cn-pack:${level}] ${message}"
   fi
+}
+
+# Version comparison function for semantic versioning
+# Returns: 0 if version1 == version2, 1 if version1 > version2, 2 if version1 < version2
+compare_versions() {
+  local version1="$1"
+  local version2="$2"
+  
+  # Remove non-numeric prefixes and split by dots
+  local v1_clean="${version1//[^0-9.]/}"
+  local v2_clean="${version2//[^0-9.]/}"
+  
+  # Split into arrays
+  IFS='.' read -ra v1_parts <<< "$v1_clean"
+  IFS='.' read -ra v2_parts <<< "$v2_clean"
+  
+  # Compare each part
+  local max_parts=$(( ${#v1_parts[@]} > ${#v2_parts[@]} ? ${#v1_parts[@]} : ${#v2_parts[@]} ))
+  
+  for (( i=0; i<max_parts; i++ )); do
+    local v1_part="${v1_parts[i]:-0}"
+    local v2_part="${v2_parts[i]:-0}"
+    
+    if (( v1_part > v2_part )); then
+      return 1  # version1 > version2
+    elif (( v1_part < v2_part )); then
+      return 2  # version1 < version2
+    fi
+  done
+  
+  return 0  # versions are equal
 }
 
 # Progress bar functions
@@ -508,11 +539,21 @@ check_script_updates() {
   fi
   
   if [[ -n "$latest_version" ]]; then
-    if [[ "$latest_version" != "$SCRIPT_VERSION" ]]; then
+    # Use semantic version comparison
+    compare_versions "$SCRIPT_VERSION" "$latest_version"
+    local compare_result=$?
+    
+    if [[ $compare_result -eq 2 ]]; then
+      # SCRIPT_VERSION < latest_version (new version available)
       echo "[cn-pack] ⚠️  Update available: v$SCRIPT_VERSION → v$latest_version"
       echo "[cn-pack]    Run with --check-update to see details"
       update_available=true
+    elif [[ $compare_result -eq 1 ]]; then
+      # SCRIPT_VERSION > latest_version (development version)
+      color_log "DEBUG" "Running development version (v$SCRIPT_VERSION > remote v$latest_version)"
+      color_log "SUCCESS" "Script is up to date (development version)"
     else
+      # SCRIPT_VERSION == latest_version
       color_log "SUCCESS" "Script is up to date (v$SCRIPT_VERSION)"
     fi
   else
