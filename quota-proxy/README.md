@@ -742,6 +742,66 @@ chmod +x quick-diagnose.sh
 ./quick-diagnose.sh
 ```
 
+## 验证工具链
+
+quota-proxy 提供完整的验证工具链，帮助用户快速验证部署状态、功能完整性和性能表现。
+
+### 验证脚本快速索引
+
+详细的验证脚本索引和选择指南请参考：[VALIDATION-QUICK-INDEX.md](./VALIDATION-QUICK-INDEX.md)
+
+### 验证脚本选择决策树
+
+不确定使用哪个验证脚本？参考：[VALIDATION-DECISION-TREE.md](./VALIDATION-DECISION-TREE.md)
+
+该决策树提供：
+1. **5种常见场景验证流程** - 首次部署/日常运维/故障排查/版本升级/CI/CD
+2. **智能化的脚本选择** - 根据具体需求推荐最合适的验证脚本
+3. **验证流程可视化** - 清晰的决策路径图
+
+### 核心验证脚本
+
+| 脚本名称 | 用途 | 执行时间 | 输出特点 |
+|---------|------|----------|----------|
+| `quick-verify.sh` | 快速基础验证 | 3-5秒 | 颜色编码，关键检查点 |
+| `deployment-verification.sh` | 完整部署验证 | 10-15秒 | 全面API检查，环境状态 |
+| `quick-sqlite-health-check.sh` | SQLite服务器健康检查 | 5-8秒 | 5个关键端点检查 |
+| `verify-admin-api.sh` | 管理员API功能验证 | 15-20秒 | 完整管理员功能测试 |
+| `check-admin-health.sh` | 管理员健康状态检查 | 3-5秒 | 快速健康状态验证 |
+
+### 文档完整性检查
+
+使用 `verify-validation-docs.sh` 脚本自动检查所有验证文档的完整性：
+
+```bash
+cd quota-proxy
+chmod +x verify-validation-docs.sh
+./verify-validation-docs.sh
+```
+
+### 验证脚本使用示例
+
+```bash
+# 场景1：首次部署验证
+./deployment-verification.sh --full
+
+# 场景2：日常运维检查
+./quick-sqlite-health-check.sh
+
+# 场景3：故障排查
+./deployment-verification.sh --verbose
+
+# 场景4：CI/CD集成
+./quick-verify.sh --ci-mode
+
+# 场景5：管理员功能验证
+./verify-admin-api.sh --admin-token YOUR_ADMIN_TOKEN
+```
+
+### 快速开始指南
+
+详细的快速开始指南请参考：[QUICK-START.md](./QUICK-START.md) - 5分钟内上手指南
+
 ### 获取帮助
 
 如果遇到无法解决的问题：
