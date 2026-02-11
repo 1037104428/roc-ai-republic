@@ -27,6 +27,7 @@
 ### 5. 数据库工具
 - **SQLite数据库初始化**：`init-sqlite-db.sh` - 初始化数据库表结构
 - **SQLite数据库备份**：`backup-sqlite-db.sh` - 数据库备份和恢复
+- **SQLite数据库完整性验证**：`verify-sqlite-integrity.sh` - 验证数据库完整性、一致性和基本功能
 
 ## 快速使用示例
 
