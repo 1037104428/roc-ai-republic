@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.08"
+SCRIPT_VERSION="2026.02.11.09"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -834,6 +834,8 @@ Options:
   --cache-dir <dir>        Specify local cache directory (default: ~/.openclaw/cache)
   --step-by-step           Enable step-by-step interactive installation mode
   --steps <steps>          Specify installation steps to run (comma-separated)
+  --uninstall              Uninstall OpenClaw and clean up installation
+  --uninstall-dry-run      Dry run uninstall (show what would be removed)
   -h, --help               Show help
 
 Installation Steps (for --step-by-step or --steps):
@@ -856,6 +858,171 @@ Env vars (equivalent):
   OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT, OPENCLAW_VERIFY_LEVEL
   HTTP_PROXY, HTTPS_PROXY, http_proxy, https_proxy (for proxy detection)
 TXT
+}
+
+# Function to uninstall OpenClaw
+uninstall_openclaw() {
+  local dry_run="${1:-false}"
+  local uninstall_summary_file="/tmp/openclaw-uninstall-summary-$(date +%Y%m%d-%H%M%S).txt"
+  
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] 🗑️  OpenClaw Uninstaller"
+  echo "[cn-pack] ========================================="
+  
+  if [[ "$dry_run" == "true" ]]; then
+    echo "[cn-pack] 📋 DRY RUN MODE - No files will be removed"
+    echo "[cn-pack] 📋 This is a preview of what would be removed:"
+  fi
+  
+  # Start uninstall summary
+  {
+    echo "=== OpenClaw Uninstall Summary ==="
+    echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+    echo "Mode: $([[ "$dry_run" == "true" ]] && echo "Dry Run" || echo "Actual Uninstall")"
+    echo ""
+  } > "$uninstall_summary_file"
+  
+  # Check if OpenClaw is installed
+  if ! command -v openclaw >/dev/null 2>&1; then
+    echo "[cn-pack] ℹ️ OpenClaw is not installed globally via npm"
+    echo "Status: OpenClaw not found in PATH" >> "$uninstall_summary_file"
+  else
+    echo "[cn-pack] ✅ Found OpenClaw installation"
+    echo "Status: OpenClaw found in PATH" >> "$uninstall_summary_file"
+    
+    # Get OpenClaw version
+    local openclaw_version
+    openclaw_version=$(openclaw --version 2>/dev/null || echo "unknown")
+    echo "[cn-pack] 📦 Version: $openclaw_version"
+    echo "Version: $openclaw_version" >> "$uninstall_summary_file"
+  fi
+  
+  # List of directories and files to remove
+  local items_to_remove=(
+    # Global npm package
+    "/usr/local/bin/openclaw"
+    "/usr/local/lib/node_modules/openclaw"
+    
+    # User directories
+    "$HOME/.openclaw"
+    "$HOME/.config/openclaw"
+    "$HOME/.cache/openclaw"
+    
+    # System directories (if installed globally)
+    "/opt/openclaw"
+    "/var/lib/openclaw"
+    "/var/log/openclaw"
+    
+    # Temporary files
+    "/tmp/openclaw-*"
+    "/tmp/roc-ai-republic-*"
+  )
+  
+  echo ""
+  echo "[cn-pack] 📋 Items to be removed:"
+  echo "Items to remove:" >> "$uninstall_summary_file"
+  
+  local found_items=0
+  for item in "${items_to_remove[@]}"; do
+    # Expand glob patterns
+    for expanded_item in $item; do
+      if [[ -e "$expanded_item" ]] || [[ -L "$expanded_item" ]]; then
+        found_items=$((found_items + 1))
+        echo "[cn-pack]   - $expanded_item"
+        echo "  - $expanded_item" >> "$uninstall_summary_file"
+        
+        if [[ "$dry_run" != "true" ]]; then
+          # Remove the item
+          if [[ -d "$expanded_item" ]]; then
+            rm -rf "$expanded_item" 2>/dev/null && \
+              echo "[cn-pack]     ✅ Directory removed" || \
+              echo "[cn-pack]     ⚠️  Failed to remove directory"
+          elif [[ -f "$expanded_item" ]] || [[ -L "$expanded_item" ]]; then
+            rm -f "$expanded_item" 2>/dev/null && \
+              echo "[cn-pack]     ✅ File removed" || \
+              echo "[cn-pack]     ⚠️  Failed to remove file"
+          fi
+        fi
+      fi
+    done
+  done
+  
+  if [[ $found_items -eq 0 ]]; then
+    echo "[cn-pack] ℹ️ No OpenClaw files found to remove"
+    echo "No files found to remove" >> "$uninstall_summary_file"
+  fi
+  
+  # Uninstall npm package if installed globally
+  if command -v npm >/dev/null 2>&1; then
+    echo ""
+    echo "[cn-pack] 📦 Checking npm packages..."
+    echo "NPM packages:" >> "$uninstall_summary_file"
+    
+    # Check if openclaw is installed globally
+    if npm list -g openclaw 2>/dev/null | grep -q "openclaw"; then
+      echo "[cn-pack]   - openclaw (global npm package)"
+      echo "  - openclaw (global npm package)" >> "$uninstall_summary_file"
+      
+      if [[ "$dry_run" != "true" ]]; then
+        echo "[cn-pack]     Uninstalling global npm package..."
+        npm uninstall -g openclaw 2>/dev/null && \
+          echo "[cn-pack]     ✅ Package uninstalled" || \
+          echo "[cn-pack]     ⚠️  Failed to uninstall package"
+      fi
+    else
+      echo "[cn-pack]   ℹ️ openclaw not found in global npm packages"
+      echo "  - openclaw not found in global npm packages" >> "$uninstall_summary_file"
+    fi
+  fi
+  
+  # Clean up npm cache
+  echo ""
+  echo "[cn-pack] 🧹 Cleaning npm cache..."
+  echo "NPM cache cleanup:" >> "$uninstall_summary_file"
+  
+  if [[ "$dry_run" != "true" ]] && command -v npm >/dev/null 2>&1; then
+    npm cache clean --force 2>/dev/null && \
+      echo "[cn-pack]   ✅ npm cache cleaned" || \
+      echo "[cn-pack]   ⚠️  Failed to clean npm cache"
+    echo "  - npm cache cleaned" >> "$uninstall_summary_file"
+  else
+    echo "[cn-pack]   📋 Would clean npm cache"
+    echo "  - npm cache would be cleaned" >> "$uninstall_summary_file"
+  fi
+  
+  # Final summary
+  echo ""
+  echo "[cn-pack] ========================================="
+  if [[ "$dry_run" == "true" ]]; then
+    echo "[cn-pack] 📋 DRY RUN COMPLETE"
+    echo "[cn-pack] ℹ️  No files were actually removed"
+    echo "[cn-pack] 📄 Summary saved to: $uninstall_summary_file"
+  else
+    echo "[cn-pack] ✅ UNINSTALL COMPLETE"
+    echo "[cn-pack] 📄 Uninstall summary saved to: $uninstall_summary_file"
+    
+    # Verify uninstall
+    echo ""
+    echo "[cn-pack] 🔍 Verification:"
+    if ! command -v openclaw >/dev/null 2>&1; then
+      echo "[cn-pack]   ✅ openclaw command removed from PATH"
+    else
+      echo "[cn-pack]   ⚠️  openclaw command still found in PATH"
+    fi
+  fi
+  
+  echo "[cn-pack] ========================================="
+  
+  # Add final summary to file
+  {
+    echo ""
+    echo "=== Summary ==="
+    echo "Total items found: $found_items"
+    echo "Uninstall mode: $([[ "$dry_run" == "true" ]] && echo "Dry Run" || echo "Actual")"
+    echo "Completion time: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+  } >> "$uninstall_summary_file"
+  
+  return 0
 }
 
 # Function to check for script updates
@@ -963,6 +1130,14 @@ while [[ $# -gt 0 ]]; do
     --changelog)
       show_changelog
       exit 0
+      ;;
+    --uninstall)
+      uninstall_openclaw "false"
+      exit $?
+      ;;
+    --uninstall-dry-run)
+      uninstall_openclaw "true"
+      exit $?
       ;;
     -h|--help)
       usage
