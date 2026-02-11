@@ -251,5 +251,20 @@ jobs:
 - 集成到 CI/CD 的示例
 **相关**: `install-cn-fallback-recovery.sh`, `install-cn.sh`
 
+### Web站点部署就绪验证
+- [verify-web-deployment-ready.sh](verify-web-deployment-ready.sh) - 验证quota-proxy + landing page部署就绪状态
+**用途**: 验证项目是否准备好进行公开部署
+**验证内容**:
+- quota-proxy核心文件完整性
+- 数据库持久化就绪状态
+- Admin API功能完整性
+- 部署配置就绪状态
+- Web站点文件完整性
+- HTTPS配置就绪状态
+- 安装脚本就绪状态
+- 验证工具链完整性
+**使用**: `bash verify-web-deployment-ready.sh`
+**输出**: 详细的验证报告和下一步行动指南
+
 ### 环境变量验证
 - [verify-env-vars.sh](verify-env-vars.sh) - 验证quota-proxy关键环境变量是否已正确设置
