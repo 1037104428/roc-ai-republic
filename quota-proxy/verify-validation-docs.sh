@@ -39,6 +39,7 @@ echo "----------------------------------------"
 check_doc "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 check_doc "VALIDATION-DECISION-TREE.md" "验证脚本选择决策树"
 check_doc "VALIDATION-TOOLS-INDEX.md" "验证工具详细索引"
+check_doc "VALIDATION-EXAMPLES.md" "验证脚本使用示例"
 
 echo ""
 echo "🔗 文档互引用检查"
@@ -59,6 +60,12 @@ else
     echo "⚠️  VALIDATION-DECISION-TREE.md 未引用 VALIDATION-QUICK-INDEX.md"
 fi
 
+if grep -q "VALIDATION-EXAMPLES.md" "VALIDATION-QUICK-INDEX.md"; then
+    echo "✅ VALIDATION-QUICK-INDEX.md 引用了 VALIDATION-EXAMPLES.md"
+else
+    echo "⚠️  VALIDATION-QUICK-INDEX.md 未引用 VALIDATION-EXAMPLES.md"
+fi
+
 echo ""
 echo "📊 文档统计"
 echo "----------------------------------------"
@@ -67,7 +74,7 @@ echo "----------------------------------------"
 total_docs=0
 valid_docs=0
 
-for doc in VALIDATION-QUICK-INDEX.md VALIDATION-DECISION-TREE.md VALIDATION-TOOLS-INDEX.md; do
+for doc in VALIDATION-QUICK-INDEX.md VALIDATION-DECISION-TREE.md VALIDATION-TOOLS-INDEX.md VALIDATION-EXAMPLES.md; do
     if [ -f "$doc" ]; then
         total_docs=$((total_docs + 1))
         lines=$(wc -l < "$doc" 2>/dev/null || echo "0")
@@ -79,7 +86,7 @@ done
 
 echo "核心验证文档: ${valid_docs}/${total_docs} 个有效"
 
-if [ "$valid_docs" -eq "$total_docs" ] && [ "$total_docs" -ge 2 ]; then
+if [ "$valid_docs" -eq "$total_docs" ] && [ "$total_docs" -ge 3 ]; then
     echo "📚 验证文档完整性检查通过！"
     exit 0
 else
