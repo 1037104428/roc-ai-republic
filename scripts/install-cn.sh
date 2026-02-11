@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.06"
+SCRIPT_VERSION="2026.02.11.07"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -54,6 +54,89 @@ color_log() {
   else
     echo "[cn-pack:${level}] ${message}"
   fi
+}
+
+# Progress bar functions
+show_progress_bar() {
+  local duration="$1"
+  local message="$2"
+  local width="${3:-50}"
+  
+  # Only show progress bar in interactive terminals
+  if [[ ! -t 1 ]] || [[ "$TERM" == "dumb" ]] || [[ "$DRY_RUN" == "1" ]]; then
+    color_log "INFO" "$message (estimated: ${duration}s)"
+    return
+  fi
+  
+  color_log "INFO" "$message"
+  
+  local interval=0.1
+  local steps=$(echo "$duration / $interval" | bc)
+  local step_width=$(echo "$width / $steps" | bc -l)
+  
+  printf "["
+  for ((i=0; i<width; i++)); do
+    printf " "
+  done
+  printf "] 0%%\r"
+  
+  local current_width=0
+  for ((i=0; i<steps; i++)); do
+    sleep "$interval"
+    current_width=$(echo "$current_width + $step_width" | bc -l)
+    local bar_width=$(printf "%.0f" "$current_width")
+    if [[ "$bar_width" -gt "$width" ]]; then
+      bar_width="$width"
+    fi
+    
+    printf "["
+    for ((j=0; j<bar_width; j++)); do
+      printf "="
+    done
+    for ((j=bar_width; j<width; j++)); do
+      printf " "
+    done
+    printf "] "
+    
+    local percent=$(echo "($i + 1) * 100 / $steps" | bc)
+    printf "%3d%%\r" "$percent"
+  done
+  
+  printf "["
+  for ((i=0; i<width; i++)); do
+    printf "="
+  done
+  printf "] 100%%\n"
+}
+
+# Simple spinner for indeterminate progress
+show_spinner() {
+  local pid="$1"
+  local message="$2"
+  local delay=0.1
+  local spinstr='|/-\'
+  
+  # Only show spinner in interactive terminals
+  if [[ ! -t 1 ]] || [[ "$TERM" == "dumb" ]] || [[ "$DRY_RUN" == "1" ]]; then
+    color_log "INFO" "$message..."
+    wait "$pid"
+    return $?
+  fi
+  
+  color_log "INFO" "$message"
+  
+  printf "    "
+  while kill -0 "$pid" 2>/dev/null; do
+    local temp=${spinstr#?}
+    printf "\b%s" "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep $delay
+    printf "\b"
+  done
+  printf "\b \b"
+  
+  wait "$pid"
+  return $?
 }
 
 # Legacy logging function for backward compatibility
@@ -1193,21 +1276,28 @@ install_openclaw() {
       if install_from_offline_cache; then
         return 0
       else
-        echo "[cn-pack] ❌ Offline installation failed, falling back to online mode" >&2
+        color_log "ERROR" "Offline installation failed, falling back to online mode"
       fi
     else
-      echo "[cn-pack] ❌ Offline mode not available, falling back to online mode" >&2
+      color_log "ERROR" "Offline mode not available, falling back to online mode"
     fi
   fi
   
-  echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg (attempt: $attempt)"
+  color_log "STEP" "Installing openclaw@${VERSION} via registry: $reg (attempt: $attempt)"
+  
+  # Show progress bar for npm installation (estimated 30-60 seconds)
+  if [[ "$DRY_RUN" != "1" ]] && [[ -t 1 ]] && [[ "$TERM" != "dumb" ]]; then
+    show_progress_bar 45 "Downloading and installing OpenClaw package..."
+  fi
+  
   # no-audit/no-fund: faster & quieter, especially on slow networks
   if run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund; then
     # Cache the package for future offline use
     cache_package_for_offline "$reg"
+    color_log "SUCCESS" "Installation completed successfully via $reg"
     return 0
   else
-    echo "[cn-pack] Install attempt failed via registry: $reg" >&2
+    color_log "ERROR" "Install attempt failed via registry: $reg"
     return 1
   fi
 }
