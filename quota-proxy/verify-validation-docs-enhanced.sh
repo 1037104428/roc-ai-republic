@@ -56,6 +56,7 @@ check_doc "QUICK-VERIFICATION-COMMANDS.md" "快速验证命令集合" 30
 check_doc "QUICK-DOCS-CHECK-GUIDE.md" "快速文档检查指南" 20
 check_doc "TODO-TICKETS.md" "开发任务跟踪系统" 20
 check_doc "ADMIN-API-GUIDE.md" "Admin API 使用指南" 30
+check_doc "quick-verify-admin-api.sh" "Admin API快速验证脚本" 10
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
