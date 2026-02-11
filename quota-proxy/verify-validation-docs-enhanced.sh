@@ -77,6 +77,7 @@ check_doc "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证�
 check_doc "QUICK-VALIDATION-TOOLS-GUIDE.md" "快速验证工具指南" 20
 check_doc "../scripts/quick-verify-install-cn.sh" "安装脚本快速验证工具" 10
 check_doc "../docs/install-cn-quick-verify.md" "安装脚本快速验证文档" 20
+check_doc "../docs/quick-validation-examples.md" "快速验证示例文档" 20
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
@@ -188,6 +189,7 @@ docs_to_check=(
     "ADMIN-API-GUIDE.md:30"
     "../docs/install-cn-script-verification-guide.md:20"
     "../docs/ops-web-deploy.md:20"
+    "../docs/quick-validation-examples.md:20"
 )
 
 for doc_spec in "${docs_to_check[@]}"; do
@@ -205,7 +207,7 @@ for doc_spec in "${docs_to_check[@]}"; do
     fi
 done
 
-echo "核心验证文档数量: ${total_docs}/8"
+echo "核心验证文档数量: ${total_docs}/9"
 echo "有效文档数量: ${valid_docs}/${total_docs}"
 echo "总行数: ${total_lines} 行"
 echo "平均行数: $((total_lines / (total_docs > 0 ? total_docs : 1))) 行/文档"
