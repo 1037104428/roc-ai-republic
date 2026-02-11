@@ -341,7 +341,26 @@ http://localhost:8787/admin
 6. ✅ 删除密钥
 7. ✅ 错误处理（无效令牌、缺少令牌）
 
-### 2. 管理界面快速验证
+### 2. Admin API 健康检查脚本
+```bash
+# 快速检查Admin API健康状态
+./check-admin-health.sh
+
+# 使用自定义token和URL
+./check-admin-health.sh --token your-admin-token --url http://your-server:8787
+
+# 查看帮助
+./check-admin-health.sh --help
+```
+
+这个脚本提供：
+1. ✅ 检查服务健康状态（/healthz端点）
+2. ✅ 验证Admin API端点访问权限
+3. ✅ 检查数据库文件状态
+4. ✅ 显示当前密钥统计信息
+5. ✅ 提供后续操作建议
+
+### 3. 管理界面快速验证
 ```bash
 # 查看帮助
 ./scripts/verify-quota-proxy-admin-ui.sh --help
