@@ -164,12 +164,36 @@ app.post('/admin/keys', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
   if (!STORE_PATH) return res.status(400).json({ error: { message: 'persistence disabled (set SQLITE_PATH)' } });
 
+  // 支持批量生成
+  const count = Math.min(100, Math.max(1, Number(req.body?.count || 1)));
   const label = (req.body?.label && String(req.body.label)) || null;
-  const trialKey = `trial_${crypto.randomBytes(18).toString('hex')}`;
+  const prefix = (req.body?.prefix && String(req.body.prefix)) || 'trial_';
+  
+  const keys = [];
   const now = Date.now();
-  state.keys[trialKey] = { label, created_at: now };
+  
+  for (let i = 0; i < count; i++) {
+    const trialKey = `${prefix}${crypto.randomBytes(18).toString('hex')}`;
+    state.keys[trialKey] = { label, created_at: now };
+    keys.push({ key: trialKey, label, created_at: now });
+  }
+  
   saveStoreSoon();
-  return res.json({ key: trialKey, label, created_at: now });
+  
+  if (count === 1) {
+    return res.json({ key: keys[0].key, label, created_at: now });
+  } else {
+    return res.json({
+      count,
+      keys,
+      summary: {
+        total: count,
+        label,
+        prefix,
+        created_at: now
+      }
+    });
+  }
 });
 
 app.delete('/admin/keys/:key', (req, res) => {

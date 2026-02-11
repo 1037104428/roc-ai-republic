@@ -33,24 +33,63 @@ curl -s --max-time 5 "$BASE_URL/healthz"
 
 ```bash
 # 生成单个试用密钥
-curl -s -X POST "$BASE_URL/admin/keys/trial" \
+curl -s -X POST "$BASE_URL/admin/keys" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "新用户试用",
-    "quota": 100,
-    "expiresIn": "7d"
+    "label": "新用户试用"
   }'
 
-# 批量生成试用密钥
-curl -s -X POST "$BASE_URL/admin/keys/trial/batch" \
+# 示例输出：
+# {
+#   "key": "trial_abc123def456ghi789",
+#   "label": "新用户试用",
+#   "created_at": 1741967089000
+# }
+
+# 批量生成试用密钥（生成5个）
+curl -s -X POST "$BASE_URL/admin/keys" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "count": 5,
-    "namePrefix": "批量试用",
-    "quota": 50,
-    "expiresIn": "3d"
+    "label": "批量试用用户",
+    "prefix": "batch_"
+  }'
+
+# 示例输出：
+# {
+#   "count": 5,
+#   "keys": [
+#     {
+#       "key": "batch_abc123def456ghi789",
+#       "label": "批量试用用户",
+#       "created_at": 1741967089000
+#     },
+#     ...
+#   ],
+#   "summary": {
+#     "total": 5,
+#     "label": "批量试用用户",
+#     "prefix": "batch_",
+#     "created_at": 1741967089000
+#   }
+# }
+
+# 生成无标签的试用密钥
+curl -s -X POST "$BASE_URL/admin/keys" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# 生成自定义前缀的试用密钥
+curl -s -X POST "$BASE_URL/admin/keys" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "count": 3,
+    "label": "内部测试",
+    "prefix": "test_"
   }'
 ```
 
