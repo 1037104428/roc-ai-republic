@@ -39,6 +39,12 @@
 | `check-admin-performance.sh` | Admin API性能测试 | 测试Admin API响应时间和吞吐量 |
 | `verify-admin-usage-pagination.sh` | 分页性能验证 | 验证使用统计分页功能 |
 
+### 6. 文档完整性验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `verify-validation-docs.sh` | 验证文档完整性检查 | 检查核心验证文档的存在性和基本完整性 |
+| `verify-validation-docs-enhanced.sh` | 增强版文档完整性检查 | 全面评估验证文档体系完整性，包括引用关系和README集成 |
+
 ## 🚀 快速开始推荐
 
 ### 新用户快速验证
@@ -99,6 +105,7 @@
 - [VALIDATION-TOOLS-INDEX.md](./VALIDATION-TOOLS-INDEX.md) - 验证工具详细索引
 - [VALIDATION-DECISION-TREE.md](./VALIDATION-DECISION-TREE.md) - 验证脚本选择决策树
 - [VALIDATION-EXAMPLES.md](./VALIDATION-EXAMPLES.md) - 验证脚本使用示例
+- [ENHANCED-VALIDATION-DOCS-CHECK.md](./ENHANCED-VALIDATION-DOCS-CHECK.md) - 增强版验证文档完整性检查指南
 
 ---
 
