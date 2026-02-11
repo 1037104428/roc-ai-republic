@@ -1,0 +1,105 @@
+# 验证脚本快速索引
+
+本文档提供 quota-proxy 所有验证脚本的快速索引，帮助用户根据需求快速找到合适的验证工具。
+
+## 📋 按功能分类
+
+### 1. 数据库验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `verify-db.js` | 数据库结构完整性验证 | 检查表结构、列定义、索引 |
+| `quick-verify-db.sh` | 快速数据库健康检查 | 一键验证数据库文件存在性和基本结构 |
+| `init-db.cjs` | 数据库初始化 | 首次部署时创建数据库表 |
+| `check-database-health.sh` | 数据库健康监控 | 定期检查数据库状态 |
+
+### 2. Admin API 验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `quick-start-verify.sh` | Admin API 快速开始验证 | 5分钟上手测试所有Admin API功能 |
+| `verify-admin-api.sh` | 完整Admin API验证 | 全面测试所有Admin API端点 |
+| `test-batch-keys.sh` | 批量密钥生成测试 | 测试批量生成试用密钥功能 |
+| `verify-admin-keys-endpoint.sh` | 密钥端点验证 | 专门测试 `/admin/keys` 相关功能 |
+
+### 3. 部署验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `check-deployment-status.sh` | 部署状态检查 | 检查服务运行状态和健康检查 |
+| `verify-full-deployment.sh` | 完整部署验证 | 验证所有部署组件正常运行 |
+| `verify-sqlite-persistence.sh` | SQLite持久化验证 | 验证数据库持久化功能 |
+
+### 4. 环境配置验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `verify-env-config.sh` | 环境配置验证 | 检查环境变量配置正确性 |
+| `verify-sqlite-config.sh` | SQLite配置验证 | 验证SQLite相关配置 |
+
+### 5. 性能验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `check-admin-performance.sh` | Admin API性能测试 | 测试Admin API响应时间和吞吐量 |
+| `verify-admin-usage-pagination.sh` | 分页性能验证 | 验证使用统计分页功能 |
+
+## 🚀 快速开始推荐
+
+### 新用户快速验证
+```bash
+# 1. 数据库初始化验证
+./quick-verify-db.sh
+
+# 2. Admin API快速验证
+./quick-start-verify.sh
+
+# 3. 部署状态检查
+./check-deployment-status.sh
+```
+
+### 开发者完整验证
+```bash
+# 1. 运行所有验证
+./run-all-verifications.sh
+
+# 2. 或按顺序执行
+./verify-db.js
+./verify-admin-api.sh
+./verify-full-deployment.sh
+```
+
+## 📊 验证结果解读
+
+### 成功标志
+- ✅ 脚本执行完成无错误
+- ✅ 输出中包含"验证通过"或"成功"字样
+- ✅ HTTP状态码为200/201
+- ✅ 数据库查询返回预期数据
+
+### 常见问题排查
+1. **数据库连接失败**：检查数据库文件权限和路径
+2. **Admin API访问失败**：检查ADMIN_TOKEN配置
+3. **服务未运行**：检查Docker容器状态
+4. **环境变量缺失**：检查.env文件配置
+
+## 🔄 维护建议
+
+### 定期验证
+- **每日**：运行 `quick-verify-db.sh` 和 `check-deployment-status.sh`
+- **每周**：运行完整验证套件 `run-all-verifications.sh`
+- **部署后**：立即运行 `verify-full-deployment.sh`
+
+### 验证脚本更新
+当添加新功能时：
+1. 创建对应的验证脚本
+2. 更新本文档索引
+3. 添加到 `run-all-verifications.sh`
+
+## 📁 相关文档
+
+- [ADMIN-API-EXAMPLES.md](./ADMIN-API-EXAMPLES.md) - Admin API详细示例
+- [DATABASE-INIT-GUIDE.md](./DATABASE-INIT-GUIDE.md) - 数据库初始化指南
+- [DEPLOYMENT-GUIDE-SQLITE-PERSISTENCE.md](./DEPLOYMENT-GUIDE-SQLITE-PERSISTENCE.md) - 部署指南
+- [VALIDATION-TOOLS-INDEX.md](./VALIDATION-TOOLS-INDEX.md) - 验证工具详细索引
+
+---
+
+**最后更新**: 2026-02-11  
+**维护者**: 中华AI共和国项目组  
+**版本**: 1.0.0

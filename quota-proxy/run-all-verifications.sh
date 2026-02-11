@@ -2,6 +2,7 @@
 
 # 统一验证入口脚本
 # 运行所有quota-proxy验证脚本，提供一站式验证体验
+# 更多验证脚本信息请参考 VALIDATION-QUICK-INDEX.md
 
 set -euo pipefail
 
