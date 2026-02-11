@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # NodeBB 论坛服务
+  nodebb:
+    image: nodebb/nodebb:latest
+    container_name: clawd-forum-nodebb
+    restart: unless-stopped
+    ports:
+      - "4567:4567"
+    environment:
+      - NODE_ENV=production
+      - DATABASE=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DATABASE=0
+    volumes:
+      - ./forum-data/nodebb:/usr/src/app
+      - ./forum-data/uploads:/usr/src/app/public/uploads
+    depends_on:
+      - redis
+    networks:
+      - forum-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4567', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis 缓存和会话存储
+  redis:
+    image: redis:7-alpine
+    container_name: clawd-forum-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - ./forum-data/redis:/data
+    networks:
+      - forum-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  forum-network:
+    driver: bridge
+
+volumes:
+  forum-data:
+    driver: local
