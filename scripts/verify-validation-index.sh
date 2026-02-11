@@ -259,6 +259,31 @@ test_last_update() {
     fi
 }
 
+test_examples_section() {
+    local test_name="使用示例部分检查"
+    
+    # 检查是否有具体使用示例部分
+    local has_examples_section=$(grep -c "## 具体使用示例" "$INDEX_FILE")
+    
+    if [ "$has_examples_section" -gt 0 ]; then
+        # 检查示例数量
+        local example_count=$(grep -c "^### 示例[0-9]：" "$INDEX_FILE" || echo 0)
+        
+        # 检查代码块数量
+        local code_block_count=$(grep -c '^```bash' "$INDEX_FILE" || echo 0)
+        
+        if [ "$example_count" -ge 3 ] && [ "$code_block_count" -ge 5 ]; then
+            record_test "$test_name" "pass" "包含 $example_count 个示例和 $code_block_count 个代码块"
+        elif [ "$example_count" -ge 1 ] && [ "$code_block_count" -ge 2 ]; then
+            record_test "$test_name" "pass" "包含基本示例 ($example_count 个示例, $code_block_count 个代码块)"
+        else
+            record_test "$test_name" "warning" "示例内容较少 ($example_count 个示例, $code_block_count 个代码块)"
+        fi
+    else
+        record_test "$test_name" "warning" "缺少具体使用示例部分"
+    fi
+}
+
 # 运行所有测试
 run_tests() {
     log_info "开始验证验证脚本索引文档"
@@ -281,6 +306,7 @@ run_tests() {
     test_code_blocks
     test_table_format
     test_last_update
+    test_examples_section
 }
 
 # 打印总结
@@ -342,6 +368,7 @@ main() {
         echo "6. 代码块格式检查"
         echo "7. 表格格式检查"
         echo "8. 最后更新时间检查"
+        echo "9. 使用示例部分检查"
         return 0
     fi
     
