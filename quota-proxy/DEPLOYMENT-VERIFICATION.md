@@ -1,248 +1,199 @@
-# quota-proxy 部署验证指南
+# 部署验证脚本
 
-本文档提供 quota-proxy 部署后的完整验证流程，确保服务正常运行。
+`deployment-verification.sh` 是一个用于验证 quota-proxy 服务器部署状态的脚本。它检查所有关键API端点，确保服务正常运行。
 
-## 1. 基础健康检查
+## 功能特性
 
-### 1.1 服务状态检查
-```bash
-# 检查容器状态
-docker compose ps
+- ✅ **全面验证**：检查5个关键API端点（健康检查、试用密钥生成、验证、配额检查、使用统计）
+- ✅ **灵活配置**：支持自定义主机、端口和管理员令牌
+- ✅ **干运行模式**：预览将要执行的命令而不实际发送请求
+- ✅ **颜色编码输出**：绿色表示成功，红色表示失败，黄色表示警告
+- ✅ **环境检查**：自动检查Docker容器状态和进程状态
+- ✅ **错误处理**：详细的错误信息和故障排除建议
 
-# 检查服务日志
-docker compose logs quota-proxy
+## 快速开始
 
-# 健康检查端点
-curl -fsS http://127.0.0.1:8787/healthz
-# 预期输出: {"ok":true}
-```
-
-### 1.2 端口监听检查
-```bash
-# 检查端口是否监听
-netstat -tlnp | grep 8787
-# 或
-ss -tlnp | grep 8787
-
-# 测试外部访问（如果配置了公网）
-curl -fsS http://your-domain.com/healthz
-```
-
-## 2. 管理员功能验证
-
-### 2.1 管理员认证测试
-```bash
-# 设置环境变量
-export ADMIN_TOKEN="your_admin_token_here"
-export QUOTA_URL="http://127.0.0.1:8787"
-
-# 测试管理员认证
-curl -fsS "$QUOTA_URL/admin/keys" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-# 预期: 空数组 [] 或现有密钥列表
-```
-
-### 2.2 创建试用密钥
-```bash
-# 创建新密钥
-curl -fsS -X POST "$QUOTA_URL/admin/keys" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"label":"test-user-001"}'
-
-# 预期输出示例:
-# {"key":"trial_xxx","label":"test-user-001","created_at":1700000000000}
-```
-
-### 2.3 查询使用情况
-```bash
-# 查询今日使用情况
-curl -fsS "$QUOTA_URL/admin/usage?day=$(date +%F)" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-
-# 查询特定密钥使用情况
-curl -fsS "$QUOTA_URL/admin/usage?day=$(date +%F)&key=trial_xxx" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-```
-
-## 3. 客户端功能验证
-
-### 3.1 模型列表查询
-```bash
-# 使用创建的密钥查询模型
-export TRIAL_KEY="trial_xxx"
-curl -fsS "$QUOTA_URL/v1/models" \
-  -H "Authorization: Bearer $TRIAL_KEY"
-
-# 预期输出: DeepSeek 模型列表
-```
-
-### 3.2 API 调用测试
-```bash
-# 简单聊天请求
-curl -fsS "$QUOTA_URL/v1/chat/completions" \
-  -H "Authorization: Bearer $TRIAL_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "deepseek-chat",
-    "messages": [
-      {"role": "user", "content": "你好，请回复'测试成功'"}
-    ],
-    "max_tokens": 50
-  }'
-
-# 预期: 正常的 OpenAI 格式响应
-```
-
-### 3.3 配额限制测试
-```bash
-# 测试配额限制（需要超过限制）
-for i in {1..210}; do
-  echo "请求 $i"
-  curl -s -o /dev/null -w "%{http_code}\n" \
-    "$QUOTA_URL/v1/chat/completions" \
-    -H "Authorization: Bearer $TRIAL_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"ping"}]}'
-  sleep 0.1
-done
-# 预期: 前200次返回200，之后返回429
-```
-
-## 4. 数据库持久化验证
-
-### 4.1 SQLite 数据库检查
-```bash
-# 检查数据库文件
-ls -la /data/quota.db
-
-# 检查数据库内容
-sqlite3 /data/quota.db ".tables"
-sqlite3 /data/quota.db "SELECT COUNT(*) FROM trial_keys;"
-sqlite3 /data/quota.db "SELECT COUNT(*) FROM daily_usage;"
-```
-
-### 4.2 数据一致性验证
-```bash
-# 验证密钥创建后是否持久化
-# 1. 创建密钥
-KEY_DATA=$(curl -s -X POST "$QUOTA_URL/admin/keys" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"label":"persistence-test"}')
-
-# 2. 重启服务
-docker compose restart quota-proxy
-
-# 3. 验证密钥仍然存在
-curl -fsS "$QUOTA_URL/admin/keys" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | grep "persistence-test"
-```
-
-## 5. 安全配置验证
-
-### 5.1 访问控制检查
-```bash
-# 测试未授权访问
-curl -s -o /dev/null -w "%{http_code}\n" \
-  "$QUOTA_URL/admin/keys"
-# 预期: 401 (未授权)
-
-# 测试无效密钥
-curl -s -o /dev/null -w "%{http_code}\n" \
-  "$QUOTA_URL/v1/models" \
-  -H "Authorization: Bearer invalid_key"
-# 预期: 401
-```
-
-### 5.2 网络隔离检查
-```bash
-# 检查是否只监听本地（如果配置了）
-netstat -tln | grep 8787
-# 预期: 127.0.0.1:8787 而不是 0.0.0.0:8787
-```
-
-## 6. 性能与监控
-
-### 6.1 响应时间测试
-```bash
-# 测试健康检查响应时间
-time curl -fsS "$QUOTA_URL/healthz" > /dev/null
-
-# 测试API响应时间
-time curl -fsS "$QUOTA_URL/v1/models" \
-  -H "Authorization: Bearer $TRIAL_KEY" > /dev/null
-```
-
-### 6.2 并发测试
-```bash
-# 简单并发测试（10个并发请求）
-for i in {1..10}; do
-  curl -s -o /dev/null -w "请求 $i: %{http_code}\n" \
-    "$QUOTA_URL/healthz" &
-done
-wait
-```
-
-## 7. 自动化验证脚本
-
-仓库提供了完整的验证脚本：
+### 基本使用
 
 ```bash
-# 运行完整验证
-./scripts/verify-sqlite-persistence.sh
+# 进入 quota-proxy 目录
+cd quota-proxy
 
-# 快速管理员API验证
-./scripts/verify-admin-api-quick.sh --host 127.0.0.1:8787 --token $ADMIN_TOKEN
-
-# 管理界面验证
-./scripts/verify-quota-proxy-admin-ui.sh
+# 运行验证脚本（使用默认配置）
+./deployment-verification.sh
 ```
 
-## 8. 常见问题排查
+### 自定义配置
 
-### 8.1 服务无法启动
 ```bash
-# 检查日志
-docker compose logs quota-proxy
+# 指定主机和端口
+./deployment-verification.sh --host 192.168.1.100 --port 8080
 
-# 常见问题:
-# 1. DEEPSEEK_API_KEY 未设置
-# 2. 端口被占用
-# 3. 数据库文件权限问题
+# 指定管理员令牌
+./deployment-verification.sh --token "your-secret-admin-token"
+
+# 或通过环境变量设置
+export ADMIN_TOKEN="your-secret-admin-token"
+./deployment-verification.sh
 ```
 
-### 8.2 API 返回 401
+### 干运行模式
+
 ```bash
-# 检查密钥是否存在
-sqlite3 /data/quota.db "SELECT key FROM trial_keys WHERE key='trial_xxx';"
-
-# 检查管理员令牌
-echo "ADMIN_TOKEN: $ADMIN_TOKEN"
+# 预览将要执行的命令
+./deployment-verification.sh --dry-run
 ```
 
-### 8.3 配额计数不准确
+## 验证的端点
+
+脚本会验证以下端点：
+
+1. **健康检查** (`GET /healthz`)
+   - 验证服务是否正常运行
+   - 期望返回 HTTP 200
+
+2. **试用密钥生成** (`POST /admin/keys`)
+   - 验证管理员API是否正常工作
+   - 需要有效的管理员令牌
+   - 期望返回 HTTP 201
+
+3. **试用密钥验证** (`POST /verify`)
+   - 验证试用密钥验证端点
+   - 期望返回 HTTP 200 或适当的错误码
+
+4. **配额检查** (`POST /quota`)
+   - 验证配额检查逻辑
+   - 期望返回 HTTP 200
+
+5. **使用统计** (`GET /admin/usage`)
+   - 验证管理员使用统计端点
+   - 需要有效的管理员令牌
+   - 期望返回 HTTP 200
+
+## 环境检查
+
+除了API端点验证，脚本还会检查：
+
+- **Docker容器状态**：如果Docker可用，显示quota-proxy相关容器的状态
+- **进程状态**：检查是否有Node.js进程运行quota-proxy
+
+## 故障排除
+
+### 常见问题
+
+1. **连接被拒绝**
+   ```
+   ✗ 失败 (HTTP 000)
+   ```
+   - 确保服务器已启动：`./start-sqlite-persistent.sh`
+   - 检查防火墙设置
+   - 验证主机和端口配置
+
+2. **管理员令牌无效**
+   ```
+   ✗ 失败 (HTTP 401)
+   ```
+   - 设置正确的管理员令牌：`export ADMIN_TOKEN="your-token"`
+   - 检查服务器启动时的ADMIN_TOKEN配置
+
+3. **服务未运行**
+   ```
+   ⚠ 未找到 quota-proxy 进程
+   ```
+   - 启动服务：`./start-sqlite-persistent.sh`
+   - 检查日志：`docker logs quota-proxy` 或查看服务器控制台输出
+
+### 验证步骤
+
+如果验证失败，按以下步骤排查：
+
+1. **检查服务状态**
+   ```bash
+   # 检查进程
+   ps aux | grep quota-proxy
+   
+   # 检查Docker容器
+   docker ps | grep quota-proxy
+   ```
+
+2. **检查日志**
+   ```bash
+   # Docker容器日志
+   docker logs quota-proxy
+   
+   # 或直接查看服务器日志
+   tail -f logs/quota-proxy.log
+   ```
+
+3. **手动测试端点**
+   ```bash
+   # 健康检查
+   curl -v http://localhost:8787/healthz
+   
+   # 试用密钥验证（需要有效的密钥）
+   curl -X POST http://localhost:8787/verify \
+     -H "Content-Type: application/json" \
+     -d '{"key": "your-trial-key"}'
+   ```
+
+4. **验证环境变量**
+   ```bash
+   # 检查管理员令牌
+   echo $ADMIN_TOKEN
+   
+   # 检查数据库文件
+   ls -la quota-proxy.db
+   ```
+
+## 集成到CI/CD
+
+可以将此脚本集成到持续集成流程中：
+
 ```bash
-# 检查数据库连接
-curl -fsS "$QUOTA_URL/healthz"
+#!/bin/bash
+# CI/CD 验证脚本示例
 
-# 检查使用情况
-curl -fsS "$QUOTA_URL/admin/usage?day=$(date +%F)" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+set -e
+
+echo "开始部署验证..."
+
+# 启动服务（如果是CI环境）
+./start-sqlite-persistent.sh &
+SERVER_PID=$!
+
+# 等待服务启动
+sleep 5
+
+# 运行验证
+if ./deployment-verification.sh; then
+    echo "✅ 部署验证通过"
+    exit 0
+else
+    echo "❌ 部署验证失败"
+    # 清理
+    kill $SERVER_PID 2>/dev/null || true
+    exit 1
+fi
 ```
 
-## 9. 验证结果记录
+## 相关文档
 
-建议部署后记录验证结果：
+- [快速开始指南](QUICK-START.md) - 5分钟上手指南
+- [SQLite持久化指南](SQLITE-PERSISTENT-GUIDE.md) - 详细配置和使用说明
+- [健康检查脚本](quick-sqlite-health-check.sh) - 快速健康检查工具
+- [API验证脚本](verify-sqlite-persistent-api.sh) - 完整API验证工具链
 
-| 测试项目 | 状态 | 备注 |
-|---------|------|------|
-| 健康检查 | ✅ | 响应 {"ok":true} |
-| 管理员认证 | ✅ | 可以访问 /admin/keys |
-| 密钥创建 | ✅ | 可以创建新密钥 |
-| API 调用 | ✅ | 正常返回聊天响应 |
-| 配额限制 | ✅ | 超过限制返回 429 |
-| 数据持久化 | ✅ | 重启后数据保留 |
-| 安全访问控制 | ✅ | 未授权访问返回 401 |
+## 更新日志
 
-完成所有验证后，quota-proxy 即可投入生产使用。
+- **v1.0.0** (2026-02-11)
+  - 初始版本发布
+  - 支持5个关键API端点验证
+  - 添加干运行模式和颜色编码输出
+  - 集成环境检查（Docker和进程状态）
+
+## 支持
+
+如有问题，请参考：
+- [GitHub Issues](https://github.com/1037104428/roc-ai-republic/issues)
+- [项目文档](../docs/)
+- [快速开始指南](QUICK-START.md)
