@@ -185,6 +185,26 @@ app.delete('/admin/keys/:key', (req, res) => {
   return res.json({ deleted: existed, key });
 });
 
+app.get('/admin/keys', (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
+  if (!STORE_PATH) return res.status(400).json({ error: { message: 'persistence disabled (set SQLITE_PATH)' } });
+
+  const keys = Object.entries(state.keys).map(([key, info]) => ({
+    key,
+    label: info?.label || null,
+    created_at: info?.created_at || null,
+  }));
+
+  // Sort by creation date (newest first)
+  keys.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+  return res.json({
+    count: keys.length,
+    keys,
+    mode: STORE_PATH ? 'file' : 'memory',
+  });
+});
+
 app.post('/admin/usage/reset', (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ error: { message: 'admin auth required' } });
 

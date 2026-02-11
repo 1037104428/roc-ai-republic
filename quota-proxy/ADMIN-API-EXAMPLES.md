@@ -57,105 +57,66 @@ curl -s -X POST "$BASE_URL/admin/keys/trial/batch" \
 ### 2.2 查询试用密钥
 
 ```bash
-# 查询所有试用密钥
-curl -s "$BASE_URL/admin/keys/trial" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-
-# 分页查询试用密钥
-curl -s "$BASE_URL/admin/keys/trial?page=1&limit=10" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-
-# 按状态查询试用密钥
-curl -s "$BASE_URL/admin/keys/trial?status=active" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-```
-
-## 3. 管理员密钥管理
-
-### 3.1 生成管理员密钥
-
-```bash
-# 生成普通管理员密钥
-curl -s -X POST "$BASE_URL/admin/keys" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "运维管理员",
-    "permissions": ["read", "write", "delete"],
-    "expiresIn": "30d"
-  }'
-
-# 生成只读管理员密钥
-curl -s -X POST "$BASE_URL/admin/keys" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "监控只读",
-    "permissions": ["read"],
-    "expiresIn": "90d"
-  }'
-```
-
-### 3.2 管理管理员密钥
-
-```bash
-# 列出所有管理员密钥
+# 查询所有试用密钥（新增接口）
 curl -s "$BASE_URL/admin/keys" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 
-# 查询特定管理员密钥
-curl -s "$BASE_URL/admin/keys/key_abc123" \
+# 示例输出：
+# {
+#   "count": 3,
+#   "keys": [
+#     {
+#       "key": "trial_abc123...",
+#       "label": "新用户试用",
+#       "created_at": 1741967089000
+#     },
+#     ...
+#   ],
+#   "mode": "file"
+# }
+
+# 删除试用密钥
+curl -s -X DELETE "$BASE_URL/admin/keys/trial_abc123" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 
-# 撤销管理员密钥
-curl -s -X DELETE "$BASE_URL/admin/keys/key_abc123" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-
-# 更新管理员密钥
-curl -s -X PATCH "$BASE_URL/admin/keys/key_abc123" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "更新后的名称",
-    "permissions": ["read", "write"]
-  }'
+# 示例输出：
+# {
+#   "deleted": true,
+#   "key": "trial_abc123"
+# }
 ```
 
-## 4. 应用管理
+## 3. 管理员令牌配置
 
-### 4.1 应用列表
+quota-proxy 使用单一的管理员令牌（ADMIN_TOKEN）进行身份验证，而不是多管理员密钥系统。
+
+### 3.1 设置管理员令牌
 
 ```bash
-# 获取所有应用列表
-curl -s "$BASE_URL/admin/applications" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+# 启动时设置环境变量
+ADMIN_TOKEN="your-secure-admin-token-here" \
+DEEPSEEK_API_KEY="sk-..." \
+node server.js
 
-# 分页获取应用列表
-curl -s "$BASE_URL/admin/applications?page=2&limit=20" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-
-# 按状态筛选应用
-curl -s "$BASE_URL/admin/applications?status=active" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
+# 或者使用 .env 文件
+echo "ADMIN_TOKEN=your-secure-admin-token-here" > .env
+echo "DEEPSEEK_API_KEY=sk-..." >> .env
+node server.js
 ```
 
-### 4.2 应用详情
+### 3.2 验证管理员令牌
 
 ```bash
-# 获取应用详情
-curl -s "$BASE_URL/admin/applications/app_123" \
+# 使用管理员令牌测试健康检查
+curl -s "$BASE_URL/healthz" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 
-# 获取应用使用统计
-curl -s "$BASE_URL/admin/applications/app_123/usage" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"
-
-# 获取应用密钥列表
-curl -s "$BASE_URL/admin/applications/app_123/keys" \
+# 验证令牌是否有效（尝试调用需要管理员权限的接口）
+curl -s "$BASE_URL/admin/keys" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-## 5. 使用情况统计
+## 4. 使用情况统计
 
 ### 5.1 总体使用情况
 
@@ -189,7 +150,7 @@ curl -s "$BASE_URL/admin/usage/records?keyId=key_abc123" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-## 6. 系统管理
+## 5. 系统管理
 
 ### 6.1 系统状态
 
@@ -224,7 +185,7 @@ curl -s -X PATCH "$BASE_URL/admin/system/config" \
   }'
 ```
 
-## 7. 批量操作
+## 6. 批量操作
 
 ### 7.1 批量密钥操作
 
@@ -260,7 +221,7 @@ curl -s -X POST "$BASE_URL/admin/applications/batch/quota" \
   }'
 ```
 
-## 8. 监控与告警
+## 7. 监控与告警
 
 ### 8.1 监控端点
 
@@ -296,7 +257,7 @@ curl -s -X PUT "$BASE_URL/admin/alerts/config" \
   }'
 ```
 
-## 9. 实用脚本示例
+## 8. 实用脚本示例
 
 ### 9.1 自动化部署检查
 
@@ -369,7 +330,7 @@ echo "Top 5 应用:"
 echo "$top_apps" | jq -r '.applications[] | "  \(.name): \(.usageCount) 次请求"'
 ```
 
-## 10. 故障排除
+## 9. 故障排除
 
 ### 10.1 常见错误处理
 
@@ -404,7 +365,7 @@ curl -I -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys"
 time curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys" > /dev/null
 ```
 
-## 11. 快速开始（5分钟上手）
+## 10. 快速开始（5分钟上手）
 
 ### 11.1 第一步：环境设置
 
