@@ -251,6 +251,54 @@ export QUOTA_PROXY_URL=http://localhost:8787
 5. 使用情况查询
 6. 数据清理
 
+## JSON 结构化日志中间件
+
+quota-proxy 提供了 JSON 结构化日志中间件，支持生产环境下的结构化日志输出。
+
+### 功能特性
+- **结构化 JSON 输出**：所有日志以 JSON 格式输出，便于日志收集和分析
+- **请求追踪**：自动记录 HTTP 请求的详细信息（方法、URL、状态码、响应时间等）
+- **多日志级别**：支持 INFO、ERROR、WARN 等日志级别
+- **服务标识**：自动包含服务名称和进程 ID
+- **请求 ID**：可选生成请求 ID 用于请求追踪
+
+### 使用方法
+
+```javascript
+// 在服务器文件中引入 JSON 日志中间件
+const { createJsonLogger } = require('./middleware/json-logger.js');
+
+// 创建日志中间件
+const jsonLogger = createJsonLogger({
+    serviceName: 'quota-proxy',
+    includeRequestId: true,
+    logLevel: 'info'
+});
+
+// 在 Express 应用中使用
+app.use(jsonLogger);
+```
+
+### 验证脚本
+
+```bash
+# 验证 JSON 日志中间件
+chmod +x verify-json-logger.sh
+./verify-json-logger.sh
+```
+
+验证脚本会测试：
+1. JSON 日志中间件文件检查
+2. 服务器集成检查
+3. JSON 格式验证
+4. 使用文档检查
+
+### 日志格式示例
+
+```json
+{"timestamp":"2026-02-11T12:15:00.000Z","level":"INFO","message":"HTTP Request Completed","method":"GET","url":"/healthz","statusCode":200,"duration":"15ms","userAgent":"curl/7.68.0","ip":"127.0.0.1","pid":12345,"service":"quota-proxy","requestId":"req-1707653700000-abc123def"}
+```
+
 ## 部署指南
 
 详细的 SQLite 版本部署指南请参考：[sqlite-deployment-guide.md](../docs/sqlite-deployment-guide.md)
