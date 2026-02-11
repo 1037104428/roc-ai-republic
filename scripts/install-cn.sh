@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.10.02"
+SCRIPT_VERSION="2026.02.11.01"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
@@ -25,6 +25,117 @@ VERIFY_LEVEL_DEFAULT="auto"  # auto, basic, quick, full, none
 # Show script version
 echo "[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION"
 echo "[cn-pack] ========================================="
+
+# Function to detect and handle proxy settings
+handle_proxy_settings() {
+  local proxy_mode="${1:-auto}"  # auto, force, skip
+  
+  echo "[cn-pack] Checking proxy settings..."
+  
+  # Simple proxy detection (fallback if detect-proxy.sh is not available)
+  detect_proxy_fallback() {
+    local proxy_vars=("HTTP_PROXY" "HTTPS_PROXY" "http_proxy" "https_proxy" "ALL_PROXY" "all_proxy")
+    local detected_count=0
+    
+    for var in "${proxy_vars[@]}"; do
+      if [[ -n "${!var:-}" ]]; then
+        echo "[cn-pack] Detected proxy: $var=${!var}"
+        detected_count=$((detected_count + 1))
+      fi
+    done
+    
+    # Check npm proxy settings
+    local npm_proxy=$(npm config get proxy 2>/dev/null || echo "null")
+    local npm_https_proxy=$(npm config get https-proxy 2>/dev/null || echo "null")
+    
+    if [[ "$npm_proxy" != "null" && -n "$npm_proxy" ]]; then
+      echo "[cn-pack] Detected npm proxy: $npm_proxy"
+      detected_count=$((detected_count + 1))
+    fi
+    
+    if [[ "$npm_https_proxy" != "null" && -n "$npm_https_proxy" ]]; then
+      echo "[cn-pack] Detected npm https-proxy: $npm_https_proxy"
+      detected_count=$((detected_count + 1))
+    fi
+    
+    if [[ $detected_count -gt 0 ]]; then
+      echo "PROXY_DETECTED=true"
+      echo "PROXY_COUNT=$detected_count"
+      return 0
+    else
+      echo "PROXY_DETECTED=false"
+      echo "PROXY_COUNT=0"
+      return 1
+    fi
+  }
+  
+  # Try to use the full proxy detection script if available
+  if [[ -f "./scripts/detect-proxy.sh" ]]; then
+    # Source the proxy detection script
+    source ./scripts/detect-proxy.sh >/dev/null 2>&1 || {
+      echo "[cn-pack] ⚠ Failed to load proxy detection script, using fallback"
+      detect_proxy_fallback
+      return 0
+    }
+    
+    # Run proxy detection
+    local proxy_info
+    proxy_info=$(detect_proxy_settings 2>/dev/null || echo "PROXY_DETECTED=false")
+    
+    # Parse proxy detection results
+    local proxy_detected=$(echo "$proxy_info" | grep "^PROXY_DETECTED=" | cut -d= -f2)
+    local proxy_type=$(echo "$proxy_info" | grep "^PROXY_TYPE=" | cut -d= -f2)
+    local proxy_count=$(echo "$proxy_info" | grep "^PROXY_COUNT=" | cut -d= -f2)
+    
+    if [[ "$proxy_detected" == "true" ]]; then
+      echo "[cn-pack] ✓ Detected $proxy_count proxy configuration(s)"
+      
+      # Test proxy connectivity if not skipping
+      if [[ "$proxy_mode" != "skip" ]]; then
+        echo "[cn-pack] Testing proxy connectivity..."
+        local test_result
+        test_result=$(test_proxy_connectivity "https://registry.npmmirror.com" 10 2>/dev/null || true)
+        
+        if echo "$test_result" | grep -q "PROXY_TEST_RESULT=success"; then
+          echo "[cn-pack] ✓ Proxy connectivity test passed"
+          
+          # Configure npm proxy if needed and not skipping
+          if [[ -n "${HTTP_PROXY:-}" ]] && [[ "$proxy_mode" == "force" || "$proxy_mode" == "auto" ]]; then
+            echo "[cn-pack] Configuring npm proxy for installation..."
+            configure_npm_proxy "$HTTP_PROXY" "${HTTPS_PROXY:-$HTTP_PROXY}" >/dev/null 2>&1 || true
+          fi
+        else
+          echo "[cn-pack] ⚠ Proxy connectivity test failed"
+          
+          if [[ "$proxy_mode" == "force" ]]; then
+            echo "[cn-pack] ✗ Proxy forced but connectivity failed. Installation may fail."
+            return 1
+          fi
+        fi
+      fi
+      
+      return 0
+    else
+      echo "[cn-pack] ✓ No proxy settings detected"
+      return 0
+    fi
+  else
+    # Use fallback detection
+    detect_proxy_fallback
+    return 0
+  fi
+}
+
+# Function to clear proxy settings after installation
+cleanup_proxy_settings() {
+  echo "[cn-pack] Cleaning up proxy settings..."
+  
+  # Clear npm proxy config
+  npm config delete proxy >/dev/null 2>&1 || true
+  npm config delete https-proxy >/dev/null 2>&1 || true
+  
+  echo "[cn-pack] ✓ Proxy settings cleaned up"
+}
 
 usage() {
   cat <<'TXT'
@@ -40,10 +151,15 @@ Options:
   --dry-run                Print commands without executing
   --check-update           Check for script updates
   --verify-level <level>   Verification level: auto, basic, quick, full, none (default: auto)
+  --proxy-mode <mode>      Proxy handling mode: auto, force, skip (default: auto)
+  --proxy-test             Test proxy connectivity before installation
+  --proxy-report           Generate proxy configuration report
+  --keep-proxy             Keep npm proxy settings after installation
   -h, --help               Show help
 
 Env vars (equivalent):
   OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT, OPENCLAW_VERIFY_LEVEL
+  HTTP_PROXY, HTTPS_PROXY, http_proxy, https_proxy (for proxy detection)
 TXT
 }
 
@@ -97,6 +213,10 @@ VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
 REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
 REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
 VERIFY_LEVEL="${OPENCLAW_VERIFY_LEVEL:-$VERIFY_LEVEL_DEFAULT}"
+PROXY_MODE="auto"
+PROXY_TEST=0
+PROXY_REPORT=0
+KEEP_PROXY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -116,6 +236,14 @@ while [[ $# -gt 0 ]]; do
       FORCE_CN=1; shift ;;
     --dry-run)
       DRY_RUN=1; shift ;;
+    --proxy-mode)
+      PROXY_MODE="${2:-auto}"; shift 2 ;;
+    --proxy-test)
+      PROXY_TEST=1; shift ;;
+    --proxy-report)
+      PROXY_REPORT=1; shift ;;
+    --keep-proxy)
+      KEEP_PROXY=1; shift ;;
     --check-update)
       check_script_update
       exit $?
@@ -346,6 +474,25 @@ install_openclaw() {
   fi
 }
 
+# Handle proxy settings before installation
+echo "[cn-pack] ========================================="
+echo "[cn-pack] Proxy Configuration Phase"
+echo "[cn-pack] ========================================="
+
+if [[ "$PROXY_TEST" == "1" ]]; then
+  echo "[cn-pack] Running proxy connectivity test..."
+  handle_proxy_settings "force"
+elif [[ "$PROXY_REPORT" == "1" ]]; then
+  echo "[cn-pack] Generating proxy configuration report..."
+  if [[ -f "./scripts/detect-proxy.sh" ]]; then
+    source ./scripts/detect-proxy.sh >/dev/null 2>&1
+    generate_proxy_report "/tmp/openclaw-proxy-report-$(date +%s).md" >/dev/null 2>&1 || true
+  fi
+fi
+
+# Apply proxy settings for installation
+handle_proxy_settings "$PROXY_MODE"
+
 # 尝试CN源
 if [[ "$FORCE_CN" == "1" ]]; then
   echo "[cn-pack] Force using CN registry (--force-cn flag)"
@@ -394,6 +541,11 @@ else
   echo "[cn-pack] npm prefix: $(npm config get prefix 2>/dev/null || true)" >&2
   echo "[cn-pack] npm global bin: $(npm bin -g 2>/dev/null || true)" >&2
   exit 2
+fi
+
+# Cleanup proxy settings if not keeping them
+if [[ "$KEEP_PROXY" == "0" ]]; then
+  cleanup_proxy_settings
 fi
 
 echo "[cn-pack] Next steps:"
