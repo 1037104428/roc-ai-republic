@@ -1,3 +1,10 @@
+// 加载环境变量配置
+try {
+  require('./load-env').loadEnv();
+} catch (error) {
+  console.warn('⚠️  环境变量加载失败，使用默认配置:', error.message);
+}
+
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -7,11 +14,28 @@ const { createAdminIpWhitelist } = require('./middleware/ip-whitelist');
 const { createAuditLogMiddleware, createAuditLogApi } = require('./middleware/audit-log');
 
 const app = express();
+
+// 从环境变量读取配置，提供默认值
 const PORT = process.env.PORT || 8787;
+const HOST = process.env.HOST || '127.0.0.1';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'dev-admin-token-change-in-production';
+const DB_PATH = process.env.DB_PATH || ':memory:';
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+const DEFAULT_DAILY_LIMIT = parseInt(process.env.DEFAULT_DAILY_LIMIT) || 1000;
+const DEFAULT_MONTHLY_LIMIT = parseInt(process.env.DEFAULT_MONTHLY_LIMIT) || 30000;
+const API_KEY_PREFIX = process.env.API_KEY_PREFIX || 'roc_';
+
+console.log(`📋 配置信息:
+  - 服务器: ${HOST}:${PORT}
+  - 数据库: ${DB_PATH}
+  - 日志级别: ${LOG_LEVEL}
+  - 默认日限额: ${DEFAULT_DAILY_LIMIT}
+  - 默认月限额: ${DEFAULT_MONTHLY_LIMIT}
+  - API密钥前缀: ${API_KEY_PREFIX}
+`);
 
 // 数据库初始化
-const db = new sqlite3.Database(':memory:'); // 使用内存数据库，生产环境应改为文件
+const db = new sqlite3.Database(DB_PATH);
 db.serialize(() => {
     db.run(`
         CREATE TABLE IF NOT EXISTS api_keys (
@@ -273,8 +297,8 @@ const adminAuth = (req, res, next) => {
 
 // 生成试用密钥
 app.post('/admin/keys', adminAuth, (req, res) => {
-    const { label, totalQuota = 1000, expiresAt } = req.body;
-    const key = `sk-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const { label, totalQuota = DEFAULT_DAILY_LIMIT, expiresAt } = req.body;
+    const key = `${API_KEY_PREFIX}${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     // 验证过期时间格式（如果提供）
     let expiresAtValue = null;
