@@ -111,7 +111,7 @@ node server-sqlite.js
 
 ```javascript
 // 在 Node.js 脚本中
-const { loadEnv } = require('./load-env.js');
+const loadEnv = require('./load-env.cjs');
 loadEnv(); // 加载当前目录的 .env 文件
 loadEnv('/path/to/custom.env'); // 加载指定文件
 ```
@@ -120,10 +120,10 @@ loadEnv('/path/to/custom.env'); // 加载指定文件
 
 ```bash
 # 测试环境变量加载
-node load-env.js
+node load-env.cjs
 
 # 加载指定文件
-node load-env.js /path/to/custom.env
+node load-env.cjs /path/to/custom.env
 ```
 
 ### Docker 集成
@@ -187,6 +187,6 @@ docker run -p 8787:8787 \
 ## 相关文件
 
 - `quota-proxy/.env.example`: 环境变量模板
-- `quota-proxy/load-env.js`: 环境变量加载器
+- `quota-proxy/load-env.cjs`: 环境变量加载器
 - `quota-proxy/verify-env-config.sh`: 验证脚本
 - `quota-proxy/server-sqlite.js`: 主服务文件

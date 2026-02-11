@@ -79,4 +79,5 @@ if (require.main === module) {
   });
 }
 
-module.exports = { loadEnv };
+// 导出函数
+module.exports = loadEnv;

@@ -17,20 +17,20 @@ else
     exit 1
 fi
 
-if [ -f "load-env.js" ]; then
-    echo "✅ load-env.js 文件存在"
+if [ -f "load-env.cjs" ]; then
+    echo "✅ load-env.cjs 文件存在"
 else
-    echo "❌ load-env.js 文件不存在"
+    echo "❌ load-env.cjs 文件不存在"
     exit 1
 fi
 
-# 2. 检查 load-env.js 语法
+# 2. 检查 load-env.cjs 语法
 echo ""
-echo "📝 检查 load-env.js 语法..."
-if node -c load-env.js; then
-    echo "✅ load-env.js 语法正确"
+echo "📝 检查 load-env.cjs 语法..."
+if node -c load-env.cjs; then
+    echo "✅ load-env.cjs 语法正确"
 else
-    echo "❌ load-env.js 语法错误"
+    echo "❌ load-env.cjs 语法错误"
     exit 1
 fi
 
@@ -56,7 +56,7 @@ echo ""
 # 运行加载测试
 echo "运行环境变量加载测试..."
 node -e "
-const { loadEnv } = require('./load-env.js');
+const loadEnv = require('./load-env.cjs');
 const result = loadEnv('test.env');
 console.log('加载结果:', result ? '✅ 成功' : '❌ 失败');
 

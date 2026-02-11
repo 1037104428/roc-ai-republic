@@ -1,6 +1,6 @@
 // 加载环境变量配置
 try {
-  require('./load-env').loadEnv();
+  require('./load-env.cjs')();
 } catch (error) {
   console.warn('⚠️  环境变量加载失败，使用默认配置:', error.message);
 }
