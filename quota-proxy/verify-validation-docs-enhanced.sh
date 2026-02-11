@@ -69,6 +69,7 @@ check_doc "../docs/install-cn-quick-test-examples.md" "安装脚本快速测试�
 check_doc "../docs/validation-toolchain-overview.md" "验证工具链概览文档" 20
 check_doc "verify-env.sh" "环境变量验证脚本" 10
 check_doc "verify-sqlite-persistence.sh" "SQLite持久化验证脚本" 10
+check_doc "PROMETHEUS-MONITORING-INTEGRATION-GUIDE.md" "Prometheus监控集成指南" 20
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
