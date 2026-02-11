@@ -339,6 +339,54 @@ app.post('/admin/keys', adminAuth, (req, res) => {
     );
 });
 
+// 生成试用密钥（简化版，无需认证，但有基本限制）
+app.post('/admin/keys/trial', (req, res) => {
+    // 基本限制：每个IP每小时最多生成3个试用密钥
+    const clientIp = req.ip || req.connection.remoteAddress;
+    const hourKey = `trial_key_${clientIp}_${Math.floor(Date.now() / (1000 * 60 * 60))}`;
+    
+    // 简单内存限制（生产环境应使用Redis）
+    if (!global.trialKeyCounts) global.trialKeyCounts = {};
+    const currentCount = global.trialKeyCounts[hourKey] || 0;
+    
+    if (currentCount >= 3) {
+        return res.status(429).json({
+            error: 'Too many trial key requests. Limit: 3 per hour per IP.',
+            retryAfter: 3600
+        });
+    }
+    
+    // 生成试用密钥（7天有效期，100次调用限额）
+    const key = `${API_KEY_PREFIX}trial_${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const label = `Trial Key - ${new Date().toISOString().split('T')[0]}`;
+    const totalQuota = 100; // 试用配额
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7天后过期
+    
+    db.run(
+        'INSERT INTO api_keys (key, label, total_quota, expires_at) VALUES (?, ?, ?, ?)',
+        [key, label, totalQuota, expiresAt],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: 'Failed to create trial key' });
+            }
+            
+            // 更新计数
+            global.trialKeyCounts[hourKey] = currentCount + 1;
+            
+            res.json({
+                success: true,
+                key,
+                label,
+                totalQuota,
+                expiresAt,
+                id: this.lastID,
+                note: 'This is a trial key valid for 7 days with 100 API calls limit.',
+                usageUrl: `http://${HOST}:${PORT}/admin/usage?key=${key}`
+            });
+        }
+    );
+});
+
 // 列出所有密钥
 app.get('/admin/keys', adminAuth, (req, res) => {
     const { limit = 100, offset = 0, activeOnly = false } = req.query;
@@ -665,6 +713,7 @@ app.get('/status', (req, res) => {
             status: '/status',
             admin: {
                 keys: '/admin/keys',
+                trial_keys: '/admin/keys/trial',
                 usage: '/admin/usage',
                 stats: '/admin/stats',
                 performance: '/admin/performance',
