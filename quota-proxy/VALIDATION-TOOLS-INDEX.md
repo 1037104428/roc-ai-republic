@@ -23,6 +23,7 @@
 ### 4. 功能测试
 - **试用密钥生成测试**：`test-trial-key-generation.sh` - 完整试用密钥功能测试
 - **Admin API性能检查**：`check-admin-performance.sh` - API性能监控
+- **Admin API快速测试**：`quick-admin-api-test.sh` - 一键测试Admin API所有核心功能
 
 ### 5. 数据库工具
 - **SQLite数据库初始化**：`init-sqlite-db.sh` - 初始化数据库表结构
