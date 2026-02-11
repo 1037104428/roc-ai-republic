@@ -1534,6 +1534,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# 批量部署检查 - 如果指定了批量部署，立即执行并退出
+if [[ -n "$BATCH_DEPLOY_FILE" ]]; then
+  batch_deploy_openclaw "$BATCH_DEPLOY_FILE" "$BATCH_DRY_RUN"
+  exit $?
+fi
+
 # CI/CD模式环境变量覆盖
 if [[ "${CI_MODE:-0}" == "1" ]] || [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]] || [[ -n "${GITLAB_CI:-}" ]] || [[ -n "${JENKINS_HOME:-}" ]]; then
   CI_MODE=1
@@ -2361,10 +2367,4 @@ fi
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "[cn-pack] Dry-run done (no changes made)."
   exit 0
-fi
-
-# Batch deployment check
-if [[ -n "$BATCH_DEPLOY_FILE" ]]; then
-  batch_deploy_openclaw "$BATCH_DEPLOY_FILE" "$BATCH_DRY_RUN"
-  exit $?
 fi
