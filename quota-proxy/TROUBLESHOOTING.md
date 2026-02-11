@@ -4,308 +4,265 @@
 
 ## 快速诊断流程
 
-1. **检查服务状态**
-   ```bash
-   # Docker Compose 环境
-   docker compose ps
-   
-   # 查看日志
-   docker compose logs -f quota-proxy
-   
-   # 健康检查
-   curl -fsS http://127.0.0.1:8787/healthz
-   ```
-
-2. **检查环境变量配置**
-   ```bash
-   # 使用验证脚本
-   ./verify-env-vars.sh --quick
-   
-   # 手动检查必需变量
-   echo "DATABASE_URL: ${DATABASE_URL:-未设置}"
-   echo "ADMIN_TOKEN: ${ADMIN_TOKEN:-未设置}"
-   echo "PORT: ${PORT:-未设置}"
-   ```
-
-3. **检查数据库连接**
-   ```bash
-   # 检查数据库文件
-   ls -la quota-proxy/data/
-   
-   # 使用 SQLite 验证脚本
-   ./verify-sqlite-integrity.sh --quick
-   ```
-
-## 常见问题
-
-### 1. 服务无法启动
-
-**症状**: `docker compose up` 失败或容器立即退出
-
-**可能原因**:
-- 必需环境变量缺失
-- 端口被占用
-- 数据库文件权限问题
-
-**解决方案**:
+### 1. 服务状态检查
 ```bash
-# 1. 验证环境变量
-./verify-env-vars.sh --full
+# 检查 Docker Compose 服务状态
+cd /opt/roc/quota-proxy
+docker compose ps
 
-# 2. 检查端口占用
-sudo lsof -i :8787
+# 检查容器日志
+docker compose logs quota-proxy
 
-# 3. 检查数据库文件权限
-ls -la quota-proxy/data/
-chmod 644 quota-proxy/data/quota.db  # 如果需要
-
-# 4. 查看详细日志
-docker compose logs --tail=50 quota-proxy
+# 检查健康端点
+curl -fsS http://127.0.0.1:8787/healthz
 ```
 
-### 2. 健康检查失败
-
-**症状**: `curl http://127.0.0.1:8787/healthz` 返回非 200 状态码
-
-**可能原因**:
-- 数据库连接失败
-- 服务内部错误
-- 内存不足
-
-**解决方案**:
+### 2. 数据库连接问题
 ```bash
-# 1. 检查数据库连接
-sqlite3 quota-proxy/data/quota.db "SELECT count(*) FROM api_keys;"
+# 检查 SQLite 数据库文件
+ls -la /opt/roc/quota-proxy/data/
 
-# 2. 检查服务日志中的错误
-docker compose logs quota-proxy | grep -i error
+# 检查数据库权限
+ls -la /opt/roc/quota-proxy/data/quota.db
 
-# 3. 重启服务
-docker compose restart quota-proxy
-
-# 4. 检查系统资源
-free -h
-df -h .
+# 手动测试数据库连接
+sqlite3 /opt/roc/quota-proxy/data/quota.db "SELECT COUNT(*) FROM quota_usage;"
 ```
 
-### 3. API 调用返回 401 或 403
-
-**症状**: API 调用返回认证错误
-
-**可能原因**:
-- TRIAL_KEY 无效或过期
-- TRIAL_KEY 格式错误
-- 管理员令牌配置错误
-
-**解决方案**:
+### 3. 网络和端口问题
 ```bash
-# 1. 验证 TRIAL_KEY 格式
-echo "你的TRIAL_KEY" | wc -c  # 应该为 32 字符
+# 检查端口监听
+netstat -tlnp | grep 8787
 
-# 2. 检查密钥是否在数据库中
-sqlite3 quota-proxy/data/quota.db "SELECT key, enabled, created_at FROM api_keys WHERE key='你的TRIAL_KEY';"
-
-# 3. 重新生成 TRIAL_KEY
-curl -X POST http://127.0.0.1:8787/admin/keys \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"note":"故障排除重新生成"}'
-```
-
-### 4. 数据库文件损坏
-
-**症状**: 数据库相关操作失败，日志显示 SQLite 错误
-
-**可能原因**:
-- 磁盘空间不足
-- 异常关机导致数据库损坏
-- 文件权限问题
-
-**解决方案**:
-```bash
-# 1. 使用完整性验证脚本
-./verify-sqlite-integrity.sh --full
-
-# 2. 备份当前数据库
-cp quota-proxy/data/quota.db quota-proxy/data/quota.db.backup.$(date +%Y%m%d_%H%M%S)
-
-# 3. 尝试修复数据库
-sqlite3 quota-proxy/data/quota.db ".dump" | sqlite3 quota-proxy/data/quota.fixed.db
-mv quota-proxy/data/quota.fixed.db quota-proxy/data/quota.db
-
-# 4. 从备份恢复（如果修复失败）
-cp quota-proxy/data/quota.db.backup.* quota-proxy/data/quota.db
-```
-
-### 5. 性能问题
-
-**症状**: API 响应缓慢，高延迟
-
-**可能原因**:
-- 数据库索引缺失
-- 日志级别过高
-- 系统资源不足
-
-**解决方案**:
-```bash
-# 1. 检查数据库索引
-sqlite3 quota-proxy/data/quota.db ".indices"
-
-# 2. 调整日志级别（如果使用 DEBUG 级别）
-export LOG_LEVEL=INFO
-docker compose restart quota-proxy
-
-# 3. 监控系统资源
-docker stats quota-proxy_quota-proxy_1
-
-# 4. 优化数据库
-sqlite3 quota-proxy/data/quota.db "VACUUM;"
-sqlite3 quota-proxy/data/quota.db "ANALYZE;"
-```
-
-### 6. Docker 网络问题
-
-**症状**: 容器间通信失败，无法连接到数据库或其他服务
-
-**可能原因**:
-- Docker 网络配置问题
-- 防火墙规则
-- 主机网络问题
-
-**解决方案**:
-```bash
-# 1. 检查 Docker 网络
-docker network ls
-docker network inspect quota-proxy_default
-
-# 2. 测试容器间连通性
-docker compose exec quota-proxy ping -c 3 db
-
-# 3. 检查防火墙
+# 检查防火墙规则
 sudo ufw status
-sudo iptables -L -n | grep DOCKER
 
-# 4. 重启 Docker 服务
-sudo systemctl restart docker
+# 测试本地连接
+curl -v http://127.0.0.1:8787/healthz
 ```
 
-## 诊断工具
+## 常见问题及解决方案
 
-### 快速诊断脚本
-```bash
-#!/bin/bash
-# quick-diagnose.sh
+### 问题1: Docker Compose 启动失败
+**症状**: `docker compose up -d` 失败，容器无法启动
 
-echo "=== quota-proxy 快速诊断 ==="
-echo "时间: $(date)"
-echo ""
+**解决方案**:
+1. 检查 Docker 服务状态:
+   ```bash
+   sudo systemctl status docker
+   ```
 
-echo "1. 服务状态检查"
-docker compose ps 2>/dev/null || echo "Docker Compose 未运行"
+2. 检查 Docker Compose 版本:
+   ```bash
+   docker compose version
+   ```
 
-echo ""
-echo "2. 健康检查"
-curl -fsS http://127.0.0.1:8787/healthz 2>/dev/null && echo "✓ 健康检查通过" || echo "✗ 健康检查失败"
+3. 检查环境变量文件:
+   ```bash
+   # 确保 .env 文件存在
+   ls -la .env
+   
+   # 检查关键环境变量
+   grep -E "ADMIN_TOKEN|PORT|DATABASE_URL" .env
+   ```
 
-echo ""
-echo "3. 环境变量检查"
-./verify-env-vars.sh --quick 2>/dev/null || echo "环境变量检查失败"
-
-echo ""
-echo "4. 数据库检查"
-./verify-sqlite-integrity.sh --quick 2>/dev/null || echo "数据库检查失败"
-
-echo ""
-echo "=== 诊断完成 ==="
-```
-
-### 日志分析命令
-```bash
-# 查看最近错误
-docker compose logs quota-proxy | grep -i error | tail -20
-
-# 查看 API 访问日志
-docker compose logs quota-proxy | grep "POST\|GET\|PUT\|DELETE" | tail -20
-
-# 查看启动日志
-docker compose logs quota-proxy | grep -i "starting\|listening\|ready" | tail -10
-```
-
-## 紧急恢复步骤
-
-如果服务完全不可用，按以下步骤恢复：
-
-1. **停止所有服务**
+4. 清理并重新启动:
    ```bash
    docker compose down
-   ```
-
-2. **备份重要数据**
-   ```bash
-   cp -r quota-proxy/data/ quota-proxy/data.backup.$(date +%Y%m%d_%H%M%S)/
-   ```
-
-3. **检查系统状态**
-   ```bash
-   df -h .  # 磁盘空间
-   free -h  # 内存
-   docker system df  # Docker 资源
-   ```
-
-4. **清理 Docker 资源**
-   ```bash
-   docker system prune -f
-   ```
-
-5. **重新部署**
-   ```bash
    docker compose up -d
-   docker compose logs -f quota-proxy
    ```
 
-## 获取帮助
+### 问题2: 健康检查失败
+**症状**: `curl http://127.0.0.1:8787/healthz` 返回非 200 状态码
 
-如果以上步骤无法解决问题：
-
-1. **收集诊断信息**
+**解决方案**:
+1. 检查容器日志:
    ```bash
-   ./quick-diagnose.sh > diagnose-$(date +%Y%m%d_%H%M%S).log
-   docker compose logs quota-proxy > logs-$(date +%Y%m%d_%H%M%S).log
+   docker compose logs quota-proxy --tail=50
    ```
 
-2. **检查项目文档**
-   - [README.md](./README.md) - 主要文档
-   - [部署指南](./DEPLOYMENT.md) - 部署说明
-   - [API 文档](./API.md) - API 接口说明
-
-3. **查看 GitHub Issues**
-   - 访问项目仓库查看已知问题
-   - 提交新的 Issue 并附上诊断日志
-
-## 预防措施
-
-1. **定期备份**
+2. 检查数据库连接:
    ```bash
-   # 使用备份脚本
-   ./backup-sqlite-db.sh
+   # 进入容器检查
+   docker compose exec quota-proxy sh -c "sqlite3 /app/data/quota.db 'SELECT 1;'"
    ```
 
-2. **监控设置**
+3. 检查环境变量:
    ```bash
-   # 设置健康检查监控
-   */5 * * * * curl -fsS http://127.0.0.1:8787/healthz || echo "quota-proxy 健康检查失败" | mail -s "警报" admin@example.com
+   docker compose exec quota-proxy env | grep -E "DATABASE_URL|ADMIN_TOKEN"
    ```
 
-3. **定期维护**
+### 问题3: 管理员 API 返回 401 未授权
+**症状**: 使用 `POST /admin/keys` 或 `GET /admin/usage` 返回 401
+
+**解决方案**:
+1. 验证 ADMIN_TOKEN:
    ```bash
-   # 每周执行一次
-   ./verify-sqlite-integrity.sh --full
-   ./verify-env-vars.sh --full
-   docker system prune -f
+   # 检查 .env 文件中的 ADMIN_TOKEN
+   grep ADMIN_TOKEN .env
+   
+   # 验证 token 格式（应为 32 字符 hex）
+   ADMIN_TOKEN=$(grep ADMIN_TOKEN .env | cut -d= -f2)
+   echo "Token length: ${#ADMIN_TOKEN}"
    ```
 
----
+2. 检查请求头:
+   ```bash
+   # 正确的 curl 命令格式
+   curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -X POST http://127.0.0.1:8787/admin/keys \
+        -d '{"quota": 1000, "expires_in": 86400}'
+   ```
 
-**最后更新**: 2026-02-11  
-**版本**: 1.0.0  
-**维护者**: 中华AI共和国运维团队
+### 问题4: SQLite 数据库权限问题
+**症状**: 数据库写入失败，日志显示 "permission denied"
+
+**解决方案**:
+1. 检查文件权限:
+   ```bash
+   ls -la /opt/roc/quota-proxy/data/
+   sudo chown -R 1000:1000 /opt/roc/quota-proxy/data/
+   ```
+
+2. 检查挂载权限:
+   ```bash
+   # 检查 docker-compose.yml 中的 volumes 配置
+   cat docker-compose.yml | grep -A2 -B2 "volumes"
+   ```
+
+### 问题5: 试用密钥验证失败
+**症状**: 使用 TRIAL_KEY 访问 API 返回 403
+
+**解决方案**:
+1. 检查密钥状态:
+   ```bash
+   # 使用管理员权限查询密钥状态
+   curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+        http://127.0.0.1:8787/admin/keys
+   ```
+
+2. 检查密钥是否过期:
+   ```bash
+   # 检查密钥的 expires_at 字段
+   curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+        http://127.0.0.1:8787/admin/keys | jq .
+   ```
+
+3. 生成新的试用密钥:
+   ```bash
+   curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -X POST http://127.0.0.1:8787/admin/keys \
+        -d '{"quota": 1000, "expires_in": 86400}'
+   ```
+
+## 调试模式
+
+### 启用详细日志
+```bash
+# 修改 .env 文件
+echo "LOG_LEVEL=debug" >> .env
+
+# 重启服务
+docker compose down
+docker compose up -d
+
+# 查看详细日志
+docker compose logs quota-proxy --tail=100 -f
+```
+
+### 手动测试端点
+```bash
+# 测试健康端点
+curl -v http://127.0.0.1:8787/healthz
+
+# 测试配额检查（需要有效的 TRIAL_KEY）
+curl -v -H "Authorization: Bearer $TRIAL_KEY" \
+     http://127.0.0.1:8787/v1/quota/check
+
+# 测试管理员端点（需要 ADMIN_TOKEN）
+curl -v -H "Authorization: Bearer $ADMIN_TOKEN" \
+     http://127.0.0.1:8787/admin/usage
+```
+
+## 性能问题
+
+### 高延迟响应
+**解决方案**:
+1. 检查数据库性能:
+   ```bash
+   # 检查数据库大小
+   du -sh /opt/roc/quota-proxy/data/quota.db
+   
+   # 优化数据库
+   sqlite3 /opt/roc/quota-proxy/data/quota.db "VACUUM;"
+   ```
+
+2. 检查系统资源:
+   ```bash
+   # 查看容器资源使用
+   docker stats quota-proxy
+   
+   # 查看系统负载
+   top -b -n 1 | head -20
+   ```
+
+### 内存使用过高
+**解决方案**:
+1. 调整 Docker 资源限制:
+   ```yaml
+   # 在 docker-compose.yml 中添加
+   services:
+     quota-proxy:
+       deploy:
+         resources:
+           limits:
+             memory: 512M
+   ```
+
+2. 重启容器释放内存:
+   ```bash
+   docker compose restart quota-proxy
+   ```
+
+## 紧急恢复
+
+### 数据库损坏恢复
+```bash
+# 1. 停止服务
+docker compose down
+
+# 2. 备份当前数据库
+cp /opt/roc/quota-proxy/data/quota.db /opt/roc/quota-proxy/data/quota.db.backup.$(date +%Y%m%d_%H%M%S)
+
+# 3. 尝试修复
+sqlite3 /opt/roc/quota-proxy/data/quota.db ".dump" > /tmp/quota_dump.sql
+sqlite3 /opt/roc/quota-proxy/data/quota.new.db < /tmp/quota_dump.sql
+mv /opt/roc/quota-proxy/data/quota.new.db /opt/roc/quota-proxy/data/quota.db
+
+# 4. 重新启动
+docker compose up -d
+```
+
+### 重置管理员令牌
+```bash
+# 生成新的管理员令牌
+NEW_TOKEN=$(openssl rand -hex 32)
+echo "ADMIN_TOKEN=$NEW_TOKEN" > .env
+
+# 重启服务
+docker compose down
+docker compose up -d
+```
+
+## 联系支持
+
+如果以上解决方案无法解决问题，请提供以下信息:
+
+1. Docker Compose 日志: `docker compose logs quota-proxy`
+2. 环境配置: `cat .env` (隐藏敏感信息)
+3. 系统信息: `uname -a` 和 `docker version`
+4. 错误复现步骤
+
+提交问题到: https://github.com/1037104428/roc-ai-republic/issues

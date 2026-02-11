@@ -106,9 +106,10 @@
 - [VALIDATION-DECISION-TREE.md](./VALIDATION-DECISION-TREE.md) - 验证脚本选择决策树
 - [VALIDATION-EXAMPLES.md](./VALIDATION-EXAMPLES.md) - 验证脚本使用示例
 - [ENHANCED-VALIDATION-DOCS-CHECK.md](./ENHANCED-VALIDATION-DOCS-CHECK.md) - 增强版验证文档完整性检查指南
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - 故障排除指南
 
 ---
 
 **最后更新**: 2026-02-11  
 **维护者**: 中华AI共和国项目组  
-**版本**: 1.0.2
+**版本**: 1.0.3

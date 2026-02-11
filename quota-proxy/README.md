@@ -798,6 +798,18 @@ chmod +x verify-validation-docs.sh
 ./verify-admin-api.sh --admin-token YOUR_ADMIN_TOKEN
 ```
 
+## 故障排除
+
+遇到问题时，请参考详细的故障排除指南：[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
+该指南包含：
+- **快速诊断流程**：服务状态、数据库连接、网络端口检查
+- **常见问题解决方案**：Docker启动失败、健康检查失败、管理员API授权问题等
+- **调试模式**：启用详细日志和手动测试端点
+- **性能问题**：高延迟响应、内存使用过高的解决方案
+- **紧急恢复**：数据库损坏恢复、重置管理员令牌
+- **联系支持**：问题报告模板和诊断信息收集
+
 ### 快速开始指南
 
 详细的快速开始指南请参考：[QUICK-START.md](./QUICK-START.md) - 5分钟内上手指南
