@@ -1,307 +1,407 @@
-# install-cn.sh 快速验证命令集
+# OpenClaw CN 安装脚本快速验证命令
 
-## 概述
+本文档提供 OpenClaw CN 安装脚本 (`install-cn.sh`) 的快速验证命令和故障排除指南。
 
-本文档提供 `install-cn.sh` 安装脚本的快速验证命令集合，帮助用户在不同场景下快速验证安装是否成功、功能是否正常。
+## 快速验证命令
 
-## 基础验证命令
+### 1. 基础安装验证
 
-### 1. 脚本语法检查
 ```bash
-# 检查脚本语法
-bash -n scripts/install-cn.sh
-
-# 检查脚本中的潜在问题
-shellcheck scripts/install-cn.sh
-```
-
-### 2. 干运行模式验证
-```bash
-# 基本干运行
-bash scripts/install-cn.sh --dry-run
-
-# 详细输出干运行
-bash scripts/install-cn.sh --dry-run --verbose
-
-# CI模式干运行
-CI_MODE=1 bash scripts/install-cn.sh --dry-run --ci-mode
-```
-
-### 3. 帮助信息验证
-```bash
-# 检查帮助信息完整性
-bash scripts/install-cn.sh --help | grep -q "Usage:" && echo "帮助信息完整"
-
-# 检查版本信息
-bash scripts/install-cn.sh --version
-```
-
-## 安装后验证命令
-
-### 1. 基本功能验证
-```bash
-# 验证OpenClaw是否安装成功
+# 验证 openclaw 命令是否可用
 openclaw --version
 
-# 验证Gateway是否运行
+# 验证帮助命令
+openclaw --help
+
+# 验证状态命令
+openclaw status
+```
+
+### 2. Gateway 服务验证
+
+```bash
+# 检查 gateway 状态
 openclaw gateway status
 
-# 验证配置文件存在
-ls -la ~/.openclaw/config.yaml
+# 启动 gateway 服务
+openclaw gateway start
+
+# 停止 gateway 服务
+openclaw gateway stop
+
+# 重启 gateway 服务
+openclaw gateway restart
 ```
 
-### 2. 网络连接验证
+### 3. 工作空间验证
+
 ```bash
-# 验证国内镜像源可达性
-curl -fsS https://registry.npmmirror.com/openclaw
+# 检查工作空间目录
+ls -la ~/.openclaw/workspace/
 
-# 验证备用源可达性
-curl -fsS https://registry.npmjs.org/openclaw
-
-# 验证脚本更新源
-curl -fsS https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh | head -5
+# 检查重要配置文件
+cat ~/.openclaw/workspace/AGENTS.md
+cat ~/.openclaw/workspace/SOUL.md
+cat ~/.openclaw/workspace/USER.md
 ```
 
-### 3. 安装完整性验证
+### 4. 技能和功能验证
+
 ```bash
-# 检查安装目录
-ls -la $(which openclaw)
+# 查看已安装的技能
+ls -la ~/.nvm/versions/node/$(node --version | sed 's/v//')/lib/node_modules/openclaw/skills/
 
-# 检查npm包信息
-npm list -g openclaw
+# 查看会话列表
+openclaw sessions list --limit 5
 
-# 检查依赖完整性
-npm list -g --depth=0
+# 查看可用工具
+openclaw tools list
 ```
 
-## 场景化验证命令
+## 安装脚本使用示例
 
-### 场景1：新服务器首次安装验证
+### 基本安装
+
 ```bash
-# 完整安装流程验证
-export OPENCLAW_VERSION=latest
-export NPM_REGISTRY=https://registry.npmmirror.com
-export SKIP_INTERACTIVE=1
-export INSTALL_LOG=/tmp/openclaw-install.log
+# 使用默认设置安装最新版
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
 
-# 执行安装
-bash scripts/install-cn.sh
+# 安装特定版本
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12
 
-# 验证安装结果
-if openclaw --version > /dev/null 2>&1; then
-    echo "✅ OpenClaw安装成功"
-    openclaw gateway status
-else
-    echo "❌ OpenClaw安装失败"
-    tail -20 /tmp/openclaw-install.log
-fi
+# 安装并自动验证
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --verify
 ```
 
-### 场景2：CI/CD流水线验证
+### 高级安装选项
+
 ```bash
-# CI环境验证脚本
-#!/bin/bash
-set -e
+# 使用自定义 npm registry
+NPM_REGISTRY=https://registry.npmmirror.com bash install-cn.sh
 
-echo "开始OpenClaw安装验证..."
+# CI/CD 环境安装
+CI_MODE=1 SKIP_INTERACTIVE=1 OPENCLAW_VERSION=latest bash install-cn.sh --verify
 
-# 1. 干运行检查
-echo "执行干运行检查..."
-bash scripts/install-cn.sh --dry-run --ci-mode
+# 干运行模式（只显示步骤，不实际执行）
+bash install-cn.sh --dry-run
 
-# 2. 实际安装
-echo "执行实际安装..."
-export CI_MODE=1
-export OPENCLAW_VERSION=latest
-export NPM_REGISTRY=https://registry.npmmirror.com
-export SKIP_INTERACTIVE=1
-bash scripts/install-cn.sh
-
-# 3. 功能验证
-echo "验证安装结果..."
-openclaw --version
-openclaw gateway status
-
-# 4. 健康检查
-echo "执行健康检查..."
-openclaw gateway health-check || true
-
-echo "✅ CI/CD验证完成"
+# 检查脚本更新
+bash install-cn.sh --check-update
 ```
 
-### 场景3：批量部署验证
+## 故障排除
+
+### 常见问题
+
+#### 1. "npm 未安装" 错误
+
 ```bash
-# 批量部署验证脚本
-#!/bin/bash
+# 安装 Node.js 和 npm
+# Ubuntu/Debian
+sudo apt update
+sudo apt install nodejs npm
 
-SERVERS=("server1" "server2" "server3")
-INSTALL_LOG_DIR="/tmp/openclaw-install-logs"
+# macOS
+brew install node
 
-mkdir -p "$INSTALL_LOG_DIR"
-
-for server in "${SERVERS[@]}"; do
-    echo "在 $server 上验证OpenClaw安装..."
-    
-    # 远程执行安装验证
-    ssh "$server" "bash -s" << 'EOF'
-        if command -v openclaw > /dev/null 2>&1; then
-            echo "OpenClaw已安装: $(openclaw --version)"
-            if systemctl is-active --quiet openclaw-gateway 2>/dev/null || pgrep -f "openclaw gateway" > /dev/null; then
-                echo "Gateway服务运行正常"
-            else
-                echo "Gateway服务未运行"
-            fi
-        else
-            echo "OpenClaw未安装"
-        fi
-EOF
-    
-    echo "---"
-done
-```
-
-### 场景4：故障排查验证
-```bash
-# 故障排查命令集
-#!/bin/bash
-
-echo "=== OpenClaw故障排查 ==="
-
-# 1. 检查系统环境
-echo "1. 系统环境检查:"
+# 验证安装
 node --version
 npm --version
-which node
-which npm
-
-# 2. 检查OpenClaw安装
-echo "2. OpenClaw安装检查:"
-command -v openclaw && openclaw --version || echo "openclaw命令未找到"
-npm list -g openclaw 2>/dev/null || echo "OpenClaw未通过npm安装"
-
-# 3. 检查服务状态
-echo "3. 服务状态检查:"
-pgrep -f "openclaw gateway" && echo "Gateway进程运行中" || echo "Gateway进程未运行"
-ps aux | grep -i openclaw | grep -v grep
-
-# 4. 检查网络连接
-echo "4. 网络连接检查:"
-curl -fsS https://registry.npmmirror.com/openclaw > /dev/null && echo "国内镜像源可达" || echo "国内镜像源不可达"
-curl -fsS https://registry.npmjs.org/openclaw > /dev/null && echo "npmjs源可达" || echo "npmjs源不可达"
-
-# 5. 检查配置文件
-echo "5. 配置文件检查:"
-ls -la ~/.openclaw/ 2>/dev/null || echo "~/.openclaw目录不存在"
-[ -f ~/.openclaw/config.yaml ] && echo "配置文件存在" || echo "配置文件不存在"
-
-echo "=== 故障排查完成 ==="
 ```
 
-## 自动化验证脚本
+#### 2. "curl 未安装" 错误
 
-### 1. 一键验证脚本
 ```bash
-#!/bin/bash
-# quick-verify-install.sh
+# 安装 curl
+# Ubuntu/Debian
+sudo apt install curl
 
-set -e
+# macOS
+brew install curl
 
-echo "开始OpenClaw安装快速验证..."
+# 验证安装
+curl --version
+```
 
-# 检查脚本自身
-echo "1. 检查安装脚本..."
-bash -n scripts/install-cn.sh && echo "✅ 脚本语法正确" || echo "❌ 脚本语法错误"
+#### 3. OpenClaw 命令找不到
 
-# 干运行测试
-echo "2. 执行干运行测试..."
-bash scripts/install-cn.sh --dry-run --quiet > /dev/null 2>&1 && echo "✅ 干运行测试通过" || echo "❌ 干运行测试失败"
+```bash
+# 检查 npm 全局安装路径
+npm config get prefix
 
-# 检查现有安装
-echo "3. 检查现有安装..."
+# 添加 npm 全局路径到 PATH
+export PATH="$PATH:$(npm config get prefix)/bin"
+
+# 重新安装 OpenClaw
+npm uninstall -g openclaw
+npm install -g openclaw
+```
+
+#### 4. Gateway 启动失败
+
+```bash
+# 查看 gateway 日志
+tail -f ~/.openclaw/logs/gateway.log
+
+# 检查端口占用
+netstat -tlnp | grep :3000
+
+# 清理并重新启动
+openclaw gateway stop
+rm -rf ~/.openclaw/workspace/.gateway
+openclaw gateway start
+```
+
+### 网络问题
+
+#### 1. npm registry 连接失败
+
+```bash
+# 测试 registry 连接
+curl -I https://registry.npmmirror.com
+curl -I https://registry.npmjs.org
+
+# 临时使用特定 registry
+NPM_REGISTRY=https://registry.npmmirror.com bash install-cn.sh
+
+# 配置 npm 使用镜像源
+npm config set registry https://registry.npmmirror.com
+```
+
+#### 2. 脚本下载失败
+
+```bash
+# 使用备用下载方式
+wget https://clawdrepublic.cn/install-cn.sh -O install-cn.sh
+bash install-cn.sh
+
+# 从 GitHub 直接下载
+curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh | bash
+```
+
+## 验证脚本
+
+### 完整验证脚本
+
+创建一个验证脚本 `verify-openclaw-install.sh`：
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== OpenClaw 安装验证脚本 ==="
+echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo ""
+
+# 1. 检查命令
+echo "1. 检查 openclaw 命令..."
 if command -v openclaw > /dev/null 2>&1; then
-    echo "✅ OpenClaw已安装: $(openclaw --version)"
-    
-    # 检查Gateway
-    if openclaw gateway status > /dev/null 2>&1; then
-        echo "✅ Gateway服务正常"
-    else
-        echo "⚠️ Gateway服务异常"
-    fi
+    echo "   ✅ openclaw 命令可用"
+    openclaw --version
 else
-    echo "ℹ️ OpenClaw未安装"
-fi
-
-echo "验证完成!"
-```
-
-### 2. CI集成验证脚本
-```bash
-#!/bin/bash
-# ci-verify-install.sh
-
-set -e
-
-LOG_FILE="/tmp/openclaw-ci-verify-$(date +%Y%m%d_%H%M%S).log"
-
-echo "CI验证开始..." | tee -a "$LOG_FILE"
-
-# 环境变量检查
-echo "检查环境变量..." | tee -a "$LOG_FILE"
-[ -n "$CI_MODE" ] && echo "CI_MODE: $CI_MODE" || echo "CI_MODE未设置"
-[ -n "$OPENCLAW_VERSION" ] && echo "OPENCLAW_VERSION: $OPENCLAW_VERSION" || echo "使用默认版本"
-
-# 执行安装
-echo "执行安装..." | tee -a "$LOG_FILE"
-bash scripts/install-cn.sh --ci-mode --install-log="$LOG_FILE.install"
-
-# 验证结果
-echo "验证安装结果..." | tee -a "$LOG_FILE"
-if openclaw --version > /dev/null 2>&1; then
-    VERSION=$(openclaw --version)
-    echo "✅ 安装成功: $VERSION" | tee -a "$LOG_FILE"
-    exit 0
-else
-    echo "❌ 安装失败" | tee -a "$LOG_FILE"
-    tail -20 "$LOG_FILE.install" | tee -a "$LOG_FILE"
+    echo "   ❌ openclaw 命令未找到"
     exit 1
 fi
+
+echo ""
+
+# 2. 检查 gateway
+echo "2. 检查 OpenClaw Gateway..."
+if openclaw gateway status > /dev/null 2>&1; then
+    echo "   ✅ Gateway 正在运行"
+else
+    echo "   ℹ️ Gateway 未运行"
+    echo "   运行: openclaw gateway start"
+fi
+
+echo ""
+
+# 3. 检查工作空间
+echo "3. 检查工作空间..."
+workspace_dir="$HOME/.openclaw/workspace"
+if [[ -d "$workspace_dir" ]]; then
+    echo "   ✅ 工作空间目录存在: $workspace_dir"
+    echo "   文件数量: $(find "$workspace_dir" -type f | wc -l)"
+else
+    echo "   ℹ️ 工作空间目录不存在 (首次安装正常)"
+fi
+
+echo ""
+
+# 4. 检查技能
+echo "4. 检查已安装技能..."
+node_version=$(node --version 2>/dev/null | sed 's/v//' || echo "")
+if [[ -n "$node_version" ]]; then
+    skills_dir="$HOME/.nvm/versions/node/$node_version/lib/node_modules/openclaw/skills"
+    if [[ -d "$skills_dir" ]]; then
+        skill_count=$(find "$skills_dir" -maxdepth 1 -type d 2>/dev/null | wc -l)
+        echo "   ✅ 找到 $((skill_count - 1)) 个技能"
+    else
+        echo "   ℹ️ 技能目录不存在"
+    fi
+else
+    echo "   ℹ️ 无法获取 Node.js 版本"
+fi
+
+echo ""
+
+# 5. 快速功能测试
+echo "5. 快速功能测试..."
+echo "   测试状态命令..."
+if openclaw status > /dev/null 2>&1; then
+    echo "   ✅ 状态命令可用"
+else
+    echo "   ℹ️ 状态命令失败 (可能需要启动 gateway)"
+fi
+
+echo "   测试会话列表..."
+if openclaw sessions list --limit 1 > /dev/null 2>&1; then
+    echo "   ✅ 会话列表可用"
+else
+    echo "   ℹ️ 会话列表不可用"
+fi
+
+echo ""
+echo "=== 验证完成 ==="
+echo "结束时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo ""
+echo "建议下一步:"
+echo "1. 启动 gateway: openclaw gateway start"
+echo "2. 查看状态: openclaw status"
+echo "3. 配置代理: 编辑 ~/.openclaw/workspace/SOUL.md"
+echo "4. 安装技能: openclaw skill install <技能名称>"
+echo "5. 加入社区: https://discord.com/invite/clawd"
 ```
 
-## 验证结果解读
+### 使用验证脚本
 
-### 成功标志
-1. `openclaw --version` 返回版本号
-2. `openclaw gateway status` 显示服务状态
-3. 安装日志无ERROR级别错误
-4. 网络测试全部通过
+```bash
+# 下载验证脚本
+curl -fsSL https://clawdrepublic.cn/verify-openclaw-install.sh -o verify-openclaw-install.sh
+chmod +x verify-openclaw-install.sh
 
-### 常见问题及解决方案
+# 运行验证
+./verify-openclaw-install.sh
 
-| 问题 | 可能原因 | 解决方案 |
-|------|----------|----------|
-| 脚本语法错误 | Bash版本不兼容 | 使用 `bash -n` 检查，确保使用Bash 4.0+ |
-| 网络连接失败 | 防火墙/代理限制 | 检查网络设置，使用 `--network-test` 诊断 |
-| 安装权限不足 | 非root用户安装全局包 | 使用 `sudo` 或配置npm全局安装目录权限 |
-| 版本冲突 | 已安装旧版本 | 先卸载旧版本：`npm uninstall -g openclaw` |
-| 依赖缺失 | 系统缺少必要依赖 | 安装Node.js 16+和npm 8+ |
+# 或直接运行
+curl -fsSL https://clawdrepublic.cn/verify-openclaw-install.sh | bash
+```
 
-## 最佳实践
+## 性能优化
 
-1. **安装前验证**：始终先执行 `--dry-run` 检查
-2. **记录日志**：使用 `--install-log` 参数保存安装日志
-3. **版本固定**：生产环境指定具体版本：`OPENCLAW_VERSION=0.3.12`
-4. **网络备用**：配置多个镜像源，确保安装可靠性
-5. **定期验证**：建立定期验证机制，确保服务持续可用
+### 1. 加速 npm 安装
 
-## 相关文档
+```bash
+# 配置 npm 使用并行安装
+npm config set maxsockets 5
 
-- [install-cn.sh 脚本](../scripts/install-cn.sh) - 主安装脚本
-- [install-cn-strategy.md](install-cn-strategy.md) - 安装策略文档
-- [install-cn-comprehensive-guide.md](install-cn-comprehensive-guide.md) - 完整安装指南
-- [VERIFY_INSTALL_COMPATIBILITY.md](VERIFY_INSTALL_COMPATIBILITY.md) - 兼容性验证指南
+# 禁用 npm 进度条（CI 环境）
+npm config set progress false
+
+# 使用淘宝镜像加速
+npm config set registry https://registry.npmmirror.com
+npm config set disturl https://npmmirror.com/dist
+npm config set electron_mirror https://npmmirror.com/mirrors/electron/
+npm config set puppeteer_download_host https://npmmirror.com/mirrors
+npm config set chromedriver_cdnurl https://npmmirror.com/mirrors/chromedriver
+npm config set operadriver_cdnurl https://npmmirror.com/mirrors/operadriver
+npm config set phantomjs_cdnurl https://npmmirror.com/mirrors/phantomjs
+npm config set sass_binary_site https://npmmirror.com/mirrors/node-sass
+npm config set node_sass_mirror https://npmmirror.com/mirrors/node-sass
+```
+
+### 2. 优化 OpenClaw 启动
+
+```bash
+# 配置环境变量
+export OPENCLAW_LOG_LEVEL=info
+export OPENCLAW_CACHE_DIR="$HOME/.cache/openclaw"
+export OPENCLAW_MAX_WORKERS=4
+
+# 创建缓存目录
+mkdir -p "$HOME/.cache/openclaw"
+```
+
+## 监控和维护
+
+### 1. 监控脚本
+
+创建监控脚本 `monitor-openclaw.sh`：
+
+```bash
+#!/usr/bin/env bash
+
+echo "=== OpenClaw 系统监控 ==="
+echo "时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo ""
+
+# 检查进程
+echo "进程状态:"
+ps aux | grep -E "(openclaw|gateway)" | grep -v grep
+
+echo ""
+
+# 检查端口
+echo "端口监听:"
+netstat -tlnp | grep -E "(:3000|:8080)" || echo "无相关端口监听"
+
+echo ""
+
+# 检查日志
+echo "日志文件:"
+ls -la ~/.openclaw/logs/ 2>/dev/null || echo "日志目录不存在"
+
+echo ""
+
+# 检查磁盘使用
+echo "磁盘使用:"
+du -sh ~/.openclaw/ 2>/dev/null || echo "OpenClaw 目录不存在"
+
+echo ""
+echo "监控完成"
+```
+
+### 2. 定期维护
+
+```bash
+# 清理旧日志（保留最近7天）
+find ~/.openclaw/logs -name "*.log" -mtime +7 -delete
+
+# 清理缓存
+rm -rf ~/.cache/openclaw/*
+
+# 更新 OpenClaw
+npm update -g openclaw
+
+# 更新技能
+openclaw skill update --all
+```
+
+## 支持资源
+
+- **官方文档**: https://docs.openclaw.ai
+- **GitHub 仓库**: https://github.com/openclaw/openclaw
+- **社区 Discord**: https://discord.com/invite/clawd
+- **问题反馈**: https://github.com/openclaw/openclaw/issues
+- **CN 镜像站**: https://clawdrepublic.cn
+- **CN 文档镜像**: https://docs.clawdrepublic.cn
+
+## 更新日志
+
+### 脚本版本: 2026.02.11.1839
+- 添加智能 registry 选择算法
+- 增强自检功能
+- 添加 CI/CD 支持
+- 优化错误处理和回退策略
+- 添加详细验证命令文档
+
+### 后续计划
+- 添加自动故障转移
+- 支持更多包管理器 (yarn, pnpm)
+- 添加系统健康检查
+- 支持离线安装模式
+- 添加性能基准测试
 
 ---
 
-**最后更新**: 2026-02-11  
-**版本**: 1.0  
-**维护者**: 阿爪
+**注意**: 本文档会随着 OpenClaw CN 安装脚本的更新而更新。最新版本请参考 [GitHub 仓库](https://github.com/1037104428/roc-ai-republic/blob/main/docs/install-cn-quick-verification-commands.md)。
