@@ -224,6 +224,29 @@
   - `VALIDATION-TOOLS-INDEX.md` (已集成)
   - `verify-validation-docs-enhanced.sh` (已集成检查)
 
+#### TICKET-P3-003: SQLite数据库完整性验证工具
+- **状态**: 已完成 (2026-02-12)
+- **描述**: 创建SQLite数据库完整性验证脚本，完善数据库维护工具链
+- **功能要求**:
+  1. 创建 verify-sqlite-integrity.sh 脚本
+  2. 支持多个数据库文件批量验证
+  3. 验证数据库文件完整性、一致性和基本功能
+  4. 提供彩色输出和修复建议
+- **验证标准**:
+  - 脚本语法正确，无错误
+  - 支持多个数据库文件验证
+  - 提供详细的验证报告和修复建议
+  - 集成到验证工具索引中
+- **实现详情**:
+  - 已创建 `verify-sqlite-integrity.sh` - SQLite数据库完整性验证脚本
+  - 支持验证多个数据库文件：quota-proxy.db, data/quota-proxy.db, quota.db
+  - 验证内容：文件存在性、权限、SQLite文件头、数据库完整性、表结构、示例数据查询
+  - 提供彩色输出、验证结果汇总和修复建议
+  - 已集成到验证工具索引中
+- **相关文件**: 
+  - `verify-sqlite-integrity.sh`
+  - `VALIDATION-TOOLS-INDEX.md` (已集成)
+
 ## 任务状态跟踪
 
 | 任务ID | 优先级 | 状态 | 创建时间 | 预计完成 | 实际完成 |
