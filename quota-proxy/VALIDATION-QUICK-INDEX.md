@@ -97,9 +97,10 @@
 - [DATABASE-INIT-GUIDE.md](./DATABASE-INIT-GUIDE.md) - 数据库初始化指南
 - [DEPLOYMENT-GUIDE-SQLITE-PERSISTENCE.md](./DEPLOYMENT-GUIDE-SQLITE-PERSISTENCE.md) - 部署指南
 - [VALIDATION-TOOLS-INDEX.md](./VALIDATION-TOOLS-INDEX.md) - 验证工具详细索引
+- [VALIDATION-DECISION-TREE.md](./VALIDATION-DECISION-TREE.md) - 验证脚本选择决策树
 
 ---
 
 **最后更新**: 2026-02-11  
 **维护者**: 中华AI共和国项目组  
-**版本**: 1.0.0
+**版本**: 1.0.1
