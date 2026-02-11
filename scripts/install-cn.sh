@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.1751"
+SCRIPT_VERSION="2026.02.11.1839"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Version compatibility checking
@@ -261,36 +261,146 @@ install_with_fallback() {
 self_check_openclaw() {
   color_log "INFO" "执行OpenClaw自检..."
   
-  # Check if openclaw command exists
+  local check_passed=0
+  local check_total=0
+  
+  # Check 1: openclaw command exists
+  check_total=$((check_total + 1))
   if ! command -v openclaw > /dev/null 2>&1; then
-    color_log "ERROR" "openclaw命令未找到，安装可能失败"
+    color_log "ERROR" "❌ openclaw命令未找到，安装可能失败"
     return 1
+  else
+    color_log "SUCCESS" "✅ openclaw命令可用"
+    check_passed=$((check_passed + 1))
   fi
   
-  # Get version
+  # Check 2: Get version
+  check_total=$((check_total + 1))
   local version_output
   if version_output=$(openclaw --version 2>&1); then
-    color_log "SUCCESS" "OpenClaw版本: $version_output"
+    color_log "SUCCESS" "✅ OpenClaw版本: $version_output"
+    check_passed=$((check_passed + 1))
     
     # Check if version matches expected
     if [[ -n "${OPENCLAW_VERSION:-}" ]] && [[ "$OPENCLAW_VERSION" != "latest" ]]; then
       if [[ "$version_output" == *"$OPENCLAW_VERSION"* ]]; then
-        color_log "SUCCESS" "版本验证通过: 期望 $OPENCLAW_VERSION，实际 $version_output"
+        color_log "SUCCESS" "✅ 版本验证通过: 期望 $OPENCLAW_VERSION，实际 $version_output"
       else
-        color_log "WARNING" "版本不匹配: 期望 $OPENCLAW_VERSION，实际 $version_output"
+        color_log "WARNING" "⚠️ 版本不匹配: 期望 $OPENCLAW_VERSION，实际 $version_output"
       fi
     fi
-    
-    # Test basic functionality
-    if openclaw status > /dev/null 2>&1; then
-      color_log "SUCCESS" "OpenClaw基本功能测试通过"
-      return 0
+  else
+    color_log "ERROR" "❌ 无法获取OpenClaw版本: $version_output"
+    return 1
+  fi
+  
+  # Check 3: Test help command
+  check_total=$((check_total + 1))
+  if openclaw --help > /dev/null 2>&1; then
+    color_log "SUCCESS" "✅ 帮助命令可用"
+    check_passed=$((check_passed + 1))
+  else
+    color_log "WARNING" "⚠️ 帮助命令失败"
+  fi
+  
+  # Check 4: Test status command
+  check_total=$((check_total + 1))
+  if openclaw status > /dev/null 2>&1; then
+    color_log "SUCCESS" "✅ 状态命令可用"
+    check_passed=$((check_passed + 1))
+  else
+    color_log "WARNING" "⚠️ 状态命令失败 (可能需要启动gateway)"
+  fi
+  
+  # Check 5: Check workspace directory
+  check_total=$((check_total + 1))
+  local workspace_dir="$HOME/.openclaw/workspace"
+  if [[ -d "$workspace_dir" ]]; then
+    color_log "SUCCESS" "✅ 工作空间目录存在: $workspace_dir"
+    check_passed=$((check_passed + 1))
+  else
+    color_log "INFO" "ℹ️ 工作空间目录不存在，将在首次运行时创建"
+  fi
+  
+  # Check 6: Check gateway status
+  check_total=$((check_total + 1))
+  if openclaw gateway status > /dev/null 2>&1; then
+    color_log "SUCCESS" "✅ OpenClaw gateway正在运行"
+    check_passed=$((check_passed + 1))
+  else
+    color_log "INFO" "ℹ️ OpenClaw gateway未运行，可使用 'openclaw gateway start' 启动"
+  fi
+  
+  # Check 7: Check for skills directory
+  check_total=$((check_total + 1))
+  local node_version
+  node_version=$(node --version 2>/dev/null | sed 's/v//')
+  if [[ -n "$node_version" ]]; then
+    local skills_dir="$HOME/.nvm/versions/node/$node_version/lib/node_modules/openclaw/skills"
+    if [[ -d "$skills_dir" ]]; then
+      local skill_count=$(find "$skills_dir" -maxdepth 1 -type d 2>/dev/null | wc -l)
+      color_log "SUCCESS" "✅ 找到 $((skill_count - 1)) 个已安装技能"
+      check_passed=$((check_passed + 1))
     else
-      color_log "WARNING" "OpenClaw状态检查失败，但命令可用"
-      return 0
+      color_log "INFO" "ℹ️ 技能目录不存在，可使用 'openclaw skill install' 安装技能"
     fi
   else
-    color_log "ERROR" "无法获取OpenClaw版本: $version_output"
+    color_log "WARNING" "⚠️ 无法获取Node.js版本"
+  fi
+  
+  # Check 8: Test basic agent functionality
+  check_total=$((check_total + 1))
+  if openclaw sessions list --limit 1 > /dev/null 2>&1; then
+    color_log "SUCCESS" "✅ 会话列表功能可用"
+    check_passed=$((check_passed + 1))
+  else
+    color_log "INFO" "ℹ️ 会话列表功能不可用 (可能需要gateway运行)"
+  fi
+  
+  # Summary
+  color_log "INFO" "自检完成: $check_passed/$check_total 项通过"
+  
+  if [[ $check_passed -ge 3 ]]; then
+    color_log "SUCCESS" "✅ OpenClaw安装验证通过"
+    
+    # Generate installation summary
+    local summary_file="/tmp/openclaw-install-summary-$(date +%s).txt"
+    cat > "$summary_file" << EOF
+OpenClaw 安装验证报告
+=====================
+验证时间: $(date '+%Y-%m-%d %H:%M:%S %Z')
+脚本版本: $SCRIPT_VERSION
+OpenClaw版本: $version_output
+验证结果: $check_passed/$check_total 项通过
+
+系统信息:
+- 操作系统: $(uname -s) $(uname -r)
+- 架构: $(uname -m)
+- Node版本: $(node --version 2>/dev/null || echo "未找到")
+- NPM版本: $(npm --version 2>/dev/null || echo "未找到")
+- 安装路径: $(which openclaw)
+- 工作空间: $workspace_dir
+
+下一步操作:
+1. 启动gateway: openclaw gateway start
+2. 查看状态: openclaw status
+3. 配置代理: 编辑 ~/.openclaw/workspace/SOUL.md
+4. 安装技能: openclaw skill install <技能名称>
+5. 加入社区: https://discord.com/invite/clawd
+
+故障排除:
+- 查看日志: tail -f ~/.openclaw/logs/gateway.log
+- 重新安装: npm uninstall -g openclaw && npm install -g openclaw
+- 获取支持: https://github.com/openclaw/openclaw/issues
+EOF
+    
+    color_log "INFO" "安装验证报告已保存到: $summary_file"
+    color_log "INFO" "查看报告: cat $summary_file"
+    
+    return 0
+  else
+    color_log "WARNING" "⚠️ OpenClaw安装验证部分通过 ($check_passed/$check_total)"
+    color_log "INFO" "建议检查安装日志并尝试重新安装"
     return 1
   fi
 }
