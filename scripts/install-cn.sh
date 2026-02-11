@@ -1220,12 +1220,12 @@ if [[ "${CI_MODE:-0}" == "1" ]] || [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS
   CI_MODE=1
   SKIP_INTERACTIVE="${SKIP_INTERACTIVE:-1}"
   VERIFY_LEVEL="${VERIFY_LEVEL:-minimal}"
-  echo "[cn-pack] 📦 检测到CI/CD环境，启用CI模式"
+  color_log "INFO" "📦 检测到CI/CD环境，启用CI模式"
 fi
 
 # 如果设置了SKIP_INTERACTIVE，禁用交互式提示
 if [[ "${SKIP_INTERACTIVE:-0}" == "1" ]]; then
-  echo "[cn-pack] ⏭️  跳过交互式提示（CI/CD模式）"
+  color_log "INFO" "⏭️  跳过交互式提示（CI/CD模式）"
   # 设置默认值以避免交互
   AUTO_FIX_PERMISSIONS="${AUTO_FIX_PERMISSIONS:-1}"
   AUTO_SELECT_REGISTRY="${AUTO_SELECT_REGISTRY:-1}"
@@ -1233,7 +1233,7 @@ fi
 
 # 安装日志文件设置
 if [[ -n "${INSTALL_LOG:-}" ]]; then
-  echo "[cn-pack] 📝 安装日志将保存到: ${INSTALL_LOG}"
+  color_log "INFO" "📝 安装日志将保存到: ${INSTALL_LOG}"
   exec > >(tee -a "${INSTALL_LOG}") 2>&1
 fi
 
