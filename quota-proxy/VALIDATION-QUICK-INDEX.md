@@ -26,7 +26,7 @@
 | `ADMIN-API-GUIDE.md` | Admin API 使用指南 | 详细的Admin API使用、部署和运维文档 |
 | `verify-admin-api.sh` | Admin API 验证脚本 | 验证Admin API所有端点的功能完整性 |
 | `quick-verify-admin-api.sh` | Admin API快速验证脚本 | 一键验证Admin API所有核心功能，包含自动服务器启动和完整测试流程 |
-| `test-admin-api-quick.js` | Admin API快速测试用例 | Node.js测试脚本，快速验证Admin API核心功能 |
+| `test-admin-api-quick.js` | Admin API快速测试用例 | Node.js测试脚本，快速验证Admin API核心功能，支持模块化导入和独立运行 |
 
 ### 3. 部署验证
 | 脚本 | 功能 | 使用场景 |
