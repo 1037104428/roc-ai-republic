@@ -52,7 +52,33 @@
 
 > 计数口径：每次请求进入 `/v1/chat/completions` 时会先 `incrUsage()`，所以**上游失败/超时也会计入当日次数**（更符合"试用配额=请求机会"）。
 
-## 快速验证（部署后）
+## 30秒快速测试（部署后立即验证）
+
+如果你已经部署了 quota-proxy 并设置了环境变量，可以用这个30秒快速测试验证基本功能：
+
+```bash
+# 1. 健康检查（5秒）
+curl -fsS http://127.0.0.1:8787/healthz && echo "✅ 服务运行正常"
+
+# 2. 状态检查（5秒）
+curl -fsS http://127.0.0.1:8787/status | jq -r '"✅ 运行模式: " + .mode' 2>/dev/null || \
+  curl -fsS http://127.0.0.1:8787/status | grep -o '"mode":"[^"]*"' | cut -d'"' -f4 | xargs echo "✅ 运行模式:"
+
+# 3. 快速聊天测试（20秒）- 需要有效的 TRIAL_KEY
+if [ -n "$CLAWD_TRIAL_KEY" ]; then
+  curl -fsS http://127.0.0.1:8787/v1/chat/completions \
+    -H "Authorization: Bearer $CLAWD_TRIAL_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"请回复ping确认连接正常。"}],"max_tokens":10}' \
+    && echo "✅ API连接正常"
+else
+  echo "⚠️  跳过API测试：未设置CLAWD_TRIAL_KEY环境变量"
+fi
+
+echo "✅ 30秒快速测试完成！"
+```
+
+## 详细验证（部署后）
 
 部署完成后，可以用以下命令验证服务是否正常：
 
