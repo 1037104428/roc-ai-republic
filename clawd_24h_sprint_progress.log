@@ -27,3 +27,6 @@ URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/fd15353
 URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/d913b72
 下一步：实际运行论坛部署测试，验证部署脚本可行性
 ⚠️ 发现：Docker不可用，论坛部署需要先安装Docker环境
+=== 2026-02-11 21:25:00 CST ===
+阻塞点：Docker环境未安装，论坛部署受阻；需要先安装Docker或寻找替代部署方案
+下一步：检查Docker安装状态，或编写无需Docker的论坛部署方案（如直接使用Node.js+SQLite）
