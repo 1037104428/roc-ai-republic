@@ -14,8 +14,52 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.04"
+SCRIPT_VERSION="2026.02.11.05"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
+
+# Color logging functions
+color_log() {
+  local level="$1"
+  local message="$2"
+  local color_code=""
+  local reset="\033[0m"
+  
+  case "$level" in
+    "INFO")
+      color_code="\033[0;34m"  # Blue
+      ;;
+    "SUCCESS")
+      color_code="\033[0;32m"  # Green
+      ;;
+    "WARNING")
+      color_code="\033[0;33m"  # Yellow
+      ;;
+    "ERROR")
+      color_code="\033[0;31m"  # Red
+      ;;
+    "DEBUG")
+      color_code="\033[0;36m"  # Cyan
+      ;;
+    "STEP")
+      color_code="\033[1;35m"  # Magenta (bold)
+      ;;
+    *)
+      color_code="\033[0;37m"  # White
+      ;;
+  esac
+  
+  # Check if we're in a terminal that supports colors
+  if [[ -t 1 ]] && [[ "$TERM" != "dumb" ]]; then
+    echo -e "${color_code}[cn-pack:${level}]${reset} ${message}"
+  else
+    echo "[cn-pack:${level}] ${message}"
+  fi
+}
+
+# Legacy logging function for backward compatibility
+legacy_log() {
+  echo "[cn-pack] $1"
+}
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
 NPM_REGISTRY_FALLBACK_DEFAULT="https://registry.npmjs.org"
@@ -23,25 +67,25 @@ OPENCLAW_VERSION_DEFAULT="latest"
 VERIFY_LEVEL_DEFAULT="auto"  # auto, basic, quick, full, none
 
 # Show script version
-echo "[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION"
-echo "[cn-pack] ========================================="
+color_log "STEP" "OpenClaw CN installer v$SCRIPT_VERSION"
+color_log "STEP" "========================================="
 
 # Function to check for script updates
 check_script_updates() {
   local check_mode="${1:-auto}"  # auto, force, skip
   
   if [[ "$check_mode" == "skip" ]]; then
-    echo "[cn-pack] Script update check skipped"
+    color_log "INFO" "Script update check skipped"
     return 0
   fi
   
   # Only check for updates if we have curl and it's not a forced check
   if [[ "$check_mode" == "auto" ]] && ! command -v curl &> /dev/null; then
-    echo "[cn-pack] curl not available, skipping update check"
+    color_log "WARNING" "curl not available, skipping update check"
     return 0
   fi
   
-  echo "[cn-pack] Checking for script updates..."
+  color_log "INFO" "Checking for script updates..."
   
   # Try to fetch latest version from GitHub
   local latest_version=""
@@ -64,10 +108,10 @@ check_script_updates() {
       echo "[cn-pack]    Run with --check-update to see details"
       update_available=true
     else
-      echo "[cn-pack] ✓ Script is up to date (v$SCRIPT_VERSION)"
+      color_log "SUCCESS" "Script is up to date (v$SCRIPT_VERSION)"
     fi
   else
-    echo "[cn-pack] ⚠️  Could not check for updates (network issue)"
+    color_log "WARNING" "Could not check for updates (network issue)"
   fi
   
   # Return update status
@@ -79,20 +123,20 @@ check_script_updates() {
 
 # Function to show update details
 show_update_details() {
-  echo "[cn-pack] ========================================="
-  echo "[cn-pack] Script Update Information"
-  echo "[cn-pack] ========================================="
-  echo "[cn-pack] Current version: v$SCRIPT_VERSION"
-  echo "[cn-pack] Update URL: $SCRIPT_UPDATE_URL"
-  echo "[cn-pack]"
-  echo "[cn-pack] To update:"
-  echo "[cn-pack]   1. Download latest: curl -fsSL $SCRIPT_UPDATE_URL -o install-cn.sh"
-  echo "[cn-pack]   2. Make executable: chmod +x install-cn.sh"
-  echo "[cn-pack]   3. Verify: ./install-cn.sh --version"
-  echo "[cn-pack]"
-  echo "[cn-pack] Or use one-liner:"
-  echo "[cn-pack]   curl -fsSL $SCRIPT_UPDATE_URL | bash"
-  echo "[cn-pack] ========================================="
+  color_log "STEP" "========================================="
+  color_log "STEP" "Script Update Information"
+  color_log "STEP" "========================================="
+  color_log "INFO" "Current version: v$SCRIPT_VERSION"
+  color_log "INFO" "Update URL: $SCRIPT_UPDATE_URL"
+  echo ""
+  color_log "INFO" "To update:"
+  color_log "INFO" "   1. Download latest: curl -fsSL $SCRIPT_UPDATE_URL -o install-cn.sh"
+  color_log "INFO" "   2. Make executable: chmod +x install-cn.sh"
+  color_log "INFO" "   3. Verify: ./install-cn.sh --version"
+  echo ""
+  color_log "INFO" "Or use one-liner:"
+  color_log "INFO" "   curl -fsSL $SCRIPT_UPDATE_URL | bash"
+  color_log "STEP" "========================================="
 }
 
 # Function to show changelog
@@ -565,7 +609,7 @@ step_by_step_install() {
     echo ""
   done
   
-  echo "[cn-pack] ✅ 分步安装模式配置完成"
+  color_log "SUCCESS" "分步安装模式配置完成"
   echo "[cn-pack] ℹ️  要实际执行安装，请移除 --step-by-step 或 --steps 参数"
 }
 
@@ -1243,18 +1287,18 @@ fi
 
 # Quick verification summary
 echo ""
-echo "[cn-pack] ========================================="
-echo "[cn-pack] 🚀 QUICK VERIFICATION COMMANDS:"
-echo "[cn-pack] ========================================="
-echo "[cn-pack] 1. Check version:    openclaw --version"
-echo "[cn-pack] 2. Check status:     openclaw status"
-echo "[cn-pack] 3. Start gateway:    openclaw gateway start"
-echo "[cn-pack] 4. Check gateway:    openclaw gateway status"
-echo "[cn-pack] 5. Test models:      openclaw models status"
-echo "[cn-pack] 6. Get help:         openclaw --help"
-echo "[cn-pack] ========================================="
-echo "[cn-pack] 💡 Tip: Run these commands to verify your installation!"
-echo "[cn-pack] ========================================="
+color_log "STEP" "========================================="
+color_log "STEP" "🚀 QUICK VERIFICATION COMMANDS:"
+color_log "STEP" "========================================="
+color_log "INFO" "1. Check version:    openclaw --version"
+color_log "INFO" "2. Check status:     openclaw status"
+color_log "INFO" "3. Start gateway:    openclaw gateway start"
+color_log "INFO" "4. Check gateway:    openclaw gateway status"
+color_log "INFO" "5. Test models:      openclaw models status"
+color_log "INFO" "6. Get help:         openclaw --help"
+color_log "STEP" "========================================="
+color_log "INFO" "💡 Tip: Run these commands to verify your installation!"
+color_log "STEP" "========================================="
 
 # 根据验证级别执行验证
 # Determine verification script path (for full verification level)
@@ -1268,20 +1312,20 @@ if [[ -z "$VERIFY_SCRIPT" ]]; then
   fi
 fi
   echo ""
-  echo "[cn-pack] ========================================="
-  echo "[cn-pack] 🔍 安装验证 (级别: $VERIFY_LEVEL)"
-  echo "[cn-pack] ========================================="
+  color_log "STEP" "========================================="
+  color_log "STEP" "🔍 安装验证 (级别: $VERIFY_LEVEL)"
+  color_log "STEP" "========================================="
   
   # 验证级别处理
   case "$VERIFY_LEVEL" in
     none)
-      echo "[cn-pack] ℹ️ 跳过验证 (级别: none)"
+      color_log "INFO" "跳过验证 (级别: none)"
       ;;
     
     basic)
-      echo "[cn-pack] 🚀 运行基本验证..."
-      echo "[cn-pack] ℹ️ 运行以下命令进行基本验证:"
-      echo "[cn-pack] ℹ️   openclaw --version"
+      color_log "INFO" "🚀 运行基本验证..."
+      color_log "INFO" "运行以下命令进行基本验证:"
+      color_log "INFO" "  openclaw --version"
       echo "[cn-pack] ℹ️   openclaw status"
       echo "[cn-pack] ℹ️   openclaw gateway status"
       ;;
