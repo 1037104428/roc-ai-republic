@@ -1,328 +1,311 @@
 # 数据库初始化指南
 
-## 概述
-
-本指南介绍如何初始化quota-proxy的SQLite数据库，为试用密钥持久化和使用统计功能做准备。
+本文档介绍如何初始化 quota-proxy 的 SQLite 数据库。
 
 ## 快速开始
 
-### 1. 安装依赖
-
-确保已安装Node.js和sqlite3模块：
+### 1. 初始化数据库
 
 ```bash
-# 检查Node.js版本
-node --version
-
-# 安装sqlite3依赖
+# 进入 quota-proxy 目录
 cd quota-proxy
-npm install sqlite3
+
+# 创建数据库文件（如果不存在）
+touch quota.db
+
+# 执行初始化脚本
+sqlite3 quota.db < init-db.sql
 ```
 
-### 2. 初始化数据库
-
-运行初始化脚本：
+### 2. 验证数据库结构
 
 ```bash
-cd quota-proxy
-node init-db.cjs
+# 检查数据库结构
+sqlite3 quota.db ".schema"
+
+# 检查表列表
+sqlite3 quota.db ".tables"
+
+# 检查视图列表
+sqlite3 quota.db ".fullschema" | grep -i view
 ```
 
-预期输出：
-```
-✅ 创建数据目录: /path/to/roc-ai-republic/quota-proxy/data
-✅ 已连接数据库: /path/to/roc-ai-republic/quota-proxy/data/quota-proxy.db
-✅ trial_keys表已创建/已存在
-✅ usage_stats表已创建/已存在
-✅ trial_keys.key索引已创建/已存在
-✅ usage_stats.trial_key索引已创建/已存在
-✅ usage_stats.timestamp索引已创建/已存在
-✅ 数据库初始化完成
-📊 数据库文件: /path/to/roc-ai-republic/quota-proxy/data/quota-proxy.db
-📋 已创建的表:
-   - trial_keys: 试用密钥管理
-   - usage_stats: 使用统计记录
-```
-
-### 3. 验证数据库
-
-#### 3.1 使用验证脚本（推荐）
-
-我们提供了一个专门的验证脚本，可以全面检查数据库结构：
+### 3. 查看初始化数据
 
 ```bash
-cd quota-proxy
-node verify-db.js
-```
+# 查看系统配置
+sqlite3 quota.db "SELECT * FROM system_config;"
 
-预期输出：
-```
-🔍 开始验证数据库结构...
-📋 检查trial_keys表...
-✅ trial_keys表存在
-✅ trial_keys表结构正确
-📊 检查usage_stats表...
-✅ usage_stats表存在
-✅ usage_stats表结构正确
-🔍 检查索引...
-✅ 找到 3 个索引: idx_trial_keys_key, idx_usage_stats_trial_key, idx_usage_stats_timestamp
-
-🎉 数据库验证通过！所有表结构正确。
-```
-
-验证脚本会检查：
-- 数据库文件是否存在
-- trial_keys表和usage_stats表是否存在
-- 表结构是否正确（包含所有必需的列）
-- 索引是否已创建
-
-#### 3.2 使用sqlite3命令行工具验证数据库结构：
-
-```bash
-cd quota-proxy
-sqlite3 data/quota-proxy.db ".tables"
-```
-
-预期输出：
-```
-trial_keys  usage_stats
-```
-
-查看表结构：
-
-```bash
-sqlite3 data/quota-proxy.db ".schema trial_keys"
-sqlite3 data/quota-proxy.db ".schema usage_stats"
+# 查看密钥使用情况汇总视图
+sqlite3 quota.db "SELECT * FROM key_usage_summary;"
 ```
 
 ## 数据库结构
 
-### trial_keys表（试用密钥管理）
+### 主要表
 
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| id | INTEGER | 主键，自增 |
-| key | TEXT | 试用密钥（唯一） |
-| label | TEXT | 密钥标签/描述 |
-| created_at | TIMESTAMP | 创建时间（默认当前时间） |
-| expires_at | TIMESTAMP | 过期时间 |
-| total_quota | INTEGER | 总配额（默认1000） |
-| used_quota | INTEGER | 已使用配额（默认0） |
-| is_active | BOOLEAN | 是否激活（默认1） |
+#### 1. `api_keys` - API密钥表
+存储所有API密钥信息，包括配额和使用情况。
 
-### usage_stats表（使用统计）
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| id | INTEGER | 主键 |
+| key_hash | TEXT | API密钥的SHA256哈希值 |
+| key_type | TEXT | 密钥类型：trial/standard/premium |
+| name | TEXT | 密钥名称/描述 |
+| created_at | TIMESTAMP | 创建时间 |
+| expires_at | TIMESTAMP | 过期时间（NULL表示永不过期） |
+| total_quota | INTEGER | 总配额（请求次数） |
+| used_quota | INTEGER | 已用配额 |
+| is_active | BOOLEAN | 是否激活 |
+| metadata | TEXT | JSON格式的元数据 |
 
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| id | INTEGER | 主键，自增 |
-| trial_key | TEXT | 试用密钥（外键） |
-| endpoint | TEXT | 访问的API端点 |
-| timestamp | TIMESTAMP | 访问时间（默认当前时间） |
+#### 2. `request_logs` - 请求日志表
+记录所有API请求，用于审计和调试。
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| id | INTEGER | 主键 |
+| key_hash | TEXT | 关联的API密钥哈希 |
+| endpoint | TEXT | 请求的端点 |
+| method | TEXT | HTTP方法 |
+| status_code | INTEGER | 响应状态码 |
+| request_time | TIMESTAMP | 请求时间 |
 | response_time_ms | INTEGER | 响应时间（毫秒） |
-| success | BOOLEAN | 是否成功（默认1） |
+| user_agent | TEXT | 用户代理 |
+| remote_ip | TEXT | 客户端IP |
+| metadata | TEXT | JSON格式的额外信息 |
 
-## 集成到quota-proxy
+#### 3. `admins` - 管理员表
+用于管理界面认证。
 
-### 1. 修改server.js
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| id | INTEGER | 主键 |
+| username | TEXT | 用户名 |
+| password_hash | TEXT | bcrypt哈希密码 |
+| created_at | TIMESTAMP | 创建时间 |
+| last_login | TIMESTAMP | 最后登录时间 |
+| is_active | BOOLEAN | 是否激活 |
 
-在server.js中添加数据库连接逻辑：
+#### 4. `system_config` - 系统配置表
+存储系统级配置参数。
 
-```javascript
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| key | TEXT | 配置键（主键） |
+| value | TEXT | 配置值 |
+| description | TEXT | 配置描述 |
+| updated_at | TIMESTAMP | 更新时间 |
 
-// 数据库连接
-const db = new sqlite3.Database(path.join(__dirname, 'data', 'quota-proxy.db'));
+### 视图
 
-// 在试用密钥生成时保存到数据库
-app.post('/admin/keys', authenticateAdmin, (req, res) => {
-  const { label, expires_in_hours = 720 } = req.body;
-  const trialKey = generateTrialKey();
-  
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + expires_in_hours);
-  
-  db.run(
-    'INSERT INTO trial_keys (key, label, expires_at) VALUES (?, ?, ?)',
-    [trialKey, label, expiresAt.toISOString()],
-    function(err) {
-      if (err) {
-        console.error('保存试用密钥失败:', err);
-        return res.status(500).json({ error: '保存试用密钥失败' });
-      }
-      
-      res.json({
-        key: trialKey,
-        label,
-        created_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-        total_quota: 1000,
-        used_quota: 0,
-        is_active: true
-      });
-    }
-  );
-});
-```
+#### 1. `key_usage_summary` - 密钥使用情况汇总
+按密钥类型汇总使用情况统计。
 
-### 2. 添加使用统计记录
+#### 2. `recent_requests_24h` - 最近24小时请求统计
+按端点和方法统计最近24小时的请求情况。
 
-在API请求处理中添加统计记录：
+## 使用示例
 
-```javascript
-// 中间件：记录使用统计
-function recordUsage(req, res, next) {
-  const startTime = Date.now();
-  const trialKey = req.headers['x-trial-key'];
-  
-  // 保存原始res.json方法
-  const originalJson = res.json;
-  
-  // 重写res.json以记录响应时间
-  res.json = function(data) {
-    const responseTime = Date.now() - startTime;
-    const success = res.statusCode < 400;
-    
-    if (trialKey) {
-      db.run(
-        'INSERT INTO usage_stats (trial_key, endpoint, response_time_ms, success) VALUES (?, ?, ?, ?)',
-        [trialKey, req.path, responseTime, success],
-        (err) => {
-          if (err) console.error('记录使用统计失败:', err);
-        }
-      );
-    }
-    
-    // 调用原始方法
-    originalJson.call(this, data);
-  };
-  
-  next();
-}
+### 1. 创建试用密钥
 
-// 在API路由中使用
-app.use('/api', recordUsage);
-```
-
-## 维护脚本
-
-### 数据库验证
-
-创建验证脚本 `verify-db.js`：
-
-```javascript
-// 见完整文件：verify-db.js
-// 使用：node verify-db.js
-```
-
-功能：
-- 验证数据库文件是否存在
-- 检查所有必需的表和列
-- 验证索引结构
-- 提供详细的验证报告
-
-### 清理过期密钥
-
-创建清理脚本 `cleanup-expired-keys.js`：
-
-```javascript
-#!/usr/bin/env node
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-
-const db = new sqlite3.Database(path.join(__dirname, 'data', 'quota-proxy.db'));
-
-db.run(
-  'UPDATE trial_keys SET is_active = 0 WHERE expires_at < datetime("now") AND is_active = 1',
-  function(err) {
-    if (err) {
-      console.error('清理过期密钥失败:', err);
-    } else {
-      console.log(`已禁用 ${this.changes} 个过期密钥`);
-    }
-    db.close();
-  }
+```sql
+-- 生成随机密钥（在实际应用中应使用安全的随机生成）
+INSERT INTO api_keys (key_hash, key_type, name, expires_at, total_quota)
+VALUES (
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', -- SHA256('test-key')
+    'trial',
+    '测试密钥',
+    datetime('now', '+30 days'),
+    1000
 );
 ```
 
-### 使用统计报表
+### 2. 记录API请求
 
-创建报表脚本 `generate-usage-report.js`：
+```sql
+INSERT INTO request_logs (key_hash, endpoint, method, status_code, response_time_ms, user_agent, remote_ip)
+VALUES (
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    '/api/v1/chat',
+    'POST',
+    200,
+    150,
+    'OpenClaw/1.0',
+    '192.168.1.100'
+);
+```
 
-```javascript
-#!/usr/bin/env node
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+### 3. 更新密钥使用量
 
-const db = new sqlite3.Database(path.join(__dirname, 'data', 'quota-proxy.db'));
+```sql
+UPDATE api_keys 
+SET used_quota = used_quota + 1 
+WHERE key_hash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+```
 
-// 生成24小时使用统计
-db.all(`
-  SELECT 
-    trial_key,
-    COUNT(*) as request_count,
-    AVG(response_time_ms) as avg_response_time,
-    SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count,
-    SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failure_count
-  FROM usage_stats
-  WHERE timestamp > datetime('now', '-24 hours')
-  GROUP BY trial_key
-  ORDER BY request_count DESC
-`, (err, rows) => {
-  if (err) {
-    console.error('生成报表失败:', err);
-  } else {
-    console.log('📊 24小时使用统计报表');
-    console.log('=' .repeat(50));
-    rows.forEach(row => {
-      const successRate = (row.success_count / row.request_count * 100).toFixed(1);
-      console.log(`密钥: ${row.trial_key.substring(0, 8)}...`);
-      console.log(`  请求数: ${row.request_count}`);
-      console.log(`  平均响应时间: ${row.avg_response_time?.toFixed(2) || 0}ms`);
-      console.log(`  成功率: ${successRate}%`);
-      console.log('');
-    });
-  }
-  db.close();
-});
+### 4. 检查密钥状态
+
+```sql
+-- 检查密钥是否有效（未过期、已激活、有剩余配额）
+SELECT 
+    key_type,
+    name,
+    total_quota,
+    used_quota,
+    total_quota - used_quota as remaining_quota,
+    expires_at,
+    CASE 
+        WHEN expires_at < CURRENT_TIMESTAMP THEN '已过期'
+        WHEN is_active = 0 THEN '已停用'
+        WHEN used_quota >= total_quota THEN '配额已用完'
+        ELSE '有效'
+    END as status
+FROM api_keys
+WHERE key_hash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+```
+
+## 管理命令
+
+### 1. 备份数据库
+
+```bash
+# 完整备份
+sqlite3 quota.db ".backup quota-backup-$(date +%Y%m%d-%H%M%S).db"
+
+# 导出为SQL
+sqlite3 quota.db .dump > quota-dump-$(date +%Y%m%d-%H%M%S).sql
+```
+
+### 2. 性能优化
+
+```bash
+# 启用WAL模式（提高并发性能）
+sqlite3 quota.db "PRAGMA journal_mode=WAL;"
+
+# 设置缓存大小（单位：页，默认2000）
+sqlite3 quota.db "PRAGMA cache_size=-20000;"
+
+# 执行优化
+sqlite3 quota.db "VACUUM; ANALYZE;"
+```
+
+### 3. 监控查询
+
+```bash
+# 查看数据库大小
+ls -lh quota.db
+
+# 查看表大小
+sqlite3 quota.db "SELECT name, (pgsize*page_count)/1024/1024 as size_mb FROM sqlite_master, dbstat WHERE type='table' AND name=sqlite_master.name ORDER BY size_mb DESC;"
+
+# 查看最近查询性能
+sqlite3 quota.db "SELECT endpoint, COUNT(*) as count, AVG(response_time_ms) as avg_ms FROM request_logs WHERE request_time > datetime('now', '-1 hour') GROUP BY endpoint ORDER BY avg_ms DESC LIMIT 10;"
+```
+
+## 集成到quota-proxy
+
+### 环境变量配置
+
+在 `.env` 文件中添加数据库配置：
+
+```bash
+# SQLite数据库配置
+DATABASE_PATH=./quota.db
+DATABASE_INIT_SCRIPT=./init-db.sql
+
+# 数据库连接池配置
+DATABASE_MAX_CONNECTIONS=10
+DATABASE_CONNECTION_TIMEOUT=5000
+```
+
+### 初始化检查脚本
+
+创建 `check-db.sh` 脚本：
+
+```bash
+#!/bin/bash
+
+DB_FILE="${DATABASE_PATH:-./quota.db}"
+INIT_SCRIPT="${DATABASE_INIT_SCRIPT:-./init-db.sql}"
+
+if [ ! -f "$DB_FILE" ]; then
+    echo "数据库文件不存在，正在初始化..."
+    sqlite3 "$DB_FILE" < "$INIT_SCRIPT"
+    if [ $? -eq 0 ]; then
+        echo "数据库初始化成功！"
+    else
+        echo "数据库初始化失败！"
+        exit 1
+    fi
+else
+    echo "数据库文件已存在，跳过初始化。"
+fi
+
+# 验证数据库结构
+echo "验证数据库结构..."
+sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM sqlite_master WHERE type='table';" | grep -q '[0-9]'
+if [ $? -eq 0 ]; then
+    echo "数据库结构验证通过。"
+else
+    echo "数据库结构验证失败！"
+    exit 1
+fi
 ```
 
 ## 故障排除
 
 ### 常见问题
 
-1. **sqlite3模块安装失败**
+1. **数据库文件权限问题**
    ```bash
-   # 使用npm镜像
-   npm config set registry https://registry.npmmirror.com
-   npm install sqlite3
+   chmod 644 quota.db
+   chmod +x check-db.sh
    ```
 
-2. **数据库文件权限问题**
+2. **SQLite命令未找到**
    ```bash
-   chmod 664 quota-proxy/data/quota-proxy.db
+   # Ubuntu/Debian
+   sudo apt-get install sqlite3
+   
+   # CentOS/RHEL
+   sudo yum install sqlite
    ```
 
-3. **表已存在错误**
-   - 脚本使用`CREATE TABLE IF NOT EXISTS`，不会重复创建
-   - 如需重置，删除数据库文件重新初始化
+3. **数据库损坏**
+   ```bash
+   # 检查数据库完整性
+   sqlite3 quota.db "PRAGMA integrity_check;"
+   
+   # 修复损坏的数据库
+   sqlite3 quota.db ".recover" | sqlite3 quota-recovered.db
+   ```
 
-### 验证步骤
+### 性能问题
 
-1. 检查数据库文件是否存在
-2. 验证表结构是否正确
-3. 测试插入和查询操作
-4. 验证索引是否生效
+1. **查询缓慢**
+   - 确保在常用查询字段上创建了索引
+   - 定期执行 `VACUUM` 和 `ANALYZE`
+   - 考虑分区大表（如 `request_logs`）
+
+2. **并发写入冲突**
+   - 启用WAL模式：`PRAGMA journal_mode=WAL;`
+   - 增加超时时间：`PRAGMA busy_timeout=5000;`
 
 ## 下一步
 
-1. 将数据库逻辑集成到quota-proxy主服务
-2. 添加数据库备份和恢复功能
-3. 实现数据库迁移脚本
-4. 添加数据库监控和告警
+1. **集成到quota-proxy服务**
+   - 修改 `main.go` 添加数据库连接
+   - 实现API密钥验证逻辑
+   - 添加请求日志记录
 
----
+2. **添加管理API**
+   - `POST /admin/keys` - 生成新密钥
+   - `GET /admin/usage` - 查看使用情况
+   - `DELETE /admin/keys/{id}` - 删除密钥
 
-**最后更新**: 2026-02-11  
-**版本**: 1.0.0  
-**状态**: 草案
+3. **监控和告警**
+   - 添加数据库健康检查端点
+   - 实现配额使用率告警
+   - 添加审计日志导出功能
