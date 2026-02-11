@@ -51,18 +51,30 @@
 ### P1 - 重要功能
 
 #### TICKET-P1-001: 国内安装脚本完善
-- **状态**: 待开始
+- **状态**: 已完成 (2026-02-12)
 - **描述**: 完成 `scripts/install-cn.sh` 的国内可达源优先 + 回退策略 + 自检
 - **功能要求**:
-  1. 优先使用国内镜像源
-  2. 失败时自动回退到官方源
-  3. 安装后自检 (`openclaw --version`)
-  4. 提供详细的安装文档
+  1. 优先使用国内镜像源 ✓
+  2. 失败时自动回退到官方源 ✓
+  3. 安装后自检 (`openclaw --version`) ✓
+  4. 提供详细的安装文档 ✓
+  5. 添加快速验证工具 ✓
 - **验证标准**:
-  - 脚本在国内网络环境下能正常运行
-  - 安装后能正确运行 `openclaw --version`
-  - 文档清晰易懂
-- **相关文件**: `scripts/install-cn.sh`
+  - 脚本在国内网络环境下能正常运行 ✓
+  - 安装后能正确运行 `openclaw --version` ✓
+  - 文档清晰易懂 ✓
+  - 快速验证工具可用 ✓
+- **实现详情**:
+  - `install-cn.sh` 已实现智能 registry 选择和多层回退策略
+  - 已添加完整的安装后自检功能
+  - 已创建详细的安装文档: `docs/INSTALL-CN-GUIDE.md`
+  - 已创建快速验证工具: `scripts/quick-verify-install-cn.sh`
+  - 已集成到验证工具链中
+- **相关文件**: 
+  - `scripts/install-cn.sh` - 主安装脚本
+  - `docs/INSTALL-CN-GUIDE.md` - 安装指南
+  - `scripts/quick-verify-install-cn.sh` - 快速验证工具
+  - `docs/install-cn-script-verification-guide.md` - 详细验证指南
 
 #### TICKET-P1-002: 静态站点部署
 - **状态**: 待开始

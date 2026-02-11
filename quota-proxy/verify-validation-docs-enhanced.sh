@@ -60,6 +60,7 @@ check_doc "quick-verify-admin-api.sh" "Admin API快速验证脚本" 10
 check_doc "QUICK-DEPLOY-ADMIN-API.md" "Admin API快速部署指南" 30
 check_doc "test-admin-api-quick.js" "Admin API快速测试用例" 10
 check_doc "../scripts/verify-install-cn.sh" "安装脚本验证脚本" 10
+check_doc "../scripts/quick-verify-install-cn.sh" "安装脚本快速验证工具" 10
 check_doc "../docs/install-cn-script-verification-guide.md" "安装脚本验证指南" 20
 
 echo ""
@@ -94,6 +95,7 @@ check_ref "VALIDATION-QUICK-INDEX.md" "VALIDATION-EXAMPLES.md" "使用示例文�
 check_ref "VALIDATION-DECISION-TREE.md" "VALIDATION-QUICK-INDEX.md" "快速索引文档"
 check_ref "VALIDATION-EXAMPLES.md" "VALIDATION-DECISION-TREE.md" "决策树文档"
 check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-script-verification-guide.md" "安装脚本验证指南"
+check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn.sh" "安装脚本快速验证工具"
 check_ref "../docs/install-cn-script-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 
 echo ""

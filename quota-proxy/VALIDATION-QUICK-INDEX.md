@@ -60,6 +60,7 @@
 | 脚本 | 功能 | 使用场景 |
 |------|------|----------|
 | `verify-install-cn.sh` | 安装脚本完整性验证 | 全面验证 install-cn.sh 脚本的功能和完整性 |
+| `quick-verify-install-cn.sh` | 安装脚本快速验证 | 快速检查 install-cn.sh 脚本的基本功能和完整性 |
 | `install-cn-script-verification-guide.md` | 安装脚本验证指南 | 提供安装脚本验证的完整指南和最佳实践 |
 
 ### 8. 快速命令参考
