@@ -40,6 +40,7 @@
 | `check-deployment-status.sh` | 部署状态检查 | 检查服务运行状态和健康检查 |
 | `verify-full-deployment.sh` | 完整部署验证 | 验证所有部署组件正常运行 |
 | `verify-sqlite-persistence.sh` | SQLite持久化验证 | 验证数据库持久化功能 |
+| `QUICK-VALIDATION-TOOLS-GUIDE.md` | 快速验证工具指南 | 所有验证工具的快速使用方法和索引，帮助用户快速找到和使用合适的验证工具 |
 
 ### 4. 环境配置验证
 | 脚本 | 功能 | 使用场景 |

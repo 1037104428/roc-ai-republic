@@ -74,6 +74,7 @@ check_doc "verify-sqlite-persistence.sh" "SQLite持久化验证脚本" 10
 check_doc "PROMETHEUS-MONITORING-INTEGRATION-GUIDE.md" "Prometheus监控集成指南" 20
 check_doc "verify-prometheus-metrics.sh" "Prometheus监控指标验证脚本" 10
 check_doc "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证脚本" 10
+check_doc "QUICK-VALIDATION-TOOLS-GUIDE.md" "快速验证工具指南" 20
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
