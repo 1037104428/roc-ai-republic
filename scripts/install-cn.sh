@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.03"
+SCRIPT_VERSION="2026.02.11.04"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
@@ -296,6 +296,98 @@ step_by_step_install() {
           local errors=0
           local warnings=0
           
+          # 权限自动修复函数
+          auto_fix_permissions() {
+            local fix_type="$1"
+            echo "[cn-pack]     🔧 尝试自动修复: $fix_type"
+            
+            case "$fix_type" in
+              npm-global-permission)
+                # 修复 npm 全局安装权限问题
+                local npm_prefix=$(npm config get prefix 2>/dev/null || echo "")
+                local user_home="$HOME"
+                
+                # 检查是否是权限问题
+                if [[ "$npm_prefix" == *"Permission denied"* ]]; then
+                  echo "[cn-pack]      检测到 npm 权限问题，尝试修复..."
+                  
+                  # 方案1: 使用用户目录作为 npm 前缀
+                  local user_npm_prefix="$user_home/.npm-global"
+                  mkdir -p "$user_npm_prefix"
+                  
+                  # 设置 npm 前缀到用户目录
+                  if npm config set prefix "$user_npm_prefix" 2>/dev/null; then
+                    echo "[cn-pack]      ✓ 设置 npm 前缀到用户目录: $user_npm_prefix"
+                    
+                    # 更新 PATH 环境变量
+                    if ! echo "$PATH" | grep -q "$user_npm_prefix/bin"; then
+                      echo "[cn-pack]      ℹ️  请将以下内容添加到 ~/.bashrc 或 ~/.zshrc:"
+                      echo "[cn-pack]      ℹ️    export PATH=\"\$PATH:$user_npm_prefix/bin\""
+                    fi
+                    
+                    return 0
+                  fi
+                fi
+                
+                # 方案2: 使用 sudo 修复目录权限
+                echo "[cn-pack]      尝试修复系统 npm 目录权限..."
+                local system_npm_prefix=$(npm config get prefix --global 2>/dev/null || echo "/usr/local")
+                
+                if [[ -w "$system_npm_prefix" ]]; then
+                  echo "[cn-pack]      ✓ 系统 npm 目录可写: $system_npm_prefix"
+                  return 0
+                else
+                  echo "[cn-pack]      ⚠️  系统 npm 目录不可写，建议使用以下方式:"
+                  echo "[cn-pack]      ℹ️   1. 使用 sudo 安装: sudo npm install -g openclaw"
+                  echo "[cn-pack]      ℹ️   2. 或配置用户目录: npm config set prefix ~/.npm-global"
+                  return 1
+                fi
+                ;;
+              
+              npm-cache-permission)
+                # 修复 npm 缓存权限问题
+                local npm_cache=$(npm config get cache 2>/dev/null || echo "$HOME/.npm")
+                
+                if [[ ! -w "$npm_cache" ]]; then
+                  echo "[cn-pack]      修复 npm 缓存目录权限..."
+                  mkdir -p "$npm_cache"
+                  chmod 755 "$npm_cache" 2>/dev/null || true
+                  
+                  if [[ -w "$npm_cache" ]]; then
+                    echo "[cn-pack]      ✓ npm 缓存目录权限修复成功"
+                    return 0
+                  else
+                    echo "[cn-pack]      ⚠️  npm 缓存目录权限修复失败"
+                    return 1
+                  fi
+                fi
+                return 0
+                ;;
+              
+              node-modules-permission)
+                # 修复 node_modules 目录权限问题
+                local current_dir=$(pwd)
+                local node_modules_dir="$current_dir/node_modules"
+                
+                if [[ -d "$node_modules_dir" ]] && [[ ! -w "$node_modules_dir" ]]; then
+                  echo "[cn-pack]      修复 node_modules 目录权限..."
+                  sudo chmod -R 755 "$node_modules_dir" 2>/dev/null || chmod -R 755 "$node_modules_dir" 2>/dev/null || true
+                  
+                  if [[ -w "$node_modules_dir" ]]; then
+                    echo "[cn-pack]      ✓ node_modules 目录权限修复成功"
+                    return 0
+                  fi
+                fi
+                return 0
+                ;;
+              
+              *)
+                echo "[cn-pack]      ⚠️  未知的修复类型: $fix_type"
+                return 1
+                ;;
+            esac
+          }
+          
           echo "[cn-pack]   1. 检查 Node.js..."
           if command -v node &> /dev/null; then
             local node_version=$(node --version 2>/dev/null | cut -d'v' -f2)
@@ -351,15 +443,47 @@ step_by_step_install() {
           
           echo "[cn-pack]   5. 检查 npm 全局安装权限..."
           if command -v npm &> /dev/null; then
-            if npm config get prefix 2>/dev/null | grep -q "Permission denied"; then
-              echo "[cn-pack]     ❌ npm 全局安装权限不足"
-              errors=$((errors + 1))
+            local npm_prefix_output=$(npm config get prefix 2>&1)
+            if echo "$npm_prefix_output" | grep -q "Permission denied"; then
+              echo "[cn-pack]     ⚠️  npm 全局安装权限不足，尝试自动修复..."
+              
+              # 尝试自动修复
+              if auto_fix_permissions "npm-global-permission"; then
+                echo "[cn-pack]     ✓ npm 权限自动修复成功"
+                # 重新检查权限
+                if npm config get prefix 2>/dev/null | grep -q "Permission denied"; then
+                  echo "[cn-pack]     ❌ 自动修复后权限问题仍然存在"
+                  errors=$((errors + 1))
+                else
+                  echo "[cn-pack]     ✓ npm 全局安装权限已修复"
+                fi
+              else
+                echo "[cn-pack]     ❌ npm 全局安装权限不足且自动修复失败"
+                errors=$((errors + 1))
+              fi
             else
               echo "[cn-pack]     ✓ npm 全局安装权限正常"
             fi
           fi
           
-          echo "[cn-pack]   6. 检查内存..."
+          echo "[cn-pack]   6. 检查 npm 缓存权限..."
+          if command -v npm &> /dev/null; then
+            local npm_cache=$(npm config get cache 2>/dev/null || echo "$HOME/.npm")
+            if [[ ! -w "$npm_cache" ]]; then
+              echo "[cn-pack]     ⚠️  npm 缓存目录不可写，尝试自动修复..."
+              
+              if auto_fix_permissions "npm-cache-permission"; then
+                echo "[cn-pack]     ✓ npm 缓存权限自动修复成功"
+              else
+                echo "[cn-pack]     ⚠️  npm 缓存权限修复失败（可能影响安装速度）"
+                warnings=$((warnings + 1))
+              fi
+            else
+              echo "[cn-pack]     ✓ npm 缓存权限正常"
+            fi
+          fi
+          
+          echo "[cn-pack]   8. 检查内存..."
           if [[ -f /proc/meminfo ]]; then
             local mem_total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
             local mem_total_mb=$((mem_total_kb / 1024))
