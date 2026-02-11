@@ -12,9 +12,22 @@ async function verifyDatabase() {
   console.log('🔍 开始验证数据库结构...');
   
   try {
+    const dbPath = './data/quota-proxy.db';
+    
+    // 检查数据库文件是否存在
+    const fs = await import('fs');
+    if (!fs.existsSync(dbPath)) {
+      console.error(`❌ 数据库文件不存在: ${dbPath}`);
+      console.log('💡 提示：请先运行 init-db.cjs 初始化数据库');
+      return false;
+    }
+    
+    const stats = fs.statSync(dbPath);
+    console.log(`📁 数据库文件: ${dbPath} (${stats.size} 字节)`);
+    
     // 打开数据库
     const db = await open({
-      filename: './data/quota-proxy.db',
+      filename: dbPath,
       driver: sqlite3.Database
     });
 
@@ -84,6 +97,18 @@ async function verifyDatabase() {
     `);
     
     console.log(`✅ 找到 ${indexes.length} 个索引: ${indexes.map(i => i.name).join(', ')}`);
+
+    // 统计表数据量
+    console.log('\n📊 统计表数据量...');
+    try {
+      const trialKeysCount = await db.get('SELECT COUNT(*) as count FROM trial_keys');
+      console.log(`📋 trial_keys表: ${trialKeysCount.count} 条记录`);
+      
+      const usageStatsCount = await db.get('SELECT COUNT(*) as count FROM usage_stats');
+      console.log(`📈 usage_stats表: ${usageStatsCount.count} 条记录`);
+    } catch (error) {
+      console.log('⚠️  数据统计时出错（可能是空表）:', error.message);
+    }
 
     await db.close();
     
