@@ -17,6 +17,7 @@
 | `verify-sqlite-persistence.sh` | SQLite持久化验证脚本 | 验证SQLite持久化功能完整性，检查相关文件和实现 |
 
 ### 2. Admin API 验证
+  - [quick-test-admin-api-usage.md](quick-test-admin-api-usage.md) - Admin API快速测试脚本使用说明文档
 | 脚本 | 功能 | 使用场景 |
 |------|------|----------|
 | `quick-start-verify.sh` | Admin API 快速开始验证 | 5分钟上手测试所有Admin API功能 |
@@ -26,6 +27,7 @@
 | `server-sqlite-admin.js` | Admin API 服务器 | 完整的SQLite持久化Admin API服务器 |
 | `ADMIN-API-GUIDE.md` | Admin API 使用指南 | 详细的Admin API使用、部署和运维文档 |
 | `verify-admin-api.sh` | Admin API 验证脚本 | 验证Admin API所有端点的功能完整性 |
+  - [quick-test-admin-api-usage.md](quick-test-admin-api-usage.md) - Admin API快速测试脚本使用说明文档
 | `quick-verify-admin-api.sh` | Admin API快速验证脚本 | 一键验证Admin API所有核心功能，包含自动服务器启动和完整测试流程 |
 | `test-admin-api-quick.js` | Admin API快速测试用例 | Node.js测试脚本，快速验证Admin API核心功能，支持模块化导入和独立运行 |
 | `quick-test-admin-api.sh` | Admin API快速测试脚本 | Bash脚本快速测试Admin API核心功能，包含创建密钥、获取列表、使用情况、API调用和删除验证 |
