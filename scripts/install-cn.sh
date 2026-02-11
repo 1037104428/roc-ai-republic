@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.07"
+SCRIPT_VERSION="2026.02.11.08"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -1620,6 +1620,84 @@ fi
   esac
   
   echo "[cn-pack] ========================================="
+  
+  # 生成安装摘要报告
+  generate_installation_summary() {
+    echo ""
+    color_log "STEP" "========================================="
+    color_log "STEP" "📊 安装摘要报告"
+    color_log "STEP" "========================================="
+    
+    local summary_file="/tmp/openclaw-install-summary-$(date +%Y%m%d-%H%M%S).txt"
+    
+    {
+      echo "OpenClaw 安装摘要报告"
+      echo "生成时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+      echo "脚本版本: $SCRIPT_VERSION"
+      echo "安装模式: ${INSTALL_MODE:-standard}"
+      echo "验证级别: $VERIFY_LEVEL"
+      echo ""
+      echo "=== 系统信息 ==="
+      echo "操作系统: $(uname -s) $(uname -r)"
+      echo "主机名: $(hostname)"
+      echo "用户: $(whoami)"
+      echo ""
+      echo "=== Node.js 环境 ==="
+      if command -v node >/dev/null 2>&1; then
+        echo "Node.js 版本: $(node --version 2>/dev/null || echo '未安装')"
+        echo "npm 版本: $(npm --version 2>/dev/null || echo '未安装')"
+      else
+        echo "Node.js: 未安装"
+      fi
+      echo ""
+      echo "=== 安装状态 ==="
+      if command -v openclaw >/dev/null 2>&1; then
+        echo "OpenClaw 命令: 已安装到 PATH"
+        echo "OpenClaw 版本: $(openclaw --version 2>/dev/null | head -1 || echo '未知')"
+      else
+        echo "OpenClaw 命令: 未在 PATH 中找到"
+        NPM_BIN_PATH=$(npm bin -g 2>/dev/null || echo "/usr/local/bin")
+        if [[ -f "$NPM_BIN_PATH/openclaw" ]]; then
+          echo "OpenClaw 二进制: 存在于 $NPM_BIN_PATH/openclaw"
+        fi
+      fi
+      echo ""
+      echo "=== 网络配置 ==="
+      echo "使用的 npm registry: ${NPM_REGISTRY:-https://registry.npmmirror.com}"
+      echo "代理设置: ${HTTP_PROXY:-未设置}"
+      echo ""
+      echo "=== 后续步骤 ==="
+      echo "1. 验证安装: openclaw --version"
+      echo "2. 检查状态: openclaw status"
+      echo "3. 启动网关: openclaw gateway start"
+      echo "4. 配置模型: openclaw models status"
+      echo ""
+      echo "=== 故障排除 ==="
+      echo "• 如果 openclaw 命令未找到，尝试: source ~/.bashrc (或 ~/.zshrc)"
+      echo "• 或使用 npx: npx openclaw --version"
+      echo "• 查看日志: tail -f ~/.openclaw/logs/gateway.log"
+      echo ""
+      echo "=== 支持资源 ==="
+      echo "• 文档: https://docs.openclaw.ai"
+      echo "• 社区: https://discord.com/invite/clawd"
+      echo "• GitHub: https://github.com/openclaw/openclaw"
+      echo "• 国内镜像: https://clawdrepublic.cn"
+    } > "$summary_file"
+    
+    color_log "SUCCESS" "安装摘要已保存到: $summary_file"
+    echo ""
+    color_log "INFO" "📋 摘要内容预览:"
+    echo "-----------------------------------------"
+    head -30 "$summary_file"
+    echo "-----------------------------------------"
+    echo ""
+    color_log "INFO" "查看完整摘要: cat $summary_file"
+  }
+  
+  # 如果不是dry-run，生成安装摘要
+  if [[ "$DRY_RUN" != "1" ]]; then
+    generate_installation_summary
+  fi
 
 # Dry-run final check (after verification)
 if [[ "$DRY_RUN" == "1" ]]; then
