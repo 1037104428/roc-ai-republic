@@ -15,6 +15,7 @@ NC='\033[0m' # No Color
 ADMIN_TOKEN="${ADMIN_TOKEN:-admin123}"
 BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
 TIMEOUT=10
+DRY_RUN=false
 
 # 日志函数
 log_info() {
@@ -44,6 +45,7 @@ Admin API性能检查脚本
 选项:
   -t, --token TOKEN      Admin令牌 (默认: admin123)
   -u, --url URL          quota-proxy基础URL (默认: http://127.0.0.1:8787)
+  -d, --dry-run          干运行模式，显示测试步骤但不实际执行
   -h, --help             显示此帮助信息
 
 环境变量:
@@ -72,6 +74,10 @@ while [[ $# -gt 0 ]]; do
         -u|--url)
             BASE_URL="$2"
             shift 2
+            ;;
+        -d|--dry-run)
+            DRY_RUN=true
+            shift
             ;;
         -h|--help)
             show_help
@@ -110,6 +116,17 @@ measure_endpoint() {
     local endpoint="$1"
     local method="${2:-GET}"
     local data="${3:-}"
+    
+    if [ "$DRY_RUN" = true ]; then
+        log_info "  干运行模式: 模拟测试 $method $endpoint"
+        if [ -n "$data" ]; then
+            log_info "  数据: $data"
+        fi
+        # 模拟响应时间 (50-150ms)
+        local simulated_time=$((RANDOM % 100 + 50))
+        echo "200 $simulated_time"
+        return 0
+    fi
     
     local start_time
     local end_time
@@ -154,16 +171,25 @@ main() {
     log_info "配置:"
     log_info "  Base URL: $BASE_URL"
     log_info "  Timeout: ${TIMEOUT}s"
+    if [ "$DRY_RUN" = true ]; then
+        log_info "  模式: 干运行 (模拟测试)"
+    fi
     
-    check_dependencies
+    if [ "$DRY_RUN" = false ]; then
+        check_dependencies
+    fi
     
     # 检查服务是否运行
     log_info "检查服务状态..."
-    if ! curl -s -f "$BASE_URL/healthz" > /dev/null 2>&1; then
-        log_error "服务未运行或无法访问: $BASE_URL/healthz"
-        exit 1
+    if [ "$DRY_RUN" = true ]; then
+        log_success "干运行模式: 跳过实际服务检查"
+    else
+        if ! curl -s -f "$BASE_URL/healthz" > /dev/null 2>&1; then
+            log_error "服务未运行或无法访问: $BASE_URL/healthz"
+            exit 1
+        fi
+        log_success "服务运行正常"
     fi
-    log_success "服务运行正常"
     
     echo ""
     log_info "开始性能测试..."
