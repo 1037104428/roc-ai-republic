@@ -106,14 +106,37 @@ ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "ls -la /opt/roc/quota-pr
 ## 低优先级
 
 ### [TODO-005] 文档完善
-**状态**: 待处理  
+**状态**: 部分完成  
 **创建时间**: 2026-02-10 15:13  
+**最后更新**: 2026-02-11 13:25  
 **描述**: 部分文档需要更新和完善。  
 **影响**: 新用户上手难度增加。  
 **解决方案**: 
-1. 更新部署指南
-2. 添加故障排除章节
-3. 完善API文档
+1. ✅ 更新部署指南（quota-proxy部署指南已包含故障排除）
+2. ✅ 添加故障排除章节（创建install-cn-troubleshooting-guide.md详细故障排除指南）
+3. ⏳ 完善API文档（待处理）
+
+**完成项目**:
+- 创建详细的install-cn.sh故障排除指南（install-cn-troubleshooting-guide.md）
+- 包含网络问题、权限问题、环境配置、脚本功能等全面故障排除
+- 提供快速诊断、常见问题分类、错误代码参考和诊断工具
+- 涵盖最新功能：代理检测、离线模式、分步安装、CI/CD集成等
+
+**相关文件**:
+- `docs/install-cn-troubleshooting-guide.md` - 详细故障排除指南
+- `docs/deploy-quota-proxy-sqlite-guide.md` - 已包含故障排除章节
+- `docs/install-cn-comprehensive-guide.md` - 已包含基础故障排除
+
+**验证命令**:
+```bash
+# 验证新创建的故障排除指南
+ls -la docs/install-cn-troubleshooting-guide.md
+cat docs/install-cn-troubleshooting-guide.md | head -20
+
+# 测试故障排除功能
+./scripts/install-cn.sh --dry-run --verbose
+./scripts/install-cn.sh --steps dependency-check --dry-run
+```
 
 ### [TODO-006] 测试覆盖率提升
 **状态**: 待处理  
