@@ -473,11 +473,29 @@ app.get('/admin/performance', adminAuth, (req, res) => {
     });
 });
 
-// 查看使用情况
+// 查看使用情况（支持分页）
 app.get('/admin/usage', adminAuth, (req, res) => {
-    const { key, days = 7 } = req.query;
+    const { key, days = 7, page = 1, limit = 50 } = req.query;
     
-    let query = `
+    // 验证分页参数
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+    
+    if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+        return res.status(400).json({ 
+            error: 'Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100.' 
+        });
+    }
+    
+    let countQuery = `
+        SELECT COUNT(DISTINCT ak.id) as total
+        FROM api_keys ak
+        LEFT JOIN usage_log ul ON ak.key = ul.api_key
+            AND ul.timestamp > datetime('now', ?)
+    `;
+    
+    let dataQuery = `
         SELECT 
             ak.key,
             ak.label,
@@ -493,17 +511,49 @@ app.get('/admin/usage', adminAuth, (req, res) => {
     `;
     
     const params = [`-${days} days`];
+    const countParams = [...params];
+    const dataParams = [...params];
     
     if (key) {
-        query += ' WHERE ak.key = ?';
-        params.push(key);
+        const whereClause = ' WHERE ak.key = ?';
+        countQuery += whereClause;
+        dataQuery += whereClause;
+        countParams.push(key);
+        dataParams.push(key);
     }
     
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error' });
+    // 添加分页
+    dataQuery += ' ORDER BY ak.created_at DESC LIMIT ? OFFSET ?';
+    dataParams.push(limitNum, offset);
+    
+    // 先获取总数
+    db.get(countQuery, countParams, (countErr, countResult) => {
+        if (countErr) {
+            return res.status(500).json({ error: 'Database error when counting records' });
         }
-        res.json({ success: true, data: rows });
+        
+        const total = countResult.total || 0;
+        const totalPages = Math.ceil(total / limitNum);
+        
+        // 再获取分页数据
+        db.all(dataQuery, dataParams, (dataErr, rows) => {
+            if (dataErr) {
+                return res.status(500).json({ error: 'Database error when fetching records' });
+            }
+            
+            res.json({ 
+                success: true, 
+                data: rows,
+                pagination: {
+                    page: pageNum,
+                    limit: limitNum,
+                    total,
+                    totalPages,
+                    hasNextPage: pageNum < totalPages,
+                    hasPrevPage: pageNum > 1
+                }
+            });
+        });
     });
 });
 

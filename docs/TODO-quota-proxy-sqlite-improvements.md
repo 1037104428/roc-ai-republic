@@ -81,3 +81,4 @@ chmod +x ./scripts/test-database-recovery.sh
 
 ## 更新记录
 - 2026-02-10 00:21:53 - 创建 TODO 清单，记录当前状态和待办事项
+- 2026-02-11 13:06:00 - 为 `/admin/usage` 端点添加分页支持，支持 `page` 和 `limit` 参数，提供更好的大数据集处理能力
