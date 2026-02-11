@@ -85,6 +85,8 @@
 | `quick-verify-install-cn-enhanced.sh` | 安装脚本增强版快速验证 | 增强版验证脚本，测试更多实际功能和完整性 |
 | `install-cn-script-verification-guide.md` | 安装脚本验证指南 | 提供安装脚本验证的完整指南和最佳实践 |
 | `install-cn-quick-test-examples.md` | 安装脚本快速测试示例 | 提供 install-cn.sh 不同使用场景的测试示例和命令参考 |
+| `verify-install-cn-complete.sh` | 安装脚本完整功能验证 | 验证 install-cn.sh 满足"国内可达源优先 + 回退策略 + 自检"核心要求 |
+| `install-cn-complete-verification-guide.md` | 安装脚本完整功能验证指南 | 提供 install-cn.sh 完整功能验证的详细指南和验证流程 |
 
 ### 8. 验证工具链概览
 | 文档 | 功能 | 使用场景 |
@@ -191,11 +193,12 @@
 - [QUICK-DOCS-CHECK-GUIDE.md](./QUICK-DOCS-CHECK-GUIDE.md) - 快速文档检查指南
 - [TODO-TICKETS.md](./TODO-TICKETS.md) - 开发任务跟踪系统
 - [install-cn-script-verification-guide.md](../docs/install-cn-script-verification-guide.md) - 安装脚本验证指南
+- [install-cn-complete-verification-guide.md](../docs/install-cn-complete-verification-guide.md) - 安装脚本完整功能验证指南
 
 ---
 
 **最后更新**: 2026-02-12  
 **维护者**: 中华AI共和国项目组  
-**版本**: 1.0.5
+**版本**: 1.0.6
 ## Admin API 文档
 - [Admin API 快速使用示例](../../docs/admin-api-quick-example.md) - Admin API 的快速使用示例，包含密钥生成、用量统计、故障排除和自动化脚本
