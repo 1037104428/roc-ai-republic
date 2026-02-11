@@ -94,14 +94,39 @@ ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 "ls -la /opt/roc/quota-pr
 3. 创建告警规则和阈值配置
 
 ### [TODO-004] 性能优化
-**状态**: 待处理  
+**状态**: 部分完成  
 **创建时间**: 2026-02-10 15:13  
+**最后更新**: 2026-02-11 14:35  
 **描述**: 数据库查询性能需要优化，特别是usage_logs表。  
 **影响**: 随着数据量增长，查询性能可能下降。  
 **解决方案**: 
-1. 添加索引优化
+1. ✅ 添加索引优化（创建数据库索引创建脚本）
 2. 实现数据分区/归档
 3. 添加查询缓存
+
+**相关文件**:
+- `scripts/create-db-indexes.sh` - 数据库索引创建脚本
+- `scripts/verify-create-db-indexes.sh` - 索引创建验证脚本
+- `scripts/db-performance-benchmark.sh` - 数据库性能基准测试脚本
+- `scripts/verify-db-performance-benchmark.sh` - 性能基准测试验证脚本
+
+**验证命令**:
+```bash
+# 检查索引创建脚本
+./scripts/create-db-indexes.sh --dry-run
+./scripts/create-db-indexes.sh --help
+
+# 运行性能基准测试
+./scripts/db-performance-benchmark.sh --dry-run
+
+# 验证索引创建功能
+./scripts/verify-create-db-indexes.sh --quick
+```
+
+**进展**:
+- 2026-02-11 14:35: 创建数据库索引创建脚本和验证脚本，支持5个关键索引创建
+- 2026-02-11 13:57: 创建数据库性能基准测试脚本和验证脚本
+- 下一步: 实现数据分区/归档功能
 
 ## 低优先级
 
