@@ -72,6 +72,8 @@ check_doc "../docs/validation-toolchain-overview.md" "验证工具链概览文�
 check_doc "verify-env.sh" "环境变量验证脚本" 10
 check_doc "verify-sqlite-persistence.sh" "SQLite持久化验证脚本" 10
 check_doc "PROMETHEUS-MONITORING-INTEGRATION-GUIDE.md" "Prometheus监控集成指南" 20
+check_doc "verify-prometheus-metrics.sh" "Prometheus监控指标验证脚本" 10
+check_doc "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证脚本" 10
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
@@ -110,6 +112,8 @@ check_ref "VALIDATION-QUICK-INDEX.md" "validation-toolchain-overview.md" "验证
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn.sh" "安装脚本快速验证工具"
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn-enhanced.sh" "安装脚本增强版快速验证工具"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-sqlite-persistence.sh" "SQLite持久化验证脚本"
+check_ref "VALIDATION-QUICK-INDEX.md" "verify-prometheus-metrics.sh" "Prometheus监控指标验证脚本"
+check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-web-deployment-ready.sh" "Web站点部署就绪验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "ops-web-deploy.md" "Web站点部署指南"
 check_ref "../docs/install-cn-script-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"

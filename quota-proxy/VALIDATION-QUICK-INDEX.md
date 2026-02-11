@@ -103,9 +103,11 @@
 | `QUICK-DEPLOY-ADMIN-API.md` | Admin API快速部署指南 | 提供Admin API的快速部署指南，包含一键部署脚本和Docker部署 |
 
 ### 11. 监控和性能
-| 文档 | 功能 | 使用场景 |
-|------|------|----------|
+| 脚本/文档 | 功能 | 使用场景 |
+|-----------|------|----------|
 | `PROMETHEUS-MONITORING-INTEGRATION-GUIDE.md` | Prometheus监控集成指南 | 提供Prometheus监控集成到quota-proxy的完整指南，包含指标收集、告警配置和Grafana仪表板 |
+| `verify-prometheus-metrics.sh` | Prometheus监控指标验证脚本 | 验证quota-proxy的Prometheus监控指标功能，包含完整的指标收集测试 |
+| `quick-verify-prometheus-monitoring.sh` | Prometheus监控快速验证脚本 | 快速验证Prometheus监控集成指南的完整性和可用性，检查文档、脚本和索引引用 |
 
 ## 🚀 快速开始推荐
 
