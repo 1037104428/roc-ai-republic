@@ -178,6 +178,11 @@
 2. 更新本文档索引
 3. 添加到 `run-all-verifications.sh`
 
+### 仓库维护
+- **备份文件清理**：定期运行 `cleanup-validation-backups.sh` 清理临时备份文件
+- **脚本权限检查**：确保所有验证脚本具有执行权限
+- **文档同步**：保持验证工具索引文档与脚本同步更新
+
 ## 📁 相关文档
 
 - [ADMIN-API-EXAMPLES.md](./ADMIN-API-EXAMPLES.md) - Admin API详细示例

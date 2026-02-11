@@ -32,7 +32,10 @@
 - **SQLite数据库备份**：`backup-sqlite-db.sh` - 数据库备份和恢复
 - **SQLite数据库完整性验证**：`verify-sqlite-integrity.sh` - 验证数据库完整性、一致性和基本功能
 
-### 6. 安装验证工具
+### 6. 维护工具
+- **验证脚本备份清理**：`cleanup-validation-backups.sh` - 清理验证工具脚本的备份文件，保持仓库整洁
+
+### 7. 安装验证工具
 - **安装失败恢复脚本**：`../scripts/install-cn-fallback-recovery.sh` - 安装失败时的清理、诊断和重试功能
 - **安装失败恢复指南**：`../docs/install-cn-fallback-recovery-guide.md` - 详细的安装故障排除指南
 - **安装自检脚本**：`../scripts/install-cn-self-check.sh` - 安装完成后自动验证安装是否成功，包括版本验证、功能测试和兼容性检查

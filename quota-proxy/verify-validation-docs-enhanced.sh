@@ -147,6 +147,7 @@ check_ref "VALIDATION-QUICK-INDEX.md" "verify-web-deployment-ready.sh" "Web站�
 check_ref "VALIDATION-QUICK-INDEX.md" "ops-web-deploy.md" "Web站点部署指南"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-admin-api-complete.sh" "Admin API完整功能验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "ADMIN-API-TEST-ENV-SETUP.md" "Admin API测试环境配置指南"
+check_ref "VALIDATION-QUICK-INDEX.md" "cleanup-validation-backups.sh" "验证脚本备份清理工具"
 check_ref "../docs/install-cn-script-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 check_ref "../docs/install-cn-quick-test-examples.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 check_ref "../docs/install-cn-complete-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
