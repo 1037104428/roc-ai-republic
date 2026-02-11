@@ -22,8 +22,93 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.1712"
+SCRIPT_VERSION="2026.02.11.1751"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
+
+# Version compatibility checking
+check_version_compatibility() {
+  local version="$1"
+  log_info "Checking version compatibility for: $version"
+  
+  # Extract major.minor.patch if available
+  local major=""
+  local minor=""
+  local patch=""
+  
+  if [[ "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+    major="${BASH_REMATCH[1]}"
+    minor="${BASH_REMATCH[2]}"
+    patch="${BASH_REMATCH[3]}"
+    log_debug "Parsed version: major=$major, minor=$minor, patch=$patch"
+  elif [[ "$version" == "latest" ]]; then
+    log_info "Using 'latest' version - skipping compatibility checks"
+    return 0
+  else
+    log_warning "Version format not recognized: $version - skipping compatibility checks"
+    return 0
+  fi
+  
+  # Check Node.js version compatibility
+  local node_version
+  node_version=$(node --version 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+  log_debug "Detected Node.js version: $node_version"
+  
+  # OpenClaw 0.3.x requires Node.js >= 18.0.0
+  if [[ "$major" -eq 0 && "$minor" -eq 3 ]]; then
+    local node_major
+    node_major=$(echo "$node_version" | cut -d. -f1)
+    if [[ "$node_major" -lt 18 ]]; then
+      log_warning "OpenClaw 0.3.x requires Node.js 18+ (detected: $node_version)"
+      log_warning "Consider upgrading Node.js or using an older OpenClaw version"
+      if [[ "${SKIP_INTERACTIVE:-0}" -eq 0 ]]; then
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          log_error "Installation cancelled due to Node.js version incompatibility"
+          return 1
+        fi
+      fi
+    fi
+  fi
+  
+  # Check npm version compatibility
+  local npm_version
+  npm_version=$(npm --version 2>/dev/null || echo "0.0.0")
+  log_debug "Detected npm version: $npm_version"
+  
+  # OpenClaw requires npm >= 8.0.0 for workspace features
+  local npm_major
+  npm_major=$(echo "$npm_version" | cut -d. -f1)
+  if [[ "$npm_major" -lt 8 ]]; then
+    log_warning "OpenClaw requires npm 8+ for workspace features (detected: $npm_version)"
+    log_warning "Consider upgrading npm: npm install -g npm@latest"
+  fi
+  
+  # Check OS compatibility warnings
+  local os_type
+  os_type=$(uname -s)
+  if [[ "$os_type" == "Darwin" ]]; then
+    # macOS specific checks
+    local macos_version
+    macos_version=$(sw_vers -productVersion 2>/dev/null || echo "0.0.0")
+    log_debug "Detected macOS version: $macos_version"
+    
+    # OpenClaw 0.3.x has better macOS support
+    if [[ "$major" -eq 0 && "$minor" -eq 3 && "$patch" -lt 5 ]]; then
+      log_info "OpenClaw $version may have limited macOS ARM support"
+      log_info "Consider upgrading to 0.3.5+ for full Apple Silicon compatibility"
+    fi
+  elif [[ "$os_type" == "Linux" ]]; then
+    # Linux specific checks
+    log_debug "Linux system detected - good compatibility"
+  else
+    log_warning "Unsupported OS detected: $os_type"
+    log_warning "OpenClaw may have limited functionality on this platform"
+  fi
+  
+  log_success "Version compatibility check passed for OpenClaw $version"
+  return 0
+}
 
 # Color logging functions
 color_log() {
@@ -267,6 +352,12 @@ main_install() {
   done
   
   color_log "INFO" "安装OpenClaw版本: $openclaw_version"
+  
+  # Check version compatibility before installation
+  if ! check_version_compatibility "$openclaw_version"; then
+    color_log "ERROR" "版本兼容性检查失败，安装中止"
+    return 1
+  fi
   
   # Install OpenClaw with fallback strategy
   if ! install_with_fallback "openclaw" "$openclaw_version" "$npm_registry"; then
