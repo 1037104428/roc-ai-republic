@@ -404,6 +404,109 @@ curl -I -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys"
 time curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys" > /dev/null
 ```
 
+## 11. 快速开始（5分钟上手）
+
+### 11.1 第一步：环境设置
+
+```bash
+# 1. 设置环境变量
+export BASE_URL="http://localhost:8787"
+export ADMIN_TOKEN="your-admin-token-here"
+
+# 2. 验证环境
+echo "BASE_URL: $BASE_URL"
+echo "ADMIN_TOKEN: ${ADMIN_TOKEN:0:8}..."
+```
+
+### 11.2 第二步：快速验证
+
+```bash
+# 1. 检查服务是否运行
+curl -s "$BASE_URL/healthz"
+
+# 2. 测试Admin API访问
+curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys" | jq -r '.status'
+
+# 3. 生成第一个试用密钥
+curl -s -X POST "$BASE_URL/admin/keys/trial" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "快速开始测试",
+    "quota": 10,
+    "expiresIn": "1d"
+  }' | jq -r '.key'
+```
+
+### 11.3 第三步：常用操作速查
+
+```bash
+# 查看所有试用密钥
+curl -s "$BASE_URL/admin/keys/trial" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.keys[].key'
+
+# 查看使用统计
+curl -s "$BASE_URL/admin/usage" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.totalRequests'
+
+# 查看系统状态
+curl -s "$BASE_URL/admin/system/status" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.uptime'
+```
+
+### 11.4 第四步：一键验证脚本
+
+```bash
+#!/bin/bash
+# quick-start-verify.sh
+
+BASE_URL="${1:-http://localhost:8787}"
+ADMIN_TOKEN="${2:-$ADMIN_TOKEN}"
+
+echo "=== Admin API 快速验证 ==="
+echo ""
+
+# 1. 健康检查
+echo "1. 健康检查:"
+health=$(curl -s --max-time 3 "$BASE_URL/healthz")
+if [[ "$health" == "OK" ]]; then
+  echo "   ✓ 服务正常"
+else
+  echo "   ✗ 服务异常: $health"
+  exit 1
+fi
+
+# 2. Admin API 访问
+echo "2. Admin API 访问:"
+api_resp=$(curl -s --max-time 3 -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys")
+if echo "$api_resp" | grep -q "success"; then
+  echo "   ✓ Admin API 访问正常"
+else
+  echo "   ✗ Admin API 访问失败"
+  exit 1
+fi
+
+# 3. 生成试用密钥
+echo "3. 试用密钥生成:"
+key_resp=$(curl -s -X POST "$BASE_URL/admin/keys/trial" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"验证测试","quota":5,"expiresIn":"1h"}')
+if echo "$key_resp" | grep -q "key"; then
+  trial_key=$(echo "$key_resp" | jq -r '.key')
+  echo "   ✓ 试用密钥生成成功: ${trial_key:0:16}..."
+else
+  echo "   ✗ 试用密钥生成失败"
+  exit 1
+fi
+
+echo ""
+echo "=== 验证完成 ==="
+echo "服务状态: 正常"
+echo "Admin API: 可用"
+echo "试用密钥功能: 正常"
+```
+
 ## 总结
 
 本文档提供了 quota-proxy Admin API 的完整调用示例，涵盖：
@@ -415,5 +518,8 @@ time curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys" > /d
 - 批量操作
 - 实用脚本
 - 故障排除
+- 快速开始指南
 
 所有示例都经过测试，可以直接复制使用。根据实际环境调整 `BASE_URL` 和 `ADMIN_TOKEN` 即可。
+
+**新用户建议**：从第11章"快速开始"开始，5分钟内完成环境设置和基本功能验证。
