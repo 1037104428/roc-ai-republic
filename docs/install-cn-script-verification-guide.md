@@ -351,6 +351,7 @@ sed -i 's/SCRIPT_VERSION="[^"]*"/SCRIPT_VERSION="2026.02.12.0056"/' verify-insta
 - [install-cn-troubleshooting.md](./install-cn-troubleshooting.md) - 故障排除指南
 - [install-cn-quick-verification-commands.md](./install-cn-quick-verification-commands.md) - 快速验证命令
 - [install-cn-comprehensive-guide.md](./install-cn-comprehensive-guide.md) - 完整安装指南
+- [../quota-proxy/VALIDATION-QUICK-INDEX.md](../quota-proxy/VALIDATION-QUICK-INDEX.md) - 验证脚本快速索引
 
 ## 贡献指南
 
