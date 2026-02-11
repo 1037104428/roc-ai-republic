@@ -1006,6 +1006,8 @@ CI/CD Integration:
     OPENCLAW_VERSION       Set OpenClaw version
     NPM_REGISTRY           Set npm registry URL
     NPM_REGISTRY_FALLBACK  Set fallback registry URL
+    ENABLE_ENHANCED_HEALTH_CHECK=1  Run enhanced health check after installation
+    RUN_ENHANCED_HEALTH_CHECK=1     Same as above (alternative)
   
   Example CI/CD usage:
     export CI_MODE=1
@@ -2007,6 +2009,30 @@ if [[ $DRY_RUN -eq 0 ]]; then
       echo "[cn-pack] ✓ Config file exists: ~/.openclaw/openclaw.json"
     else
       echo "[cn-pack] ℹ️ Config file not found. Create with: openclaw config init"
+    fi
+    
+    # Enhanced health check integration (if requested)
+    if [[ "${ENABLE_ENHANCED_HEALTH_CHECK:-0}" == "1" ]] || [[ "${RUN_ENHANCED_HEALTH_CHECK:-0}" == "1" ]]; then
+      echo "[cn-pack] 🔍 Running enhanced health check integration..."
+      echo "[cn-pack] This will perform a comprehensive health check of the OpenClaw installation"
+      
+      # Check if enhanced health check script exists
+      ENHANCED_HEALTH_CHECK_SCRIPT="$(dirname "$0")/enhanced-health-check.sh"
+      if [[ -f "$ENHANCED_HEALTH_CHECK_SCRIPT" ]] && [[ -x "$ENHANCED_HEALTH_CHECK_SCRIPT" ]]; then
+        echo "[cn-pack] Found enhanced health check script: $ENHANCED_HEALTH_CHECK_SCRIPT"
+        echo "[cn-pack] Running enhanced health check (this may take a moment)..."
+        
+        # Run enhanced health check
+        if bash "$ENHANCED_HEALTH_CHECK_SCRIPT" --quick; then
+          echo "[cn-pack] ✅ Enhanced health check completed successfully"
+        else
+          echo "[cn-pack] ⚠️ Enhanced health check found some issues (check output above)"
+        fi
+      else
+        echo "[cn-pack] ℹ️ Enhanced health check script not found or not executable"
+        echo "[cn-pack] You can download it from: https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/enhanced-health-check.sh"
+        echo "[cn-pack] Or run manually: curl -fsSL https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/enhanced-health-check.sh | bash -s -- --quick"
+      fi
     fi
     
     # Additional diagnostics for troubleshooting
