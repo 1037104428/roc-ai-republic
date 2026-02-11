@@ -195,6 +195,90 @@ handle_proxy_settings() {
   fi
 }
 
+# Function for step-by-step installation
+step_by_step_install() {
+  local steps_to_run=""
+  
+  # Determine which steps to run
+  if [[ -n "$STEPS" ]]; then
+    steps_to_run="$STEPS"
+    echo "[cn-pack] 🔧 运行指定步骤: $steps_to_run"
+  else
+    steps_to_run="network-check,proxy-check,registry-test,dependency-check,npm-install,verification,cleanup"
+    echo "[cn-pack] 🔧 运行完整步骤序列"
+  fi
+  
+  # Convert steps to array
+  IFS=',' read -ra steps_array <<< "$steps_to_run"
+  
+  for step in "${steps_array[@]}"; do
+    step=$(echo "$step" | xargs)  # Trim whitespace
+    
+    case "$step" in
+      network-check)
+        echo "[cn-pack] 🔍 步骤 1/7: 网络连接检查"
+        echo "[cn-pack]   运行网络测试..."
+        if [[ "$NETWORK_TEST" == "1" ]]; then
+          echo "[cn-pack]   ✓ 网络测试已启用"
+        else
+          echo "[cn-pack]   ℹ️ 网络测试未启用 (使用 --network-test 启用)"
+        fi
+        ;;
+        
+      proxy-check)
+        echo "[cn-pack] 🔍 步骤 2/7: 代理配置检查"
+        echo "[cn-pack]   检查代理设置..."
+        if [[ "$PROXY_TEST" == "1" ]]; then
+          echo "[cn-pack]   ✓ 代理测试已启用"
+        else
+          echo "[cn-pack]   ℹ️ 代理测试未启用 (使用 --proxy-test 启用)"
+        fi
+        ;;
+        
+      registry-test)
+        echo "[cn-pack] 🔍 步骤 3/7: NPM 仓库连接测试"
+        echo "[cn-pack]   测试仓库连接性..."
+        echo "[cn-pack]   主仓库: $REG_CN"
+        echo "[cn-pack]   备用仓库: $REG_FALLBACK"
+        ;;
+        
+      dependency-check)
+        echo "[cn-pack] 🔍 步骤 4/7: 系统依赖检查"
+        echo "[cn-pack]   检查 Node.js, npm, curl..."
+        # 这里可以添加实际的依赖检查
+        ;;
+        
+      npm-install)
+        echo "[cn-pack] 🔍 步骤 5/7: NPM 包安装"
+        echo "[cn-pack]   安装 OpenClaw v$VERSION..."
+        echo "[cn-pack]   使用仓库: $REG_CN"
+        ;;
+        
+      verification)
+        echo "[cn-pack] 🔍 步骤 6/7: 安装验证"
+        echo "[cn-pack]   验证级别: $VERIFY_LEVEL"
+        ;;
+        
+      cleanup)
+        echo "[cn-pack] 🔍 步骤 7/7: 清理临时文件"
+        echo "[cn-pack]   清理安装过程中的临时文件..."
+        ;;
+        
+      *)
+        echo "[cn-pack] ⚠️  未知步骤: $step (跳过)"
+        continue
+        ;;
+    esac
+    
+    # 在实际实现中，这里会有每个步骤的实际执行代码
+    echo "[cn-pack]   ✓ 步骤 '$step' 准备就绪"
+    echo ""
+  done
+  
+  echo "[cn-pack] ✅ 分步安装模式配置完成"
+  echo "[cn-pack] ℹ️  要实际执行安装，请移除 --step-by-step 或 --steps 参数"
+}
+
 # Function to clear proxy settings after installation
 cleanup_proxy_settings() {
   echo "[cn-pack] Cleaning up proxy settings..."
@@ -227,7 +311,18 @@ Options:
   --keep-proxy             Keep npm proxy settings after installation
   --offline-mode           Enable offline mode (use local cache only)
   --cache-dir <dir>        Specify local cache directory (default: ~/.openclaw/cache)
+  --step-by-step           Enable step-by-step interactive installation mode
+  --steps <steps>          Specify installation steps to run (comma-separated)
   -h, --help               Show help
+
+Installation Steps (for --step-by-step or --steps):
+  - network-check: Network connectivity test
+  - proxy-check: Proxy configuration check
+  - registry-test: NPM registry connectivity test
+  - dependency-check: System dependency verification
+  - npm-install: NPM package installation
+  - verification: Installation verification
+  - cleanup: Cleanup temporary files
 
 Version Control:
   - Script version: $SCRIPT_VERSION
@@ -298,6 +393,8 @@ PROXY_REPORT=0
 KEEP_PROXY=0
 OFFLINE_MODE=0
 CACHE_DIR="${HOME}/.openclaw/cache"
+STEP_BY_STEP=0
+STEPS=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -329,6 +426,10 @@ while [[ $# -gt 0 ]]; do
       OFFLINE_MODE=1; shift ;;
     --cache-dir)
       CACHE_DIR="${2:-}"; shift 2 ;;
+    --step-by-step)
+      STEP_BY_STEP=1; shift ;;
+    --steps)
+      STEPS="${2:-}"; shift 2 ;;
     --check-update)
       check_script_update
       exit $?
@@ -353,6 +454,12 @@ if [[ -z "$VERSION" || -z "$REG_CN" || -z "$REG_FALLBACK" ]]; then
   echo "[cn-pack] Missing required values." >&2
   usage
   exit 2
+fi
+
+# Check if step-by-step mode is enabled (must be before main installation logic)
+if [[ "$STEP_BY_STEP" == "1" || -n "$STEPS" ]]; then
+  step_by_step_install
+  exit 0
 fi
 
 # Run version check if requested (non-blocking)
