@@ -41,6 +41,7 @@
 | `verify-env-config.sh` | 环境配置验证 | 检查环境变量配置正确性 |
 | `verify-sqlite-config.sh` | SQLite配置验证 | 验证SQLite相关配置 |
 | `verify-config.sh` | 配置验证脚本 | 验证必需环境变量、格式、端口可用性、数据库文件和管理员令牌 |
+| `verify-env.sh` | 环境变量验证脚本 | 验证必需和可选环境变量，检查格式和完整性 |
 
 ### 5. 性能验证
 | 脚本 | 功能 | 使用场景 |
