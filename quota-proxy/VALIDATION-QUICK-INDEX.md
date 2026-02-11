@@ -15,6 +15,8 @@
 | `check-db.sh` | 数据库初始化检查脚本 | 初始化、验证、备份和清理数据库 |
 | `DATABASE-INIT-GUIDE.md` | 数据库初始化指南 | 详细的数据库初始化、使用和管理文档 |
 | `verify-sqlite-persistence.sh` | SQLite持久化验证脚本 | 验证SQLite持久化功能完整性，检查相关文件和实现 |
+| `init-sqlite-db.sh` | SQLite数据库初始化脚本 | 初始化quota-proxy的SQLite数据库，创建表结构、视图和示例数据 |
+| `verify-sqlite-init.sh` | SQLite初始化验证脚本 | 验证init-sqlite-db.sh脚本功能和数据库结构完整性 |
 
 ### 2. Admin API 验证
   - [quick-test-admin-api-usage.md](quick-test-admin-api-usage.md) - Admin API快速测试脚本使用说明文档

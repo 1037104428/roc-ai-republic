@@ -72,6 +72,8 @@ check_doc "../docs/install-cn-quick-test-examples.md" "安装脚本快速测试�
 check_doc "../docs/validation-toolchain-overview.md" "验证工具链概览文档" 20
 check_doc "verify-env.sh" "环境变量验证脚本" 10
 check_doc "verify-sqlite-persistence.sh" "SQLite持久化验证脚本" 10
+check_doc "init-sqlite-db.sh" "SQLite数据库初始化脚本" 10
+check_doc "verify-sqlite-init.sh" "SQLite初始化验证脚本" 10
 check_doc "PROMETHEUS-MONITORING-INTEGRATION-GUIDE.md" "Prometheus监控集成指南" 20
 check_doc "verify-prometheus-metrics.sh" "Prometheus监控指标验证脚本" 10
 check_doc "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证脚本" 10
@@ -119,6 +121,8 @@ check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn.sh" "安装脚本
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn-enhanced.sh" "安装脚本增强版快速验证工具"
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-cdn-fallback.sh" "CDN回退策略验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-sqlite-persistence.sh" "SQLite持久化验证脚本"
+check_ref "VALIDATION-QUICK-INDEX.md" "init-sqlite-db.sh" "SQLite数据库初始化脚本"
+check_ref "VALIDATION-QUICK-INDEX.md" "verify-sqlite-init.sh" "SQLite初始化验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-prometheus-metrics.sh" "Prometheus监控指标验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-web-deployment-ready.sh" "Web站点部署就绪验证脚本"
