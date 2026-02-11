@@ -36,7 +36,7 @@
 - [ ] 单元测试覆盖核心功能
 - [x] 集成测试（完整 API 流程） - 2026-02-10 23:21:00 CST 完成，创建完整API流程集成测试脚本和文档
 - [x] 压力测试（高并发场景） - 2026-02-11 09:05 CST 完成，创建压力测试脚本和指南
-- [ ] 数据库恢复测试
+- [x] 数据库恢复测试 - 2026-02-11 09:53 CST 完成，创建数据库恢复测试脚本，支持备份、恢复和损坏恢复测试
 - [ ] 安全渗透测试（基础）
 
 ### 5. 部署和运维
@@ -64,6 +64,11 @@ curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: applicati
 
 # 检查容器状态
 ssh root@8.210.185.194 'cd /opt/roc/quota-proxy && docker compose ps'
+
+# 数据库恢复测试
+chmod +x ./scripts/test-database-recovery.sh
+./scripts/test-database-recovery.sh --help
+./scripts/test-database-recovery.sh --dry-run --verbose
 ```
 
 ## 相关文件
