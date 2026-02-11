@@ -244,8 +244,129 @@ step_by_step_install() {
         
       dependency-check)
         echo "[cn-pack] 🔍 步骤 4/7: 系统依赖检查"
-        echo "[cn-pack]   检查 Node.js, npm, curl..."
-        # 这里可以添加实际的依赖检查
+        echo "[cn-pack]   检查 Node.js, npm, curl, 磁盘空间, 权限..."
+        
+        # 增强的依赖检查函数
+        enhanced_dependency_check() {
+          local errors=0
+          local warnings=0
+          
+          echo "[cn-pack]   1. 检查 Node.js..."
+          if command -v node &> /dev/null; then
+            local node_version=$(node --version 2>/dev/null | cut -d'v' -f2)
+            echo "[cn-pack]     ✓ Node.js v$node_version 已安装"
+            
+            # 检查 Node.js 版本是否 >= 16
+            local node_major=$(echo "$node_version" | cut -d'.' -f1)
+            if [[ "$node_major" -ge 16 ]]; then
+              echo "[cn-pack]     ✓ Node.js 版本满足要求 (>= 16)"
+            else
+              echo "[cn-pack]     ⚠️  Node.js 版本较低 (v$node_version < 16)"
+              warnings=$((warnings + 1))
+            fi
+          else
+            echo "[cn-pack]     ❌ Node.js 未安装"
+            errors=$((errors + 1))
+          fi
+          
+          echo "[cn-pack]   2. 检查 npm..."
+          if command -v npm &> /dev/null; then
+            local npm_version=$(npm --version 2>/dev/null)
+            echo "[cn-pack]     ✓ npm v$npm_version 已安装"
+          else
+            echo "[cn-pack]     ❌ npm 未安装"
+            errors=$((errors + 1))
+          fi
+          
+          echo "[cn-pack]   3. 检查 curl..."
+          if command -v curl &> /dev/null; then
+            echo "[cn-pack]     ✓ curl 已安装"
+          else
+            echo "[cn-pack]     ⚠️  curl 未安装 (将影响网络功能)"
+            warnings=$((warnings + 1))
+          fi
+          
+          echo "[cn-pack]   4. 检查磁盘空间..."
+          local free_space_kb=$(df -k . 2>/dev/null | tail -1 | awk '{print $4}')
+          if [[ -n "$free_space_kb" ]]; then
+            local free_space_mb=$((free_space_kb / 1024))
+            if [[ "$free_space_mb" -ge 500 ]]; then
+              echo "[cn-pack]     ✓ 磁盘空间充足 (${free_space_mb}MB 可用)"
+            elif [[ "$free_space_mb" -ge 100 ]]; then
+              echo "[cn-pack]     ⚠️  磁盘空间较低 (${free_space_mb}MB 可用)"
+              warnings=$((warnings + 1))
+            else
+              echo "[cn-pack]     ❌ 磁盘空间不足 (${free_space_mb}MB 可用，需要至少 100MB)"
+              errors=$((errors + 1))
+            fi
+          else
+            echo "[cn-pack]     ⚠️  无法检查磁盘空间"
+            warnings=$((warnings + 1))
+          fi
+          
+          echo "[cn-pack]   5. 检查 npm 全局安装权限..."
+          if command -v npm &> /dev/null; then
+            if npm config get prefix 2>/dev/null | grep -q "Permission denied"; then
+              echo "[cn-pack]     ❌ npm 全局安装权限不足"
+              errors=$((errors + 1))
+            else
+              echo "[cn-pack]     ✓ npm 全局安装权限正常"
+            fi
+          fi
+          
+          echo "[cn-pack]   6. 检查内存..."
+          if [[ -f /proc/meminfo ]]; then
+            local mem_total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+            local mem_total_mb=$((mem_total_kb / 1024))
+            if [[ "$mem_total_mb" -ge 1024 ]]; then
+              echo "[cn-pack]     ✓ 内存充足 (${mem_total_mb}MB)"
+            elif [[ "$mem_total_mb" -ge 512 ]]; then
+              echo "[cn-pack]     ⚠️  内存较低 (${mem_total_mb}MB)"
+              warnings=$((warnings + 1))
+            else
+              echo "[cn-pack]     ❌ 内存不足 (${mem_total_mb}MB，需要至少 512MB)"
+              errors=$((errors + 1))
+            fi
+          else
+            echo "[cn-pack]     ⚠️  无法检查内存"
+            warnings=$((warnings + 1))
+          fi
+          
+          # 总结报告
+          echo "[cn-pack]   -----------------------------------------"
+          echo "[cn-pack]   依赖检查完成:"
+          if [[ "$errors" -eq 0 ]]; then
+            echo "[cn-pack]     ✓ 所有必需依赖检查通过"
+          else
+            echo "[cn-pack]     ❌ 发现 $errors 个错误"
+          fi
+          
+          if [[ "$warnings" -gt 0 ]]; then
+            echo "[cn-pack]     ⚠️  发现 $warnings 个警告"
+          fi
+          
+          if [[ "$errors" -gt 0 ]]; then
+            echo "[cn-pack]   ❌ 依赖检查失败，请解决上述问题后重试"
+            return 1
+          fi
+          
+          return 0
+        }
+        
+        # 执行增强的依赖检查
+        if ! enhanced_dependency_check; then
+          if [[ "$STEP_BY_STEP" == "true" ]]; then
+            echo "[cn-pack]   ⚠️  依赖检查失败，是否继续？[y/N]"
+            read -r continue_install
+            if [[ ! "$continue_install" =~ ^[Yy]$ ]]; then
+              echo "[cn-pack]   ❌ 安装已取消"
+              exit 1
+            fi
+          else
+            echo "[cn-pack]   ❌ 依赖检查失败，安装中止"
+            exit 1
+          fi
+        fi
         ;;
         
       npm-install)
