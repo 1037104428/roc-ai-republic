@@ -189,11 +189,22 @@ test_create_api_key() {
     local http_status=$(grep -o 'HTTP_STATUS:[0-9]*' "$response_file" | cut -d: -f2)
     local response_body=$(grep -v 'HTTP_STATUS:' "$response_file")
     
-    if [[ "$http_status" != "200" ]]; then
+    if [[ "$http_status" != "200" ]] && [[ "$DRY_RUN" != "true" ]]; then
         log_error "创建API密钥失败，HTTP状态码: $http_status"
         echo "响应: $response_body"
         rm -f "$response_file"
         return 1
+    fi
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        # 干运行模式下，模拟成功响应
+        CREATED_KEY="roc_$(date +%s)-dryrun-test"
+        log_success "[干运行] API密钥创建成功"
+        log_info "[干运行] 密钥: $CREATED_KEY"
+        log_info "[干运行] 标签: $label"
+        log_info "[干运行] 配额: $total_quota"
+        rm -f "$response_file"
+        return 0
     fi
     
     # 解析响应
