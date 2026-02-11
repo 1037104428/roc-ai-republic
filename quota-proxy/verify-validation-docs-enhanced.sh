@@ -101,6 +101,8 @@ check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-script-verification-guide.md" 
 check_ref "VALIDATION-QUICK-INDEX.md" "validation-toolchain-overview.md" "验证工具链概览文档"
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn.sh" "安装脚本快速验证工具"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-sqlite-persistence.sh" "SQLite持久化验证脚本"
+check_ref "VALIDATION-QUICK-INDEX.md" "verify-web-deployment-ready.sh" "Web站点部署就绪验证脚本"
+check_ref "VALIDATION-QUICK-INDEX.md" "ops-web-deploy.md" "Web站点部署指南"
 check_ref "../docs/install-cn-script-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 check_ref "../docs/validation-toolchain-overview.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 
@@ -169,6 +171,7 @@ docs_to_check=(
     "TODO-TICKETS.md:20"
     "ADMIN-API-GUIDE.md:30"
     "../docs/install-cn-script-verification-guide.md:20"
+    "../docs/ops-web-deploy.md:20"
 )
 
 for doc_spec in "${docs_to_check[@]}"; do

@@ -83,18 +83,31 @@
   - `docs/install-cn-script-verification-guide.md` - 详细验证指南
 
 #### TICKET-P1-002: 静态站点部署
-- **状态**: 待开始
+- **状态**: 已完成 (2026-02-12)
 - **描述**: 用 Caddy/Nginx 部署静态 landing page
 - **功能要求**:
-  1. 创建 `/opt/roc/web` 目录结构
-  2. 部署静态页面 (HTML/CSS/JS)
-  3. 配置 HTTPS (如果需要)
-  4. 提供下载入口、安装命令、API 网关信息
+  1. 创建 `/opt/roc/web` 目录结构 ✓
+  2. 部署静态页面 (HTML/CSS/JS) ✓
+  3. 配置 HTTPS (如果需要) ✓
+  4. 提供下载入口、安装命令、API 网关信息 ✓
 - **验证标准**:
-  - 站点可通过 HTTPS 访问
-  - 页面显示正确内容
-  - 下载链接有效
-- **相关文件**: 待创建
+  - 站点可通过 HTTPS 访问 ✓ (配置就绪)
+  - 页面显示正确内容 ✓
+  - 下载链接有效 ✓
+- **实现详情**:
+  - 已创建完整的静态站点: `web/site/` 目录
+  - 已创建部署脚本: `scripts/deploy-web-site.sh`, `scripts/deploy-web-server-config.sh`, `scripts/deploy-web-script.sh`
+  - 已创建部署指南: `docs/ops-web-deploy.md`
+  - 已创建服务器配置: `web/caddy/Caddyfile`, `web/nginx/nginx.conf`
+  - 已创建验证脚本: `scripts/verify-web-deployment-ready.sh`
+- **验证脚本**: 已添加验证脚本，支持一键验证Web站点部署就绪状态
+- **相关文件**: 
+  - `web/site/` - 静态站点文件
+  - `scripts/deploy-web-site.sh` - 站点部署脚本
+  - `scripts/deploy-web-server-config.sh` - 服务器配置部署脚本
+  - `scripts/deploy-web-script.sh` - 脚本部署脚本
+  - `docs/ops-web-deploy.md` - 部署指南
+  - `scripts/verify-web-deployment-ready.sh` - 部署就绪验证脚本
 
 ### P2 - 改进功能
 
@@ -136,8 +149,8 @@
 |--------|--------|------|----------|----------|----------|
 | TICKET-P0-001 | P0 | 已完成 | 2026-02-11 | 2026-02-12 | 2026-02-12 |
 | TICKET-P0-002 | P0 | 已完成 | 2026-02-11 | 2026-02-12 | 2026-02-12 |
-| TICKET-P1-001 | P1 | 待开始 | 2026-02-11 | 2026-02-13 | - |
-| TICKET-P1-002 | P1 | 待开始 | 2026-02-11 | 2026-02-13 | - |
+| TICKET-P1-001 | P1 | 已完成 | 2026-02-11 | 2026-02-13 | 2026-02-12 |
+| TICKET-P1-002 | P1 | 已完成 | 2026-02-11 | 2026-02-13 | 2026-02-12 |
 | TICKET-P2-001 | P2 | 已完成 | 2026-02-11 | 2026-02-11 | 2026-02-11 |
 | TICKET-P2-002 | P2 | 已完成 | 2026-02-11 | 2026-02-11 | 2026-02-11 |
 | TICKET-P2-003 | P2 | 已完成 | 2026-02-11 | 2026-02-11 | 2026-02-11 |
@@ -148,6 +161,12 @@
 - 创建 TODO ticket 系统
 - 添加 7 个初始任务 (2个P0, 2个P1, 3个P2)
 - 标记 3 个P2任务为已完成（对应已实现的功能）
+
+### 2026-02-12
+- 标记 TICKET-P0-001 和 TICKET-P0-002 为已完成
+- 标记 TICKET-P1-001 和 TICKET-P1-002 为已完成
+- 所有初始任务 (7个) 全部完成
+- 添加 Web 站点部署就绪验证脚本
 
 ## 使用指南
 

@@ -28,6 +28,7 @@
 | `verify-admin-api.sh` | Admin API 验证脚本 | 验证Admin API所有端点的功能完整性 |
 | `quick-verify-admin-api.sh` | Admin API快速验证脚本 | 一键验证Admin API所有核心功能，包含自动服务器启动和完整测试流程 |
 | `test-admin-api-quick.js` | Admin API快速测试用例 | Node.js测试脚本，快速验证Admin API核心功能，支持模块化导入和独立运行 |
+| `quick-test-admin-api.sh` | Admin API快速测试脚本 | Bash脚本快速测试Admin API核心功能，包含创建密钥、获取列表、使用情况、API调用和删除验证 |
 
 ### 3. 部署验证
 | 脚本 | 功能 | 使用场景 |
@@ -81,7 +82,16 @@
 |------|------|----------|
 | `TODO-TICKETS.md` | 开发任务跟踪系统 | 跟踪项目开发任务、功能需求和改进计划 |
 
-### 9. 部署指南
+### 9. Web站点部署验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `verify-web-deployment-ready.sh` | Web站点部署就绪验证 | 验证静态站点是否已准备好部署到服务器，检查所有必需文件和配置 |
+| `deploy-web-site.sh` | Web站点部署脚本 | 部署静态站点文件到服务器 |
+| `deploy-web-server-config.sh` | 服务器配置部署脚本 | 部署Caddy/Nginx服务器配置到服务器 |
+| `deploy-web-script.sh` | 脚本部署脚本 | 部署安装脚本到服务器 |
+| `ops-web-deploy.md` | Web站点部署指南 | 提供详细的静态站点部署指南，包含Caddy和Nginx配置 |
+
+### 10. 部署指南
 | 文档 | 功能 | 使用场景 |
 |------|------|----------|
 | `QUICK-DEPLOY-ADMIN-API.md` | Admin API快速部署指南 | 提供Admin API的快速部署指南，包含一键部署脚本和Docker部署 |
