@@ -248,6 +248,217 @@ cleanup_rollback() {
   fi
 }
 
+# 故障自愈功能
+# 环境变量：ENABLE_FAULT_RECOVERY (默认: 1，启用故障自愈)
+detect_and_fix_common_issues() {
+  local enable_fault_recovery="${ENABLE_FAULT_RECOVERY:-1}"
+  
+  if [[ "$enable_fault_recovery" != "1" ]]; then
+    color_log "DEBUG" "故障自愈功能已禁用 (ENABLE_FAULT_RECOVERY=$enable_fault_recovery)"
+    return 0
+  fi
+  
+  color_log "INFO" "开始故障自愈检查..."
+  local issues_found=0
+  local issues_fixed=0
+  
+  # 1. 检查权限问题
+  color_log "DEBUG" "检查权限问题..."
+  check_and_fix_permissions
+  
+  # 2. 检查网络连接问题
+  color_log "DEBUG" "检查网络连接问题..."
+  check_and_fix_network_connectivity
+  
+  # 3. 检查磁盘空间
+  color_log "DEBUG" "检查磁盘空间..."
+  check_disk_space
+  
+  # 4. 检查依赖包
+  color_log "DEBUG" "检查系统依赖..."
+  check_system_dependencies
+  
+  color_log "SUCCESS" "故障自愈检查完成"
+}
+
+check_and_fix_permissions() {
+  color_log "DEBUG" "检查文件和目录权限..."
+  
+  # 检查npm全局目录权限
+  local npm_global_dir=""
+  if command -v npm &> /dev/null; then
+    npm_global_dir=$(npm config get prefix 2>/dev/null || echo "")
+    if [[ -n "$npm_global_dir" ]]; then
+      if [[ ! -w "$npm_global_dir" ]]; then
+        color_log "WARNING" "npm全局目录不可写: $npm_global_dir"
+        color_log "INFO" "尝试修复权限..."
+        
+        # 尝试使用sudo修复权限（如果可用）
+        if command -v sudo &> /dev/null; then
+          if sudo chmod 755 "$npm_global_dir" 2>/dev/null; then
+            color_log "SUCCESS" "成功修复npm全局目录权限"
+          else
+            color_log "WARNING" "无法修复npm全局目录权限，可能需要手动修复"
+          fi
+        else
+          color_log "WARNING" "sudo不可用，无法修复npm全局目录权限"
+        fi
+      else
+        color_log "DEBUG" "npm全局目录权限正常: $npm_global_dir"
+      fi
+    fi
+  fi
+  
+  # 检查当前目录权限
+  if [[ ! -w "." ]]; then
+    color_log "WARNING" "当前目录不可写"
+    color_log "INFO" "建议切换到有写权限的目录执行安装"
+  fi
+  
+  # 检查/tmp目录权限
+  if [[ ! -w "/tmp" ]]; then
+    color_log "ERROR" "/tmp目录不可写，安装可能失败"
+    color_log "INFO" "尝试创建临时目录..."
+    local temp_dir="$HOME/.openclaw-temp-$(date +%s)"
+    mkdir -p "$temp_dir" 2>/dev/null || {
+      color_log "ERROR" "无法创建临时目录，请检查磁盘空间和权限"
+      return 1
+    }
+    export TMPDIR="$temp_dir"
+    color_log "SUCCESS" "已设置临时目录: $temp_dir"
+  fi
+}
+
+check_and_fix_network_connectivity() {
+  color_log "DEBUG" "检查网络连接..."
+  
+  # 测试npm registry连接
+  local npm_registry="${NPM_REGISTRY:-https://registry.npmjs.org}"
+  local test_urls=(
+    "$npm_registry"
+    "https://registry.npmmirror.com"
+    "https://www.google.com"
+    "https://github.com"
+  )
+  
+  local has_connectivity=0
+  for url in "${test_urls[@]}"; do
+    color_log "DEBUG" "测试连接: $url"
+    if curl -s --max-time 5 --head "$url" >/dev/null 2>&1; then
+      color_log "DEBUG" "连接成功: $url"
+      has_connectivity=1
+      
+      # 如果当前npm registry不可用，但备用registry可用，则切换
+      if [[ "$url" != "$npm_registry" ]] && [[ "$has_connectivity" -eq 0 ]]; then
+        color_log "WARNING" "主npm registry不可用，切换到备用registry: $url"
+        export NPM_REGISTRY="$url"
+        color_log "INFO" "已设置NPM_REGISTRY=$url"
+      fi
+      break
+    else
+      color_log "DEBUG" "连接失败: $url"
+    fi
+  done
+  
+  if [[ "$has_connectivity" -eq 0 ]]; then
+    color_log "WARNING" "网络连接测试失败"
+    color_log "INFO" "检查网络设置、代理配置或防火墙"
+    
+    # 检查代理设置
+    if [[ -n "$http_proxy" ]] || [[ -n "$HTTP_PROXY" ]] || [[ -n "$https_proxy" ]] || [[ -n "$HTTPS_PROXY" ]]; then
+      color_log "INFO" "检测到代理设置:"
+      [[ -n "$http_proxy" ]] && color_log "INFO" "  http_proxy=$http_proxy"
+      [[ -n "$HTTP_PROXY" ]] && color_log "INFO" "  HTTP_PROXY=$HTTP_PROXY"
+      [[ -n "$https_proxy" ]] && color_log "INFO" "  https_proxy=$https_proxy"
+      [[ -n "$HTTPS_PROXY" ]] && color_log "INFO" "  HTTPS_PROXY=$HTTPS_PROXY"
+    fi
+    
+    # 提供网络诊断建议
+    color_log "INFO" "网络诊断建议:"
+    color_log "INFO" "  1. 检查网络连接: ping 8.8.8.8"
+    color_log "INFO" "  2. 检查DNS解析: nslookup registry.npmjs.org"
+    color_log "INFO" "  3. 临时禁用代理: unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY"
+    color_log "INFO" "  4. 尝试使用其他网络环境"
+  else
+    color_log "DEBUG" "网络连接正常"
+  fi
+}
+
+check_disk_space() {
+  color_log "DEBUG" "检查磁盘空间..."
+  
+  # 检查当前目录所在磁盘空间
+  local current_dir=$(pwd)
+  local available_space=0
+  
+  if command -v df &> /dev/null; then
+    available_space=$(df -k "$current_dir" 2>/dev/null | awk 'NR==2 {print $4}' || echo "0")
+    
+    # 需要至少500MB空间
+    local min_space_mb=500
+    local min_space_kb=$((min_space_mb * 1024))
+    
+    if [[ "$available_space" -lt "$min_space_kb" ]]; then
+      color_log "WARNING" "磁盘空间不足: 可用 ${available_space}KB，需要至少 ${min_space_kb}KB"
+      color_log "INFO" "建议:"
+      color_log "INFO" "  1. 清理临时文件: rm -rf /tmp/*"
+      color_log "INFO" "  2. 切换到有足够空间的磁盘"
+      color_log "INFO" "  3. 扩展磁盘空间"
+    else
+      local available_mb=$((available_space / 1024))
+      color_log "DEBUG" "磁盘空间充足: 可用 ${available_mb}MB"
+    fi
+  else
+    color_log "DEBUG" "无法检查磁盘空间 (df命令不可用)"
+  fi
+}
+
+check_system_dependencies() {
+  color_log "DEBUG" "检查系统依赖..."
+  
+  local missing_deps=()
+  
+  # 检查curl或wget
+  if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
+    missing_deps+=("curl或wget")
+  fi
+  
+  # 检查node/npm
+  if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    missing_deps+=("Node.js和npm")
+  fi
+  
+  # 检查git (可选，但推荐)
+  if ! command -v git &> /dev/null; then
+    color_log "INFO" "Git未安装 (可选依赖)"
+  fi
+  
+  if [[ ${#missing_deps[@]} -gt 0 ]]; then
+    color_log "WARNING" "缺少必要依赖: ${missing_deps[*]}"
+    color_log "INFO" "安装建议:"
+    
+    for dep in "${missing_deps[@]}"; do
+      case "$dep" in
+        "curl或wget")
+          color_log "INFO" "  Ubuntu/Debian: sudo apt-get install curl"
+          color_log "INFO" "  CentOS/RHEL: sudo yum install curl"
+          color_log "INFO" "  macOS: brew install curl"
+          ;;
+        "Node.js和npm")
+          color_log "INFO" "  使用nvm安装:"
+          color_log "INFO" "    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash"
+          color_log "INFO" "    nvm install --lts"
+          color_log "INFO" "  或从官网下载: https://nodejs.org/"
+          ;;
+      esac
+    done
+    
+    return 1
+  else
+    color_log "DEBUG" "系统依赖检查通过"
+  fi
+}
+
 # Trap for error handling
 trap 'perform_rollback "Script terminated unexpectedly"' ERR
 trap 'cleanup_rollback' EXIT
@@ -1544,6 +1755,16 @@ done
 if [[ -n "$BATCH_DEPLOY_FILE" ]]; then
   batch_deploy_openclaw "$BATCH_DEPLOY_FILE" "$BATCH_DRY_RUN"
   exit $?
+fi
+
+# 故障自愈检查 - 在安装开始前检测和修复常见问题
+if [[ "${ENABLE_FAULT_RECOVERY:-1}" == "1" ]] && [[ "$DRY_RUN" != "1" ]]; then
+  echo ""
+  color_log "STEP" "========================================="
+  color_log "STEP" "🔧 故障自愈检查"
+  color_log "STEP" "========================================="
+  detect_and_fix_common_issues
+  echo ""
 fi
 
 # CI/CD模式环境变量覆盖
