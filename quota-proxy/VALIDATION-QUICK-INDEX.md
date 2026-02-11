@@ -26,6 +26,7 @@
 | `ADMIN-API-GUIDE.md` | Admin API 使用指南 | 详细的Admin API使用、部署和运维文档 |
 | `verify-admin-api.sh` | Admin API 验证脚本 | 验证Admin API所有端点的功能完整性 |
 | `quick-verify-admin-api.sh` | Admin API快速验证脚本 | 一键验证Admin API所有核心功能，包含自动服务器启动和完整测试流程 |
+| `test-admin-api-quick.js` | Admin API快速测试用例 | Node.js测试脚本，快速验证Admin API核心功能 |
 
 ### 3. 部署验证
 | 脚本 | 功能 | 使用场景 |
@@ -55,7 +56,13 @@
 | `quick-docs-check.sh` | 快速文档完整性检查 | 一键检查所有核心文档的存在性和互引用关系 |
 | `QUICK-DOCS-CHECK-GUIDE.md` | 快速文档检查指南 | 提供快速文档检查脚本的详细使用指南和最佳实践 |
 
-### 7. 快速命令参考
+### 7. 安装脚本验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `verify-install-cn.sh` | 安装脚本完整性验证 | 全面验证 install-cn.sh 脚本的功能和完整性 |
+| `install-cn-script-verification-guide.md` | 安装脚本验证指南 | 提供安装脚本验证的完整指南和最佳实践 |
+
+### 8. 快速命令参考
 | 脚本 | 功能 | 使用场景 |
 |------|------|----------|
 | `QUICK-VERIFICATION-COMMANDS.md` | 快速验证命令集合文档 | 提供日常运维、故障排查和CI/CD集成的快速命令参考 |
@@ -137,9 +144,10 @@
 - [CONFIG-VERIFICATION-GUIDE.md](./CONFIG-VERIFICATION-GUIDE.md) - 配置验证指南
 - [QUICK-DOCS-CHECK-GUIDE.md](./QUICK-DOCS-CHECK-GUIDE.md) - 快速文档检查指南
 - [TODO-TICKETS.md](./TODO-TICKETS.md) - 开发任务跟踪系统
+- [install-cn-script-verification-guide.md](../docs/install-cn-script-verification-guide.md) - 安装脚本验证指南
 
 ---
 
-**最后更新**: 2026-02-11  
+**最后更新**: 2026-02-12  
 **维护者**: 中华AI共和国项目组  
-**版本**: 1.0.4
+**版本**: 1.0.5

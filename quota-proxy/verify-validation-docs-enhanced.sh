@@ -58,6 +58,8 @@ check_doc "TODO-TICKETS.md" "开发任务跟踪系统" 20
 check_doc "ADMIN-API-GUIDE.md" "Admin API 使用指南" 30
 check_doc "quick-verify-admin-api.sh" "Admin API快速验证脚本" 10
 check_doc "QUICK-DEPLOY-ADMIN-API.md" "Admin API快速部署指南" 30
+check_doc "../scripts/verify-install-cn.sh" "安装脚本验证脚本" 10
+check_doc "../docs/install-cn-script-verification-guide.md" "安装脚本验证指南" 20
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
@@ -90,6 +92,8 @@ check_ref "VALIDATION-QUICK-INDEX.md" "VALIDATION-DECISION-TREE.md" "决策树�
 check_ref "VALIDATION-QUICK-INDEX.md" "VALIDATION-EXAMPLES.md" "使用示例文档"
 check_ref "VALIDATION-DECISION-TREE.md" "VALIDATION-QUICK-INDEX.md" "快速索引文档"
 check_ref "VALIDATION-EXAMPLES.md" "VALIDATION-DECISION-TREE.md" "决策树文档"
+check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-script-verification-guide.md" "安装脚本验证指南"
+check_ref "../docs/install-cn-script-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 
 echo ""
 echo -e "${BLUE}📚 README.md 集成检查${NC}"
@@ -155,6 +159,7 @@ docs_to_check=(
     "CONFIG-VERIFICATION-GUIDE.md:20"
     "TODO-TICKETS.md:20"
     "ADMIN-API-GUIDE.md:30"
+    "../docs/install-cn-script-verification-guide.md:20"
 )
 
 for doc_spec in "${docs_to_check[@]}"; do
@@ -172,7 +177,7 @@ for doc_spec in "${docs_to_check[@]}"; do
     fi
 done
 
-echo "核心验证文档数量: ${total_docs}/7"
+echo "核心验证文档数量: ${total_docs}/8"
 echo "有效文档数量: ${valid_docs}/${total_docs}"
 echo "总行数: ${total_lines} 行"
 echo "平均行数: $((total_lines / (total_docs > 0 ? total_docs : 1))) 行/文档"
