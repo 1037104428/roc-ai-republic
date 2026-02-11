@@ -1,6 +1,16 @@
 // 加载环境变量配置
 try {
-  require('./load-env.cjs')();
+  const { loadEnv, validateEnv } = require('./load-env.cjs');
+  loadEnv();
+  
+  // 验证必需的环境变量
+  const requiredVars = ['ADMIN_TOKEN'];
+  const validation = validateEnv(requiredVars);
+  
+  if (!validation.valid) {
+    console.warn(`⚠️  缺少必需的环境变量: ${validation.missing.join(', ')}`);
+    console.warn('💡 请在 .env 文件中设置这些变量，或确保它们已通过其他方式设置');
+  }
 } catch (error) {
   console.warn('⚠️  环境变量加载失败，使用默认配置:', error.message);
 }

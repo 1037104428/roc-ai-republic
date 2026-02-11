@@ -167,4 +167,37 @@ cat docs/install-cn-troubleshooting-guide.md | head -20
 
 ---
 
+### [TODO-009] 环境变量验证增强
+**状态**: 已完成  
+**创建时间**: 2026-02-11 13:39  
+**最后更新**: 2026-02-11 13:39  
+**描述**: 环境变量加载器缺少验证功能，无法检查必需的环境变量是否已设置。  
+**影响**: 部署时可能缺少关键配置，导致运行时错误。  
+**解决方案**: 
+1. ✅ 在 load-env.cjs 中添加 validateEnv 函数，支持必需环境变量验证
+2. ✅ 在 server-sqlite.js 中集成环境变量验证，检查 ADMIN_TOKEN 等必需变量
+3. ✅ 创建验证脚本 verify-env-validation.sh，测试环境变量验证功能
+
+**相关文件**:
+- `quota-proxy/load-env.cjs` - 环境变量加载器（已增强）
+- `quota-proxy/server-sqlite.js` - 主服务器文件（已集成验证）
+- `quota-proxy/verify-env-validation.sh` - 环境变量验证测试脚本
+
+**验证命令**:
+```bash
+# 测试环境变量验证功能
+cd quota-proxy && ./verify-env-validation.sh --dry-run
+cd quota-proxy && ./verify-env-validation.sh --quick
+cd quota-proxy && ./verify-env-validation.sh
+
+# 检查服务器语法
+cd quota-proxy && node -c server-sqlite.js
+
+# 检查环境变量加载器语法
+cd quota-proxy && node -c load-env.cjs
+```
+
+**进展**:
+- 2026-02-11 13:39: 添加环境变量验证功能，增强配置安全性
+
 **注意**: 定期审查和更新TODO列表，确保问题得到及时处理。

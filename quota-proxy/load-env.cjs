@@ -79,5 +79,28 @@ if (require.main === module) {
   });
 }
 
+/**
+ * 验证必需的环境变量是否已设置
+ * @param {Array<string>} requiredVars - 必需的环境变量数组
+ * @returns {Object} 验证结果 {valid: boolean, missing: Array<string>}
+ */
+function validateEnv(requiredVars = []) {
+  const missing = [];
+  
+  for (const key of requiredVars) {
+    if (!process.env[key] || process.env[key].trim() === '') {
+      missing.push(key);
+    }
+  }
+  
+  return {
+    valid: missing.length === 0,
+    missing
+  };
+}
+
 // 导出函数
-module.exports = loadEnv;
+module.exports = {
+  loadEnv,
+  validateEnv
+};
