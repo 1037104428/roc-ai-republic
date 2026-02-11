@@ -169,6 +169,17 @@ verify_health_endpoint() {
     
     response=$(run_curl "$health_url" "GET")
     
+    # 在干运行模式下，run_curl会返回模拟响应
+    if $DRY_RUN; then
+        if [[ "$response" == *"dry-run"* ]]; then
+            log_success "健康端点正常 (干运行模式)"
+            return 0
+        else
+            log_error "健康端点异常 (干运行模式): $response"
+            return 1
+        fi
+    fi
+    
     if [[ "$response" == *"ok"* ]] || [[ "$response" == *"healthy"* ]]; then
         log_success "健康端点正常: $response"
         return 0
