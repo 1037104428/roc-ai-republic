@@ -25,6 +25,9 @@ set -euo pipefail
 SCRIPT_VERSION="2026.02.11.1839"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
+# Script directory for local file references
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Logging functions
 log_info() {
   color_log "INFO" "$1"
@@ -524,11 +527,27 @@ main_install() {
   local duration=$((end_time - start_time))
   
   color_log "SUCCESS" "OpenClaw安装完成！耗时: ${duration}秒"
+  
+  # 自动运行安装验证
+  color_log "INFO" "正在执行安装验证..."
+  if [[ -f "${SCRIPT_DIR}/install-cn-self-check.sh" ]]; then
+    if bash "${SCRIPT_DIR}/install-cn-self-check.sh" --quick; then
+      color_log "SUCCESS" "✅ 安装验证通过！"
+    else
+      color_log "WARNING" "⚠️ 安装验证发现问题，请查看详细报告"
+      color_log "INFO" "运行完整验证: bash ${SCRIPT_DIR}/install-cn-self-check.sh"
+    fi
+  else
+    color_log "WARNING" "⚠️ 安装验证脚本未找到，跳过验证"
+    color_log "INFO" "手动验证: openclaw --version"
+  fi
+  
   color_log "INFO" "下一步:"
   color_log "INFO" "  1. 运行 'openclaw --help' 查看可用命令"
   color_log "INFO" "  2. 运行 'openclaw gateway start' 启动服务"
   color_log "INFO" "  3. 访问 https://docs.openclaw.ai 查看文档"
   color_log "INFO" "  4. 加入社区: https://discord.com/invite/clawd"
+  color_log "INFO" "  5. 运行完整验证: bash ${SCRIPT_DIR}/install-cn-self-check.sh"
   
   return 0
 }

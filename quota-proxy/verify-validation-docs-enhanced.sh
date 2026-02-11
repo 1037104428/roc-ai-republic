@@ -71,6 +71,7 @@ check_doc "../scripts/quick-verify-install-cn-enhanced.sh" "安装脚本增强�
 check_doc "../scripts/verify-install-cn-complete.sh" "安装脚本完整功能验证脚本" 10
 check_doc "../scripts/install-cn-fallback-recovery.sh" "安装失败恢复脚本" 10
 check_doc "../docs/install-cn-fallback-recovery-guide.md" "安装失败恢复指南" 10
+check_doc "../scripts/install-cn-self-check.sh" "安装自检脚本" 10
 check_doc "../scripts/quick-verify-cdn-fallback.sh" "CDN回退策略验证脚本" 10
 check_doc "../docs/install-cn-script-verification-guide.md" "安装脚本验证指南" 20
 check_doc "../docs/install-cn-quick-test-examples.md" "安装脚本快速测试示例" 20
@@ -131,6 +132,7 @@ check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn-enhanced.sh" "安
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-install-cn-complete.sh" "安装脚本完整功能验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-fallback-recovery.sh" "安装失败恢复脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-fallback-recovery-guide.md" "安装失败恢复指南"
+check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-self-check.sh" "安装自检脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-cdn-fallback.sh" "CDN回退策略验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-sqlite-persistence.sh" "SQLite持久化验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "init-sqlite-db.sh" "SQLite数据库初始化脚本"
