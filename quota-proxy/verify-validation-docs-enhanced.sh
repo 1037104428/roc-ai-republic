@@ -145,6 +145,8 @@ docs_to_check=(
     "VALIDATION-TOOLS-INDEX.md:40"
     "VALIDATION-EXAMPLES.md:50"
     "QUICK-VERIFICATION-COMMANDS.md:30"
+    "TROUBLESHOOTING.md:30"
+    "ENHANCED-VALIDATION-DOCS-CHECK.md:20"
 )
 
 for doc_spec in "${docs_to_check[@]}"; do
