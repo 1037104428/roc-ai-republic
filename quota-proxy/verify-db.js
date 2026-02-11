@@ -65,7 +65,7 @@ async function verifyDatabase() {
       PRAGMA table_info(usage_stats)
     `);
     
-    const expectedUsageColumns = ['id', 'key', 'endpoint', 'timestamp'];
+    const expectedUsageColumns = ['id', 'trial_key', 'endpoint', 'timestamp'];
     const foundUsageColumns = usageStatsColumns.map(col => col.name);
     
     for (const col of expectedUsageColumns) {
