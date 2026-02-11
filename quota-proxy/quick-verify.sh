@@ -38,6 +38,8 @@ echo "   - /apply/trial (试用申请):"
 curl -s http://localhost:3001/apply/trial | head -c 100
 echo ""
 echo "   - /admin/usage (需要令牌):"
+echo "     注意: 完整Admin API验证请运行 ./verify-admin-api.sh"
+echo "     当前仅检查端点可访问性:"
 curl -s http://localhost:3001/admin/usage | head -c 100
 echo ""
 
