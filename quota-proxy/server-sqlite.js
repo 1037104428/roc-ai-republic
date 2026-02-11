@@ -616,6 +616,55 @@ app.post('/admin/reset-usage', adminAuth, (req, res) => {
 app.get('/admin/audit-logs', adminAuth, createAuditLogApi());
 
 // 统计信息API
+// 公开状态端点 - 无需认证，返回基本服务状态
+app.get('/status', (req, res) => {
+    const status = {
+        timestamp: new Date().toISOString(),
+        service: 'quota-proxy',
+        version: 'v1.0',
+        status: 'operational',
+        uptime: process.uptime(),
+        endpoints: {
+            gateway: '/gateway',
+            health: '/healthz',
+            apply: '/apply/',
+            status: '/status',
+            admin: {
+                keys: '/admin/keys',
+                usage: '/admin/usage',
+                stats: '/admin/stats',
+                performance: '/admin/performance',
+                audit_logs: '/admin/audit-logs'
+            }
+        }
+    };
+    
+    // 检查数据库连接状态
+    db.get('SELECT 1 as check', (err) => {
+        if (err) {
+            status.database = { connected: false, error: err.message };
+            status.status = 'degraded';
+        } else {
+            status.database = { connected: true };
+            
+            // 获取基本统计（不包含敏感信息）
+            db.get('SELECT COUNT(*) as total_keys FROM api_keys', (err, row) => {
+                if (!err && row) {
+                    status.database.total_keys = row.total_keys;
+                }
+                
+                db.get('SELECT COUNT(*) as total_requests FROM usage_log', (err, row) => {
+                    if (!err && row) {
+                        status.database.total_requests = row.total_requests;
+                    }
+                    
+                    res.json(status);
+                });
+            });
+        }
+    });
+});
+
 app.get('/admin/stats', adminAuth, (req, res) => {
     const stats = {
         timestamp: new Date().toISOString(),
@@ -674,6 +723,7 @@ app.listen(PORT, () => {
     console.log(`Quota proxy server running on port ${PORT}`);
     console.log(`Admin token: ${ADMIN_TOKEN}`);
     console.log(`Health check: http://localhost:${PORT}/healthz`);
+    console.log(`Status page: http://localhost:${PORT}/status`);
     console.log(`Apply page: http://localhost:${PORT}/apply/`);
     console.log(`Audit logs: http://localhost:${PORT}/admin/audit-logs`);
 });

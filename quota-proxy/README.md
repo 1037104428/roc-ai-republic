@@ -28,6 +28,7 @@
 
 提供：
 - `GET /healthz` → `{ ok: true }`
+- `GET /status` → 公开服务状态信息（无需认证）
 - `GET /v1/models` → 最小模型列表（`deepseek-chat` / `deepseek-reasoner`）
 - `POST /v1/chat/completions` → OpenAI-compatible 转发到 DeepSeek，并做简单配额：
   - `Authorization: Bearer <TRIAL_KEY>`（或 `x-trial-key`）
