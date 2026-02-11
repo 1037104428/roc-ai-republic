@@ -35,6 +35,9 @@
 - **安装失败恢复脚本**：`../scripts/install-cn-fallback-recovery.sh` - 安装失败时的清理、诊断和重试功能
 - **安装失败恢复指南**：`../docs/install-cn-fallback-recovery-guide.md` - 详细的安装故障排除指南
 - **安装自检脚本**：`../scripts/install-cn-self-check.sh` - 安装完成后自动验证安装是否成功，包括版本验证、功能测试和兼容性检查
+  - **快速验证模式**：`./install-cn-self-check.sh --quick` - 仅检查核心功能（命令存在性、版本、帮助）
+  - **完整验证模式**：`./install-cn-self-check.sh --full` - 完整功能验证（默认模式）
+  - **版本验证模式**：`./install-cn-self-check.sh --version <version>` - 验证特定版本
 
 ## 快速使用示例
 

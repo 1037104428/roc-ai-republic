@@ -35,6 +35,12 @@ verify_openclaw_installation() {
   local check_total=0
   local verification_report=""
   
+  # 支持快速验证模式（仅检查核心功能）
+  local quick_mode="${QUICK_MODE:-0}"
+  if [[ "$quick_mode" == "1" || "$quick_mode" == "true" ]]; then
+    color_log "INFO" "快速验证模式已启用（仅检查核心功能）"
+  fi
+  
   color_log "INFO" "开始验证 OpenClaw 安装..."
   color_log "INFO" "时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
   color_log "INFO" "系统: $(uname -s) $(uname -r)"
@@ -279,6 +285,73 @@ main() {
       verify_openclaw_installation "$expected_version"
       ;;
   esac
+}
+
+# 快速验证函数（仅检查核心功能）
+quick_verify() {
+  color_log "INFO" "🚀 开始快速验证模式..."
+  color_log "INFO" "时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+  
+  local checks_passed=0
+  local checks_total=0
+  local quick_report="📋 快速验证报告:\n"
+  
+  # 检查 1: openclaw 命令是否存在
+  checks_total=$((checks_total + 1))
+  if command -v openclaw > /dev/null 2>&1; then
+    color_log "SUCCESS" "✅ openclaw 命令已安装"
+    checks_passed=$((checks_passed + 1))
+    quick_report+="✅ openclaw 命令已安装\n"
+  else
+    color_log "ERROR" "❌ openclaw 命令未找到"
+    quick_report+="❌ openclaw 命令未找到\n"
+    echo -e "$quick_report"
+    return 1
+  fi
+  
+  # 检查 2: openclaw --version 命令
+  checks_total=$((checks_total + 1))
+  if openclaw --version > /dev/null 2>&1; then
+    local version_output
+    version_output=$(openclaw --version 2>&1 | head -1)
+    color_log "SUCCESS" "✅ openclaw --version 命令可用"
+    color_log "INFO" "   版本: $version_output"
+    checks_passed=$((checks_passed + 1))
+    quick_report+="✅ openclaw --version 命令可用\n"
+    quick_report+="   版本: $version_output\n"
+  else
+    color_log "ERROR" "❌ openclaw --version 命令失败"
+    quick_report+="❌ openclaw --version 命令失败\n"
+  fi
+  
+  # 检查 3: openclaw --help 命令
+  checks_total=$((checks_total + 1))
+  if openclaw --help > /dev/null 2>&1; then
+    color_log "SUCCESS" "✅ openclaw --help 命令可用"
+    checks_passed=$((checks_passed + 1))
+    quick_report+="✅ openclaw --help 命令可用\n"
+  else
+    color_log "WARNING" "⚠️ openclaw --help 命令失败"
+    quick_report+="⚠️ openclaw --help 命令失败\n"
+  fi
+  
+  # 生成快速验证报告
+  local success_rate=$((checks_passed * 100 / checks_total))
+  color_log "INFO" "快速验证完成: ${checks_passed}/${checks_total} 项通过 (${success_rate}%)"
+  echo -e "$quick_report"
+  
+  if [[ $checks_passed -eq $checks_total ]]; then
+    color_log "SUCCESS" "✅ 快速验证通过！OpenClaw 核心功能正常"
+    return 0
+  elif [[ $checks_passed -ge 2 ]]; then
+    color_log "WARNING" "⚠️ 快速验证基本通过，但发现 ${checks_total-$checks_passed} 个问题"
+    color_log "INFO" "💡 建议运行完整验证: $0 --full"
+    return 0
+  else
+    color_log "ERROR" "❌ 快速验证失败，请检查安装"
+    color_log "INFO" "💡 建议运行完整验证: $0 --full"
+    return 1
+  fi
 }
 
 # 如果直接运行脚本，则执行主函数
