@@ -4,7 +4,7 @@ set -euo pipefail
 # OpenClaw CN 安装脚本验证工具
 # 用于验证 install-cn.sh 脚本的功能和完整性
 
-SCRIPT_VERSION="2026.02.12.0056"
+SCRIPT_VERSION="2026.02.12.0057"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_SCRIPT="$SCRIPT_DIR/install-cn.sh"
 
@@ -90,11 +90,15 @@ check_script_version() {
 # 检查帮助功能
 check_help_function() {
     log_info "检查安装脚本帮助功能..."
-    if "$INSTALL_SCRIPT" --help 2>&1 | grep -q "OpenClaw CN 快速安装脚本"; then
+    # 临时禁用调试输出
+    local output
+    output=$(CI_MODE=1 "$INSTALL_SCRIPT" --help 2>&1)
+    if echo "$output" | grep -q "OpenClaw CN 快速安装脚本"; then
         log_success "帮助功能正常"
         return 0
     else
         log_error "帮助功能异常"
+        log_debug "帮助输出: $output"
         return 1
     fi
 }
