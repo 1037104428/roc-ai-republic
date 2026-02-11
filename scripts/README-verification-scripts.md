@@ -64,7 +64,116 @@ export CLAWD_TRIAL_KEY="your_key_here"
 **用途**：验证install-cn.sh安装脚本
 **检查项目**：语法检查、网络源可达性、版本检查
 
-### 5. `quota-proxy-admin.sh`
+### 5. `verify-install-cn-environment.sh`
+**用途**：验证install-cn.sh脚本的执行环境
+**检查项目**：
+- 脚本语法和结构验证
+- 版本兼容性检查功能
+- 网络源可达性测试（npm镜像源）
+- 回退策略验证
+- 自检功能验证（openclaw --version）
+- 颜色输出和日志功能
+
+**用法**：
+```bash
+# 基础验证
+./scripts/verify-install-cn-environment.sh
+
+# 详细验证（包含网络测试）
+./scripts/verify-install-cn-environment.sh --verbose
+
+# 干运行模式（不实际执行安装）
+./scripts/verify-install-cn-environment.sh --dry-run
+```
+
+**适用场景**：
+- install-cn.sh脚本发布前的质量检查
+- 用户安装失败时的环境诊断
+- 镜像源切换策略验证
+- 版本兼容性测试
+
+### 6. `verify-install-cn-execution-modes.sh`
+**用途**：验证install-cn.sh脚本的不同执行模式
+**检查项目**：
+- 标准安装模式验证
+- CI/CD模式验证（CI_MODE=1）
+- 指定版本安装验证
+- 自定义npm registry验证
+- 静默安装模式验证
+- 日志记录功能验证
+
+**用法**：
+```bash
+# 验证所有执行模式（干运行）
+./scripts/verify-install-cn-execution-modes.sh --all
+
+# 验证特定模式
+./scripts/verify-install-cn-execution-modes.sh --mode ci
+./scripts/verify-install-cn-execution-modes.sh --mode version
+./scripts/verify-install-cn-execution-modes.sh --mode registry
+```
+
+**适用场景**：
+- 多环境部署验证
+- CI/CD流水线集成测试
+- 版本发布验证
+- 镜像源切换测试
+
+### 7. `verify-install-cn-features.sh`
+**用途**：验证install-cn.sh脚本的高级功能
+**检查项目**：
+- 智能版本兼容性检查
+- 网络源优先级和回退策略
+- 错误处理和恢复机制
+- 颜色输出和用户界面
+- 日志记录和轮转功能
+- 脚本更新检查功能
+
+**用法**：
+```bash
+# 验证所有高级功能
+./scripts/verify-install-cn-features.sh
+
+# 验证特定功能
+./scripts/verify-install-cn-features.sh --feature compatibility
+./scripts/verify-install-cn-features.sh --feature fallback
+./scripts/verify-install-cn-features.sh --feature error-handling
+```
+
+**适用场景**：
+- 功能完整性验证
+- 用户体验测试
+- 错误恢复测试
+- 发布质量保证
+
+### 8. `verify-registry-fallback.sh`
+**用途**：验证npm镜像源回退策略
+**检查项目**：
+- 主要镜像源可达性（npmmirror.com）
+- 备用镜像源可达性（npmjs.com）
+- 回退策略执行验证
+- 网络超时和重试机制
+- 安装成功率统计
+
+**用法**：
+```bash
+# 验证回退策略
+./scripts/verify-registry-fallback.sh
+
+# 模拟网络故障测试
+./scripts/verify-registry-fallback.sh --simulate-failure
+
+# 性能基准测试
+./scripts/verify-registry-fallback.sh --benchmark
+```
+
+**适用场景**：
+- 网络环境不稳定时的安装验证
+- 镜像源切换策略测试
+- 安装成功率优化
+- 国内网络环境适配测试
+
+### 9. `quota-proxy-admin.sh`
 **用途**：quota-proxy管理接口命令行工具
 **功能**：密钥创建、列表查询、用量统计
 
@@ -92,6 +201,29 @@ export CLAWD_TRIAL_KEY="your_key_here"
 
 # 3. 环境检查
 ./scripts/verify-node-env.sh --verbose
+
+# 4. 安装脚本验证（如果安装失败）
+./scripts/verify-install-cn-environment.sh --verbose
+./scripts/verify-install-cn-execution-modes.sh --all
+./scripts/verify-registry-fallback.sh
+```
+
+### install-cn.sh安装失败专项排查
+```bash
+# 1. 检查脚本语法和结构
+./scripts/verify-install-cn-environment.sh --dry-run
+
+# 2. 验证网络源可达性
+./scripts/verify-registry-fallback.sh
+
+# 3. 验证版本兼容性
+./scripts/verify-install-cn-features.sh --feature compatibility
+
+# 4. 验证执行模式
+./scripts/verify-install-cn-execution-modes.sh --all
+
+# 5. 完整功能验证
+./scripts/verify-install-cn-features.sh
 ```
 
 ### 管理员维护
@@ -120,6 +252,36 @@ export CLAWD_TRIAL_KEY="your_key_here"
 - `docs/quickstart.md` - 快速开始验证步骤
 - `docs/verify.md` - 完整验证清单
 - `docs/ops-server-healthcheck.md` - 运维健康检查
+- `docs/install-cn-verification-guide.md` - install-cn.sh安装脚本验证指南
+
+## install-cn.sh验证脚本体系
+
+install-cn.sh脚本拥有完整的验证工具链，确保安装过程可靠：
+
+### 验证层级
+1. **环境层** (`verify-install-cn-environment.sh`) - 基础环境验证
+2. **功能层** (`verify-install-cn-features.sh`) - 高级功能验证
+3. **执行层** (`verify-install-cn-execution-modes.sh`) - 多模式验证
+4. **网络层** (`verify-registry-fallback.sh`) - 网络策略验证
+5. **集成层** (`verify-install-cn.sh`) - 完整集成验证
+
+### 验证覆盖
+- ✅ 语法和结构验证
+- ✅ 版本兼容性检查
+- ✅ 网络源可达性测试
+- ✅ 回退策略验证
+- ✅ 错误处理机制
+- ✅ 多环境适配
+- ✅ 用户体验测试
+- ✅ 性能基准测试
+
+### 质量保证
+每个install-cn.sh版本发布前都应通过完整的验证套件测试，确保：
+1. 国内网络环境友好
+2. 版本兼容性良好
+3. 错误恢复可靠
+4. 用户体验优秀
+5. 安装成功率高
 
 ## 更新维护
 
@@ -127,6 +289,36 @@ export CLAWD_TRIAL_KEY="your_key_here"
 1. API端点变更 → 更新`verify-quickstart-v2.sh`
 2. 安装要求变更 → 更新`verify-node-env.sh`
 3. 新增服务 → 更新`probe.sh`和相关验证脚本
+4. install-cn.sh脚本变更 → 更新相关验证脚本套件：
+   - 功能变更 → 更新`verify-install-cn-features.sh`
+   - 执行模式变更 → 更新`verify-install-cn-execution-modes.sh`
+   - 网络策略变更 → 更新`verify-registry-fallback.sh`
+   - 环境要求变更 → 更新`verify-install-cn-environment.sh`
+
+## install-cn.sh验证脚本维护清单
+
+### 定期检查项目
+- [ ] 所有验证脚本语法检查
+- [ ] 网络源可达性测试
+- [ ] 版本兼容性矩阵更新
+- [ ] 错误处理场景测试
+- [ ] 用户体验流程验证
+- [ ] 性能基准测试更新
+
+### 发布前验证流程
+1. **环境验证**：运行`verify-install-cn-environment.sh --verbose`
+2. **功能验证**：运行`verify-install-cn-features.sh`
+3. **执行模式验证**：运行`verify-install-cn-execution-modes.sh --all`
+4. **网络策略验证**：运行`verify-registry-fallback.sh`
+5. **集成验证**：运行`verify-install-cn.sh`
+6. **用户场景测试**：模拟典型用户安装流程
+
+### 问题响应流程
+1. 用户报告安装问题
+2. 运行相关验证脚本定位问题
+3. 修复问题并更新install-cn.sh
+4. 运行完整验证套件确认修复
+5. 更新验证脚本以覆盖新场景
 
 ## 贡献指南
 
