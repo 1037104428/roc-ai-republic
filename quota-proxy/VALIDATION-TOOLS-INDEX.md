@@ -28,6 +28,55 @@
 - **SQLite数据库初始化**：`init-sqlite-db.sh` - 初始化数据库表结构
 - **SQLite数据库备份**：`backup-sqlite-db.sh` - 数据库备份和恢复
 
+## 快速使用示例
+
+### 场景1：新部署环境快速验证
+```bash
+# 1. 验证环境配置
+./verify-env-config.sh --env-file .env.example
+
+# 2. 验证SQLite配置（如果使用持久化）
+./verify-sqlite-config.sh --dry-run
+
+# 3. 部署后快速健康检查
+./quick-health-check.sh --url http://localhost:8787
+
+# 4. 完整部署验证
+./deploy-verification.sh --token $ADMIN_TOKEN
+```
+
+### 场景2：日常监控和故障排查
+```bash
+# 1. 快速健康状态检查（最快）
+./quick-health-check.sh
+
+# 2. 验证试用密钥功能是否正常
+./verify-trial-key-availability.sh --token $ADMIN_TOKEN
+
+# 3. 检查API性能
+./check-admin-performance.sh --token $ADMIN_TOKEN --timeout 10
+```
+
+### 场景3：CI/CD流水线集成
+```bash
+# 在CI/CD脚本中添加验证步骤
+./verify-env-config.sh --env-file .env.production
+./deploy-verification.sh --token $DEPLOY_TOKEN --url $SERVICE_URL
+./verify-admin-api-complete.sh --token $DEPLOY_TOKEN --url $SERVICE_URL
+```
+
+### 场景4：数据库维护
+```bash
+# 1. 初始化新数据库
+./init-sqlite-db.sh --db-path /data/quota.db
+
+# 2. 定期备份数据库
+./backup-sqlite-db.sh --db-path /data/quota.db --backup-dir /backups
+
+# 3. 验证数据库配置
+./verify-sqlite-config.sh --db-path /data/quota.db
+```
+
 ## 详细工具说明
 
 ### 环境配置验证
