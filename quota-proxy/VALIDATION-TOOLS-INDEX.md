@@ -240,3 +240,6 @@ jobs:
 - 最佳实践建议
 - 集成到 CI/CD 的示例
 **相关**: `install-cn-fallback-recovery.sh`, `install-cn.sh`
+
+### 环境变量验证
+- [verify-env-vars.sh](verify-env-vars.sh) - 验证quota-proxy关键环境变量是否已正确设置
