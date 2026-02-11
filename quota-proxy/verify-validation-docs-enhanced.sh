@@ -52,6 +52,7 @@ check_doc "VALIDATION-DECISION-TREE.md" "验证脚本选择决策树" 30
 check_doc "VALIDATION-TOOLS-INDEX.md" "验证工具详细索引" 40
 check_doc "VALIDATION-EXAMPLES.md" "验证脚本使用示例" 50
 check_doc "TROUBLESHOOTING.md" "故障排除指南" 30
+check_doc "QUICK-VERIFICATION-COMMANDS.md" "快速验证命令集合" 30
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
@@ -143,6 +144,7 @@ docs_to_check=(
     "VALIDATION-DECISION-TREE.md:30"
     "VALIDATION-TOOLS-INDEX.md:40"
     "VALIDATION-EXAMPLES.md:50"
+    "QUICK-VERIFICATION-COMMANDS.md:30"
 )
 
 for doc_spec in "${docs_to_check[@]}"; do
@@ -160,7 +162,7 @@ for doc_spec in "${docs_to_check[@]}"; do
     fi
 done
 
-echo "核心验证文档数量: ${total_docs}/4"
+echo "核心验证文档数量: ${total_docs}/5"
 echo "有效文档数量: ${valid_docs}/${total_docs}"
 echo "总行数: ${total_lines} 行"
 echo "平均行数: $((total_lines / (total_docs > 0 ? total_docs : 1))) 行/文档"

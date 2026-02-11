@@ -45,6 +45,11 @@
 | `verify-validation-docs.sh` | 验证文档完整性检查 | 检查核心验证文档的存在性和基本完整性 |
 | `verify-validation-docs-enhanced.sh` | 增强版文档完整性检查 | 全面评估验证文档体系完整性，包括引用关系和README集成 |
 
+### 7. 快速命令参考
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `QUICK-VERIFICATION-COMMANDS.md` | 快速验证命令集合 | 日常运维、故障排查和CI/CD集成的快速命令参考 |
+
 ## 🚀 快速开始推荐
 
 ### 新用户快速验证
@@ -107,6 +112,7 @@
 - [VALIDATION-EXAMPLES.md](./VALIDATION-EXAMPLES.md) - 验证脚本使用示例
 - [ENHANCED-VALIDATION-DOCS-CHECK.md](./ENHANCED-VALIDATION-DOCS-CHECK.md) - 增强版验证文档完整性检查指南
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - 故障排除指南
+- [QUICK-VERIFICATION-COMMANDS.md](./QUICK-VERIFICATION-COMMANDS.md) - 快速验证命令集合
 
 ---
 
