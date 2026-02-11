@@ -6,6 +6,7 @@
 
 ### 1. 部署前验证
 - **环境配置验证**：`verify-env-config.sh` - 检查必需和可选环境变量
+- **环境变量验证**：`verify-env-vars.sh` - 验证关键环境变量配置
 - **SQLite配置验证**：`verify-sqlite-config.sh` - 验证数据库配置和连接
 - **安装兼容性验证**：`../scripts/verify-install-compatibility.sh` - 验证OpenClaw安装完整性
 
@@ -89,6 +90,14 @@
 **验证内容**：必需环境变量、可选环境变量、格式验证
 **输出**：配置验证报告、建议和错误诊断
 
+### 环境变量验证
+```bash
+./verify-env-vars.sh
+```
+**用途**：快速验证关键环境变量是否设置
+**验证内容**：必需环境变量（ADMIN_TOKEN, DATABASE_URL, PORT）、可选环境变量
+**输出**：彩色验证报告、通过/警告/失败状态、设置建议
+
 ### 快速健康检查
 ```bash
 ./quick-health-check.sh [--dry-run] [--url http://localhost:8787]
@@ -124,7 +133,7 @@
 ## 使用建议
 
 ### 新部署流程
-1. 部署前：运行 `verify-env-config.sh` 和 `verify-sqlite-config.sh`
+1. 部署前：运行 `verify-env-vars.sh` 快速检查环境变量，然后运行 `verify-env-config.sh` 和 `verify-sqlite-config.sh`
 2. 部署后：运行 `quick-health-check.sh` 确认服务启动
 3. 功能验证：运行 `verify-admin-api-complete.sh` 验证所有API
 
@@ -179,6 +188,7 @@ jobs:
 - **2026-02-11**：创建验证工具索引文档，整理所有验证工具
 - **2026-02-11**：添加快速选择指南和使用建议
 - **2026-02-11**：提供CI/CD集成示例和故障排查流程
+- **2026-02-12**：添加环境变量验证脚本 `verify-env-vars.sh`
 
 ## 贡献指南
 
