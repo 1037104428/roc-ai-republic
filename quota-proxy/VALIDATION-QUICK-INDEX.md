@@ -14,6 +14,7 @@
 | `init-db.sql` | SQLite数据库初始化脚本 | 创建完整的数据库表结构和视图 |
 | `check-db.sh` | 数据库初始化检查脚本 | 初始化、验证、备份和清理数据库 |
 | `DATABASE-INIT-GUIDE.md` | 数据库初始化指南 | 详细的数据库初始化、使用和管理文档 |
+| `verify-sqlite-persistence.sh` | SQLite持久化验证脚本 | 验证SQLite持久化功能完整性，检查相关文件和实现 |
 
 ### 2. Admin API 验证
 | 脚本 | 功能 | 使用场景 |

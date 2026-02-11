@@ -63,6 +63,7 @@ check_doc "../scripts/verify-install-cn.sh" "安装脚本验证脚本" 10
 check_doc "../scripts/quick-verify-install-cn.sh" "安装脚本快速验证工具" 10
 check_doc "../docs/install-cn-script-verification-guide.md" "安装脚本验证指南" 20
 check_doc "verify-env.sh" "环境变量验证脚本" 10
+check_doc "verify-sqlite-persistence.sh" "SQLite持久化验证脚本" 10
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
@@ -97,6 +98,7 @@ check_ref "VALIDATION-DECISION-TREE.md" "VALIDATION-QUICK-INDEX.md" "快速索�
 check_ref "VALIDATION-EXAMPLES.md" "VALIDATION-DECISION-TREE.md" "决策树文档"
 check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-script-verification-guide.md" "安装脚本验证指南"
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn.sh" "安装脚本快速验证工具"
+check_ref "VALIDATION-QUICK-INDEX.md" "verify-sqlite-persistence.sh" "SQLite持久化验证脚本"
 check_ref "../docs/install-cn-script-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 
 echo ""
