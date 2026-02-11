@@ -632,3 +632,43 @@ ADMIN_TOKEN=mysecret BASE_URL=http://192.168.1.100:8787 ./check-admin-performanc
 - `verify-admin-api.sh` - 完整功能验证
 - `quick-verify.sh` - 快速验证
 
+## 故障排除
+
+详细的故障排除指南请参考：[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
+该文档提供：
+1. **快速诊断流程** - 系统化的故障排查步骤
+2. **常见问题解决方案** - 针对常见错误的详细修复方法
+3. **诊断工具** - 快速诊断脚本和日志分析命令
+4. **紧急恢复步骤** - 服务完全不可用时的恢复流程
+5. **预防措施** - 定期维护和监控建议
+
+### 快速诊断命令
+
+```bash
+# 运行快速诊断脚本
+cat > quick-diagnose.sh << 'EOF'
+#!/bin/bash
+echo "=== quota-proxy 快速诊断 ==="
+echo "时间: $(date)"
+echo ""
+echo "1. 服务状态检查"
+docker compose ps 2>/dev/null || echo "Docker Compose 未运行"
+echo ""
+echo "2. 健康检查"
+curl -fsS http://127.0.0.1:8787/healthz 2>/dev/null && echo "✓ 健康检查通过" || echo "✗ 健康检查失败"
+echo ""
+echo "=== 诊断完成 ==="
+EOF
+
+chmod +x quick-diagnose.sh
+./quick-diagnose.sh
+```
+
+### 获取帮助
+
+如果遇到无法解决的问题：
+1. 查看 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) 中的详细解决方案
+2. 收集诊断信息并提交到项目 Issues
+3. 联系项目维护团队获取支持
+
