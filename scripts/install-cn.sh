@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.11"
+SCRIPT_VERSION="2026.02.11.12"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -2114,6 +2114,61 @@ fi
   # 如果不是dry-run，生成安装摘要
   if [[ "$DRY_RUN" != "1" ]]; then
     generate_installation_summary
+    
+    # 自动更新检查功能
+    check_for_updates() {
+      echo ""
+      color_log "STEP" "========================================="
+      color_log "STEP" "🔄 自动更新检查"
+      color_log "STEP" "========================================="
+      
+      # 检查脚本是否有更新
+      color_log "INFO" "检查安装脚本更新..."
+      local latest_version
+      if command -v curl >/dev/null 2>&1; then
+        latest_version=$(curl -fsSL "$SCRIPT_UPDATE_URL" 2>/dev/null | grep -E '^SCRIPT_VERSION=' | head -1 | cut -d'"' -f2)
+      elif command -v wget >/dev/null 2>&1; then
+        latest_version=$(wget -qO- "$SCRIPT_UPDATE_URL" 2>/dev/null | grep -E '^SCRIPT_VERSION=' | head -1 | cut -d'"' -f2)
+      fi
+      
+      if [[ -n "$latest_version" && "$latest_version" != "$SCRIPT_VERSION" ]]; then
+        color_log "WARNING" "发现新版本脚本: $latest_version (当前: $SCRIPT_VERSION)"
+        color_log "INFO" "更新命令: curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash"
+      else
+        color_log "SUCCESS" "安装脚本已是最新版本: $SCRIPT_VERSION"
+      fi
+      
+      # 检查OpenClaw包更新
+      color_log "INFO" "检查OpenClaw包更新..."
+      if command -v npm >/dev/null 2>&1 && command -v openclaw >/dev/null 2>&1; then
+        local current_version
+        current_version=$(openclaw --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        
+        if [[ "$current_version" != "unknown" ]]; then
+          local latest_package
+          latest_package=$(npm view openclaw version 2>/dev/null || echo "unknown")
+          
+          if [[ "$latest_package" != "unknown" && "$latest_package" != "$current_version" ]]; then
+            color_log "WARNING" "发现新版本OpenClaw: $latest_package (当前: $current_version)"
+            color_log "INFO" "更新命令: npm install -g openclaw@$latest_package"
+            color_log "INFO" "或使用: openclaw update.run"
+          else
+            color_log "SUCCESS" "OpenClaw已是最新版本: $current_version"
+          fi
+        fi
+      fi
+      
+      echo ""
+      color_log "INFO" "💡 更新提示:"
+      color_log "INFO" "• 脚本更新: curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash"
+      color_log "INFO" "• OpenClaw更新: npm install -g openclaw@latest"
+      color_log "INFO" "• 或使用内置更新: openclaw update.run"
+    }
+    
+    # 如果不是CI模式，执行更新检查
+    if [[ "${CI_MODE:-0}" != "1" && "${SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
+      check_for_updates
+    fi
   fi
 
 # Dry-run final check (after verification)
