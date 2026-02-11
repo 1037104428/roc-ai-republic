@@ -147,6 +147,7 @@ docs_to_check=(
     "QUICK-VERIFICATION-COMMANDS.md:30"
     "TROUBLESHOOTING.md:30"
     "ENHANCED-VALIDATION-DOCS-CHECK.md:20"
+    "CONFIG-VERIFICATION-GUIDE.md:20"
 )
 
 for doc_spec in "${docs_to_check[@]}"; do
@@ -164,7 +165,7 @@ for doc_spec in "${docs_to_check[@]}"; do
     fi
 done
 
-echo "核心验证文档数量: ${total_docs}/5"
+echo "核心验证文档数量: ${total_docs}/6"
 echo "有效文档数量: ${valid_docs}/${total_docs}"
 echo "总行数: ${total_lines} 行"
 echo "平均行数: $((total_lines / (total_docs > 0 ? total_docs : 1))) 行/文档"

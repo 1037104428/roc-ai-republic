@@ -32,6 +32,7 @@
 |------|------|----------|
 | `verify-env-config.sh` | 环境配置验证 | 检查环境变量配置正确性 |
 | `verify-sqlite-config.sh` | SQLite配置验证 | 验证SQLite相关配置 |
+| `verify-config.sh` | 配置验证脚本 | 验证必需环境变量、格式、端口可用性、数据库文件和管理员令牌 |
 
 ### 5. 性能验证
 | 脚本 | 功能 | 使用场景 |
@@ -50,7 +51,7 @@
 |------|------|----------|
 | `quick-docs-check.sh` | 快速文档完整性检查 | 一键检查所有核心文档的存在性和互引用关系 |
 | `QUICK-VERIFICATION-COMMANDS.md` | 快速验证命令集合文档 | 提供日常运维、故障排查和CI/CD集成的快速命令参考 |
-| `QUICK-VERIFICATION-COMMANDS.md` | 快速验证命令集合 | 日常运维、故障排查和CI/CD集成的快速命令参考 |
+| `CONFIG-VERIFICATION-GUIDE.md` | 配置验证指南 | 提供配置验证脚本的详细使用指南和最佳实践 |
 
 ## 🚀 快速开始推荐
 
@@ -115,6 +116,7 @@
 - [ENHANCED-VALIDATION-DOCS-CHECK.md](./ENHANCED-VALIDATION-DOCS-CHECK.md) - 增强版验证文档完整性检查指南
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - 故障排除指南
 - [QUICK-VERIFICATION-COMMANDS.md](./QUICK-VERIFICATION-COMMANDS.md) - 快速验证命令集合
+- [CONFIG-VERIFICATION-GUIDE.md](./CONFIG-VERIFICATION-GUIDE.md) - 配置验证指南
 
 ---
 
