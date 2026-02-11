@@ -75,6 +75,8 @@ check_doc "PROMETHEUS-MONITORING-INTEGRATION-GUIDE.md" "Prometheus监控集成�
 check_doc "verify-prometheus-metrics.sh" "Prometheus监控指标验证脚本" 10
 check_doc "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证脚本" 10
 check_doc "QUICK-VALIDATION-TOOLS-GUIDE.md" "快速验证工具指南" 20
+check_doc "../scripts/quick-verify-install-cn.sh" "安装脚本快速验证工具" 10
+check_doc "../docs/install-cn-quick-verify.md" "安装脚本快速验证文档" 20
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"

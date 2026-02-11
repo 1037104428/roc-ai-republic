@@ -48,6 +48,15 @@
 | `verify-env-config.sh` | 环境配置验证 | 检查环境变量配置正确性 |
 | `verify-sqlite-config.sh` | SQLite配置验证 | 验证SQLite相关配置 |
 | `verify-config.sh` | 配置验证脚本 | 验证必需环境变量、格式、端口可用性、数据库文件和管理员令牌 |
+
+### 5. 安装脚本验证
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `../scripts/quick-verify-install-cn.sh` | 安装脚本快速验证 | 验证install-cn.sh脚本的完整性、语法和基本功能 |
+| `../scripts/install-cn.sh` | OpenClaw CN快速安装脚本 | 国内友好安装，优先使用国内源，包含自检功能 |
+| `../scripts/install-cn-network-test.sh` | 安装网络测试脚本 | 测试国内源和备用源的网络连接性 |
+| `../docs/install-cn-quick-verify.md` | 安装脚本快速验证文档 | 提供install-cn.sh的快速验证方法和测试用例 |
+| `../docs/install-cn-quick-test-examples.md` | 安装脚本测试示例文档 | 提供各种场景下的安装脚本测试示例 |
 | `verify-env.sh` | 环境变量验证脚本 | 验证必需和可选环境变量，检查格式和完整性 |
 
 ### 5. 性能验证
