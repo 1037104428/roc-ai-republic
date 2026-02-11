@@ -200,3 +200,27 @@ jobs:
 ---
 
 **提示**：所有验证脚本都支持 `--dry-run` 模式，可以在不实际调用服务的情况下测试脚本逻辑。
+## 安装失败恢复工具
+
+### install-cn-fallback-recovery.sh
+**位置**: `scripts/install-cn-fallback-recovery.sh`
+**用途**: OpenClaw CN 安装失败恢复工具，提供清理、诊断和重试功能
+**功能**:
+- 清理失败的安装残留
+- 诊断安装环境问题
+- 多层重试策略（国内镜像优先）
+- 网络连通性测试
+- 磁盘空间检查
+**使用**: `bash install-cn-fallback-recovery.sh [--cleanup | --retry | --diagnose]`
+**文档**: [安装失败恢复指南](../docs/install-cn-fallback-recovery-guide.md)
+
+### install-cn-fallback-recovery-guide.md
+**位置**: `docs/install-cn-fallback-recovery-guide.md`
+**用途**: 安装失败恢复工具的详细使用指南
+**内容**:
+- 功能特性说明
+- 使用场景示例
+- 故障排除指南
+- 最佳实践建议
+- 集成到 CI/CD 的示例
+**相关**: `install-cn-fallback-recovery.sh`, `install-cn.sh`
