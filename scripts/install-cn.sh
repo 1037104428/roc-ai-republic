@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.14"
+SCRIPT_VERSION="2026.02.11.15"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -2680,6 +2680,71 @@ EOF
     # 如果不是CI模式，执行更新检查
     if [[ "${CI_MODE:-0}" != "1" && "${SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
       check_for_updates
+    fi
+    
+    # 快速验证功能
+    quick_verification() {
+      echo ""
+      color_log "STEP" "========================================="
+      color_log "STEP" "✅ 快速验证"
+      color_log "STEP" "========================================="
+      
+      color_log "INFO" "执行快速验证检查..."
+      
+      # 1. 检查openclaw命令是否存在
+      if command -v openclaw >/dev/null 2>&1; then
+        color_log "SUCCESS" "✓ openclaw命令已安装"
+        
+        # 2. 检查版本
+        local version_output
+        version_output=$(openclaw --version 2>&1 | head -1)
+        if [[ -n "$version_output" ]]; then
+          color_log "SUCCESS" "✓ 版本检查: $version_output"
+        else
+          color_log "WARNING" "⚠ 无法获取版本信息"
+        fi
+        
+        # 3. 检查配置文件目录
+        if [[ -d "$HOME/.openclaw" ]]; then
+          color_log "SUCCESS" "✓ 配置文件目录存在: ~/.openclaw"
+        else
+          color_log "WARNING" "⚠ 配置文件目录不存在"
+        fi
+        
+        # 4. 检查网关状态（如果可能）
+        if pgrep -f "openclaw gateway" >/dev/null 2>&1; then
+          color_log "SUCCESS" "✓ OpenClaw网关正在运行"
+        else
+          color_log "INFO" "ℹ OpenClaw网关未运行（正常，首次安装需要手动启动）"
+          color_log "INFO" "启动命令: openclaw gateway start"
+        fi
+        
+        # 5. 提供快速测试命令
+        echo ""
+        color_log "INFO" "🚀 快速测试命令:"
+        color_log "INFO" "• 检查状态: openclaw status"
+        color_log "INFO" "• 查看帮助: openclaw help"
+        color_log "INFO" "• 启动网关: openclaw gateway start"
+        color_log "INFO" "• 查看日志: tail -f ~/.openclaw/logs/gateway.log"
+        
+      else
+        color_log "ERROR" "✗ openclaw命令未找到"
+        color_log "INFO" "尝试解决方案:"
+        color_log "INFO" "1. 重新加载shell配置: source ~/.bashrc 或 source ~/.zshrc"
+        color_log "INFO" "2. 使用npx: npx openclaw --version"
+        color_log "INFO" "3. 检查npm全局路径: npm list -g openclaw"
+        return 1
+      fi
+      
+      echo ""
+      color_log "SUCCESS" "✅ 快速验证完成！"
+      color_log "SUCCESS" "OpenClaw已成功安装并准备就绪 🎉"
+      return 0
+    }
+    
+    # 执行快速验证（除非明确跳过）
+    if [[ "${SKIP_VERIFICATION:-0}" != "1" && "${CI_MODE:-0}" != "1" ]]; then
+      quick_verification
     fi
   fi
 
