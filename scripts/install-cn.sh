@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.02"
+SCRIPT_VERSION="2026.02.11.03"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
@@ -92,6 +92,51 @@ show_update_details() {
   echo "[cn-pack]"
   echo "[cn-pack] Or use one-liner:"
   echo "[cn-pack]   curl -fsSL $SCRIPT_UPDATE_URL | bash"
+  echo "[cn-pack] ========================================="
+}
+
+# Function to show changelog
+show_changelog() {
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] Changelog for install-cn.sh"
+  echo "[cn-pack] ========================================="
+  
+  # Define changelog entries
+  cat << 'EOF'
+v2026.02.11.03 (2026-02-11)
+  - 新增：更新日志查看功能，支持--changelog选项查看版本历史
+  - 改进：添加详细的版本变更记录，方便用户了解更新内容
+
+v2026.02.11.02 (2026-02-11)
+  - 新增：增强的依赖检查功能，检查Node.js版本、npm权限、磁盘空间、内存、curl等系统依赖
+  - 改进：提供详细的检查报告和错误处理，完善安装前验证流程
+
+v2026.02.11.01 (2026-02-11)
+  - 新增：分步安装模式功能，支持--step-by-step交互式安装
+  - 新增：--steps选项支持指定安装步骤（network-check,proxy-check,registry-test,dependency-check,npm-install,verification,cleanup）
+  - 改进：增强安装脚本的用户体验和灵活性
+
+v2026.02.10.03 (2026-02-10)
+  - 新增：离线模式支持，--offline-mode选项支持从本地缓存安装
+  - 新增：--cache-dir选项指定缓存目录，实现本地缓存检查、离线安装、自动缓存下载
+  - 改进：增强安装脚本的网络容错能力
+
+v2026.02.10.02 (2026-02-10)
+  - 新增：CDN连接质量评估功能，为选择最优源提供数据支持
+  - 新增：验证命令生成器批量验证模式，支持text/markdown/json三种输出格式
+  - 改进：增强网络优化策略和验证工具链
+
+v2026.02.10.01 (2026-02-10)
+  - 新增：国内可达源优先策略，自动选择最优npm registry
+  - 新增：回退机制，当主源失败时自动切换到备用源
+  - 新增：网络诊断功能，检查网络连接和代理设置
+  - 新增：安装验证功能，验证OpenClaw安装是否成功
+  - 基础：创建install-cn.sh脚本，提供标准化的国内安装方案
+EOF
+  
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] For detailed changelog, visit:"
+  echo "[cn-pack]   https://github.com/1037104428/roc-ai-republic/blob/main/docs/install-cn-changelog.md"
   echo "[cn-pack] ========================================="
 }
 
@@ -425,6 +470,7 @@ Options:
   --dry-run                Print commands without executing
   --check-update           Check for script updates and exit
   --version-check          Check script version and update status (non-blocking)
+  --changelog              Show script changelog and exit
   --verify-level <level>   Verification level: auto, basic, quick, full, none (default: auto)
   --proxy-mode <mode>      Proxy handling mode: auto, force, skip (default: auto)
   --proxy-test             Test proxy connectivity before installation
@@ -450,6 +496,7 @@ Version Control:
   - Update URL: $SCRIPT_UPDATE_URL
   - Use --check-update to check for updates
   - Use --version-check for non-blocking version check
+  - Use --changelog to view version history and changes
 
 Env vars (equivalent):
   OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT, OPENCLAW_VERIFY_LEVEL
@@ -558,6 +605,10 @@ while [[ $# -gt 0 ]]; do
     --version-check)
       VERSION_CHECK=1
       shift
+      ;;
+    --changelog)
+      show_changelog
+      exit 0
       ;;
     -h|--help)
       usage
