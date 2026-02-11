@@ -456,56 +456,95 @@ curl -s "$BASE_URL/admin/system/status" \
 
 ### 11.4 第四步：一键验证脚本
 
+我们提供了一个完整的快速验证脚本 `quick-start-verify.sh`，包含以下功能：
+
+#### 脚本功能
+1. **依赖检查** - 自动检查 curl 和 jq 命令
+2. **健康检查** - 验证服务是否正常运行
+3. **Admin API 访问测试** - 测试管理员权限
+4. **试用密钥生成测试** - 验证密钥生成功能
+5. **使用情况查询测试** - 验证统计功能
+
+#### 使用方法
+
 ```bash
-#!/bin/bash
-# quick-start-verify.sh
+# 1. 下载脚本（如果尚未下载）
+# 脚本已包含在 quota-proxy 目录中
 
-BASE_URL="${1:-http://localhost:8787}"
-ADMIN_TOKEN="${2:-$ADMIN_TOKEN}"
+# 2. 赋予执行权限
+chmod +x quick-start-verify.sh
 
-echo "=== Admin API 快速验证 ==="
-echo ""
+# 3. 运行验证（两种方式）
 
-# 1. 健康检查
-echo "1. 健康检查:"
-health=$(curl -s --max-time 3 "$BASE_URL/healthz")
-if [[ "$health" == "OK" ]]; then
-  echo "   ✓ 服务正常"
-else
-  echo "   ✗ 服务异常: $health"
-  exit 1
-fi
+# 方式一：通过参数指定
+./quick-start-verify.sh http://localhost:8787 your-admin-token-here
 
-# 2. Admin API 访问
-echo "2. Admin API 访问:"
-api_resp=$(curl -s --max-time 3 -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE_URL/admin/keys")
-if echo "$api_resp" | grep -q "success"; then
-  echo "   ✓ Admin API 访问正常"
-else
-  echo "   ✗ Admin API 访问失败"
-  exit 1
-fi
+# 方式二：通过环境变量
+export ADMIN_TOKEN=your-admin-token-here
+./quick-start-verify.sh http://localhost:8787
 
-# 3. 生成试用密钥
-echo "3. 试用密钥生成:"
-key_resp=$(curl -s -X POST "$BASE_URL/admin/keys/trial" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"验证测试","quota":5,"expiresIn":"1h"}')
-if echo "$key_resp" | grep -q "key"; then
-  trial_key=$(echo "$key_resp" | jq -r '.key')
-  echo "   ✓ 试用密钥生成成功: ${trial_key:0:16}..."
-else
-  echo "   ✗ 试用密钥生成失败"
-  exit 1
-fi
-
-echo ""
-echo "=== 验证完成 ==="
-echo "服务状态: 正常"
-echo "Admin API: 可用"
-echo "试用密钥功能: 正常"
+# 方式三：使用默认值（localhost:8787）
+export ADMIN_TOKEN=your-admin-token-here
+./quick-start-verify.sh
 ```
+
+#### 脚本特性
+- **彩色输出** - 清晰的状态指示
+- **错误重试** - 网络问题自动重试
+- **详细日志** - 每一步都有明确反馈
+- **依赖检查** - 自动检查必要工具
+- **安全退出** - 任何失败都会明确提示
+
+#### 预期输出示例
+```
+=== Admin API 快速验证 ===
+目标服务: http://localhost:8787
+开始时间: Wed Feb 11 21:45:00 CST 2026
+
+检查依赖...
+✓ curl 已安装
+✓ jq 已安装
+
+1. 健康检查...
+   ✓ 服务正常 (健康检查通过)
+
+2. Admin API 访问测试...
+   ✓ Admin API 访问正常
+   响应预览: {"success":true,"message":"Keys retrieved","keys_count":3}
+
+3. 试用密钥生成测试...
+   ✓ 试用密钥生成成功
+   生成的密钥: trial_abc123def456...
+   完整信息: {"success":true,"message":"Trial key created","key":"trial_abc123def456...","quota":3}
+
+4. 使用情况查询测试...
+   ✓ 使用情况查询正常
+   使用情况预览: {"success":true,"message":"Usage stats","total_requests":125}
+
+=== 验证完成 ===
+完成时间: Wed Feb 11 21:45:05 CST 2026
+✅ 所有测试通过！
+服务状态: 正常
+Admin API: 可用
+试用密钥功能: 正常
+使用情况查询: 正常
+```
+
+#### 故障排除
+如果脚本失败，请检查：
+1. **服务状态** - `docker compose ps` 查看 quota-proxy 是否运行
+2. **网络连接** - `curl http://localhost:8787/healthz` 测试连通性
+3. **管理员令牌** - 确保 ADMIN_TOKEN 正确且未过期
+4. **查看日志** - `docker compose logs quota-proxy` 查看详细错误信息
+
+#### 脚本位置
+脚本位于：`quota-proxy/quick-start-verify.sh`
+
+这个脚本是快速验证 quota-proxy Admin API 功能的最便捷方式，特别适合：
+- 新部署环境验证
+- CI/CD 流水线集成
+- 日常健康检查
+- 故障排查验证
 
 ## 总结
 
