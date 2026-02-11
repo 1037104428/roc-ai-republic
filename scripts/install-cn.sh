@@ -545,6 +545,7 @@ OpenClaw CN 快速安装脚本
 选项:
   --version <version>  指定OpenClaw版本 (默认: latest)
   --dry-run           干运行模式: 只显示安装步骤，不实际执行
+  --verify            安装完成后自动验证安装结果
   --help               显示此帮助信息
 
 环境变量:
@@ -558,20 +559,21 @@ OpenClaw CN 快速安装脚本
   ✓ 国内可达源优先: 优先使用国内镜像源 (npmmirror.com, npm.taobao.org)
   ✓ 多层回退策略: 安装失败时自动切换到备用registry重试
   ✓ 完整自检: 安装后自动验证OpenClaw版本和基本功能
+  ✓ 一键验证: 支持 --verify 参数自动验证安装结果
   ✓ 详细日志: 彩色输出，便于调试和问题诊断
 
 示例:
   # 使用默认设置安装最新版
   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
   
-  # 安装特定版本
-  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12
+  # 安装特定版本并验证
+  curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12 --verify
   
   # 使用自定义registry
   NPM_REGISTRY=https://registry.npmmirror.com bash install-cn.sh
   
-  # CI/CD环境安装
-  CI_MODE=1 SKIP_INTERACTIVE=1 OPENCLAW_VERSION=latest bash install-cn.sh
+  # CI/CD环境安装并验证
+  CI_MODE=1 SKIP_INTERACTIVE=1 OPENCLAW_VERSION=latest bash install-cn.sh --verify
 
 版本: $SCRIPT_VERSION
 更新: $SCRIPT_UPDATE_URL
@@ -636,13 +638,78 @@ trap cleanup EXIT
 # Check for updates at the beginning
 check_for_updates
 
+# Post-install verification function
+verify_installation() {
+  color_log "INFO" "开始验证 OpenClaw 安装..."
+  
+  # Check if openclaw command exists
+  if ! command -v openclaw &>/dev/null; then
+    color_log "ERROR" "openclaw 命令未找到，安装可能失败"
+    return 1
+  fi
+  
+  # Get openclaw version
+  local version_output
+  if version_output=$(openclaw --version 2>&1); then
+    color_log "SUCCESS" "OpenClaw 版本: $version_output"
+  else
+    color_log "ERROR" "无法获取 OpenClaw 版本"
+    return 1
+  fi
+  
+  # Check gateway status
+  color_log "INFO" "检查 OpenClaw Gateway 状态..."
+  if openclaw gateway status &>/dev/null; then
+    color_log "SUCCESS" "OpenClaw Gateway 服务正常"
+  else
+    color_log "WARNING" "OpenClaw Gateway 服务未运行或状态检查失败"
+    color_log "INFO" "你可以运行 'openclaw gateway start' 来启动服务"
+  fi
+  
+  # Check workspace directory
+  local workspace_dir="$HOME/.openclaw/workspace"
+  if [[ -d "$workspace_dir" ]]; then
+    color_log "SUCCESS" "工作空间目录存在: $workspace_dir"
+    
+    # Check for important files
+    local important_files=("AGENTS.md" "SOUL.md" "USER.md")
+    for file in "${important_files[@]}"; do
+      if [[ -f "$workspace_dir/$file" ]]; then
+        color_log "DEBUG" "配置文件存在: $file"
+      else
+        color_log "WARNING" "配置文件缺失: $file (首次安装正常)"
+      fi
+    done
+  else
+    color_log "WARNING" "工作空间目录不存在: $workspace_dir (首次安装正常)"
+  fi
+  
+  # Quick health check
+  color_log "INFO" "执行快速健康检查..."
+  if openclaw status &>/dev/null; then
+    color_log "SUCCESS" "OpenClaw 状态检查通过"
+  else
+    color_log "WARNING" "OpenClaw 状态检查失败 (可能需要配置)"
+  fi
+  
+  color_log "SUCCESS" "安装验证完成"
+  color_log "INFO" "如需更详细的验证，请参考: https://github.com/1037104428/roc-ai-republic/blob/main/docs/install-cn-quick-verification-commands.md"
+  
+  return 0
+}
+
 # Parse arguments
 args=()
+do_verify=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help)
       show_help
       exit 0
+      ;;
+    --verify)
+      do_verify=true
+      shift
       ;;
     *)
       args+=("$1")
@@ -656,3 +723,8 @@ set -- "${args[@]}"
 
 # Run main installation
 main_install "$@"
+
+# Run verification if requested
+if [[ "$do_verify" == true ]]; then
+  verify_installation
+fi
