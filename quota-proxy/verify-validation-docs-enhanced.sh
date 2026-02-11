@@ -65,6 +65,7 @@ check_doc "test-admin-keys-usage.sh" "Admin密钥生成和用量统计测试脚�
 check_doc "ADMIN-API-QUICK-TEST-EXAMPLES.md" "Admin API快速测试示例" 30
 check_doc "quick-admin-api-test.sh" "Admin API一键完整测试脚本" 10
 check_doc "test-admin-keys-usage-usage.md" "Admin密钥生成和用量统计测试使用说明" 20
+check_doc "verify-admin-api-complete.sh" "Admin API完整功能验证脚本" 10
 check_doc "../scripts/verify-install-cn.sh" "安装脚本验证脚本" 10
 check_doc "../scripts/quick-verify-install-cn.sh" "安装脚本快速验证工具" 10
 check_doc "../scripts/quick-verify-install-cn-enhanced.sh" "安装脚本增强版快速验证工具" 10
@@ -143,6 +144,7 @@ check_ref "VALIDATION-QUICK-INDEX.md" "verify-prometheus-metrics.sh" "Prometheus
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-prometheus-monitoring.sh" "Prometheus监控快速验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-web-deployment-ready.sh" "Web站点部署就绪验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "ops-web-deploy.md" "Web站点部署指南"
+check_ref "VALIDATION-QUICK-INDEX.md" "verify-admin-api-complete.sh" "Admin API完整功能验证脚本"
 check_ref "../docs/install-cn-script-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 check_ref "../docs/install-cn-quick-test-examples.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"
 check_ref "../docs/install-cn-complete-verification-guide.md" "VALIDATION-QUICK-INDEX.md" "验证脚本快速索引"

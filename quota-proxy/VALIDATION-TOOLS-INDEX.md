@@ -20,6 +20,7 @@
 - **Admin API完整性**：`verify-admin-api-complete.sh` - 验证所有管理API端点
 - **管理员应用列表**：`verify-admin-applications-endpoint.sh` - 验证应用管理API
 - **试用密钥生成API**：`verify-trial-key-availability.sh` - 验证试用密钥功能
+- **Admin API完整功能验证**：`verify-admin-api-complete.sh` - 验证POST /admin/keys和GET /admin/usage端点的完整功能
 
 ### 4. 功能测试
 - **试用密钥生成测试**：`test-trial-key-generation.sh` - 完整试用密钥功能测试

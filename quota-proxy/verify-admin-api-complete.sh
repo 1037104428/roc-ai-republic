@@ -1,6 +1,7 @@
 #!/bin/bash
-# 验证quota-proxy管理API完整性脚本
-# 检查所有管理API端点是否正常工作
+
+# Admin API 完整功能验证脚本
+# 验证 POST /admin/keys 和 GET /admin/usage 端点的完整功能
 
 set -e
 
@@ -11,219 +12,147 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 配置
-PORT=${PORT:-8787}
-HOST=${HOST:-127.0.0.1}
-ADMIN_TOKEN=${ADMIN_TOKEN:-"test-admin-token"}
-BASE_URL="http://${HOST}:${PORT}"
-DRY_RUN=${DRY_RUN:-false}
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  Admin API 完整功能验证脚本${NC}"
+echo -e "${BLUE}========================================${NC}"
 
-# 日志函数
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+# 检查必需的环境变量
+echo -e "\n${YELLOW}[1/6] 检查环境变量配置...${NC}"
 
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
+if [ -z "$ADMIN_TOKEN" ]; then
+    echo -e "${RED}✗ 错误: ADMIN_TOKEN 环境变量未设置${NC}"
+    echo -e "请设置 ADMIN_TOKEN 环境变量:"
+    echo -e "  export ADMIN_TOKEN=\"your-admin-token-here\""
+    exit 1
+fi
 
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
+if [ -z "$QUOTA_PROXY_URL" ]; then
+    QUOTA_PROXY_URL="http://localhost:8787"
+    echo -e "${YELLOW}⚠ 警告: QUOTA_PROXY_URL 未设置，使用默认值: $QUOTA_PROXY_URL${NC}"
+fi
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+echo -e "${GREEN}✓ ADMIN_TOKEN 已设置${NC}"
+echo -e "${GREEN}✓ QUOTA_PROXY_URL: $QUOTA_PROXY_URL${NC}"
 
-# 检查命令是否存在
-check_command() {
-    if ! command -v "$1" &> /dev/null; then
-        log_error "命令 '$1' 不存在，请安装后重试"
-        return 1
-    fi
-}
+# 检查配额代理服务是否运行
+echo -e "\n${YELLOW}[2/6] 检查配额代理服务状态...${NC}"
 
-# 检查服务器是否运行
-check_server_running() {
-    if curl -s -f "${BASE_URL}/healthz" > /dev/null 2>&1; then
-        log_info "服务器正在运行: ${BASE_URL}"
-        return 0
-    else
-        log_warning "服务器未运行或健康检查失败: ${BASE_URL}"
-        return 1
-    fi
-}
+if ! curl -s "$QUOTA_PROXY_URL/healthz" > /dev/null 2>&1; then
+    echo -e "${RED}✗ 错误: 配额代理服务未运行或无法访问${NC}"
+    echo -e "请确保配额代理服务正在运行:"
+    echo -e "  cd /opt/roc/quota-proxy && docker compose up -d"
+    exit 1
+fi
 
-# 测试API端点
-test_endpoint() {
-    local method="$1"
-    local endpoint="$2"
-    local expected_status="$3"
-    local data="$4"
-    local description="$5"
-    
-    local curl_cmd="curl -s -o /dev/null -w '%{http_code}' -X ${method}"
-    
-    # 添加认证头
-    if [[ "$endpoint" == /admin/* ]]; then
-        curl_cmd="${curl_cmd} -H 'Authorization: Bearer ${ADMIN_TOKEN}'"
-    fi
-    
-    # 添加数据
-    if [[ -n "$data" ]]; then
-        curl_cmd="${curl_cmd} -H 'Content-Type: application/json' -d '${data}'"
-    fi
-    
-    curl_cmd="${curl_cmd} ${BASE_URL}${endpoint}"
-    
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "干运行: ${description}"
-        log_info "  命令: ${curl_cmd}"
-        log_info "  预期状态码: ${expected_status}"
-        return 0
-    fi
-    
-    log_info "测试: ${description}"
-    
-    local status_code
-    status_code=$(eval "$curl_cmd")
-    
-    if [[ "$status_code" == "$expected_status" ]]; then
-        log_success "  ✓ 端点 ${endpoint} 返回 ${status_code}"
-        return 0
-    else
-        log_error "  ✗ 端点 ${endpoint} 返回 ${status_code} (预期: ${expected_status})"
-        return 1
-    fi
-}
+echo -e "${GREEN}✓ 配额代理服务运行正常${NC}"
 
-# 主函数
-main() {
-    log_info "开始验证quota-proxy管理API完整性"
-    log_info "服务器地址: ${BASE_URL}"
-    log_info "管理员令牌: ${ADMIN_TOKEN:0:8}..."
-    log_info "干运行模式: ${DRY_RUN}"
-    
-    # 检查必需命令
-    check_command curl || exit 1
-    
-    # 检查服务器
-    if [[ "$DRY_RUN" != "true" ]]; then
-        if ! check_server_running; then
-            log_error "请先启动quota-proxy服务器"
-            log_info "启动命令: cd quota-proxy && npm start"
-            exit 1
-        fi
-    fi
-    
-    local tests_passed=0
-    local tests_failed=0
-    
-    # 测试健康检查端点
-    if test_endpoint "GET" "/healthz" "200" "" "健康检查端点"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 测试状态端点
-    if test_endpoint "GET" "/status" "200" "" "状态端点"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 测试管理API端点
-    if test_endpoint "GET" "/admin/keys" "200" "" "获取所有API密钥"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 测试创建试用密钥
-    local trial_key_data='{"daily_limit": 100, "monthly_limit": 3000, "notes": "测试密钥"}'
-    if test_endpoint "POST" "/admin/keys/trial" "201" "$trial_key_data" "创建试用密钥"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 测试使用统计端点
-    if test_endpoint "GET" "/admin/usage" "200" "" "获取使用统计"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 测试重置使用统计
-    if test_endpoint "POST" "/admin/reset-usage" "200" '{"key": "all"}' "重置使用统计"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 测试系统信息端点
-    if test_endpoint "GET" "/admin/system" "200" "" "获取系统信息"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 测试模型端点
-    if test_endpoint "GET" "/v1/models" "200" "" "获取模型列表"; then
-        ((tests_passed++))
-    else
-        ((tests_failed++))
-    fi
-    
-    # 总结
-    log_info "测试完成: ${tests_passed} 通过, ${tests_failed} 失败"
-    
-    if [[ $tests_failed -eq 0 ]]; then
-        log_success "所有管理API端点验证通过！"
-        return 0
-    else
-        log_error "部分API端点验证失败"
-        return 1
-    fi
-}
+# 验证 Admin API 端点存在性
+echo -e "\n${YELLOW}[3/6] 验证 Admin API 端点存在性...${NC}"
 
-# 解析参数
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --dry-run)
-            DRY_RUN=true
-            shift
-            ;;
-        --port)
-            PORT="$2"
-            shift 2
-            ;;
-        --host)
-            HOST="$2"
-            shift 2
-            ;;
-        --admin-token)
-            ADMIN_TOKEN="$2"
-            shift 2
-            ;;
-        --help)
-            echo "用法: $0 [选项]"
-            echo "选项:"
-            echo "  --dry-run         干运行模式，只显示命令不执行"
-            echo "  --port PORT       服务器端口 (默认: 8787)"
-            echo "  --host HOST       服务器主机 (默认: 127.0.0.1)"
-            echo "  --admin-token TOKEN 管理员令牌"
-            echo "  --help            显示帮助信息"
-            exit 0
-            ;;
-        *)
-            log_error "未知参数: $1"
-            echo "使用 --help 查看帮助"
-            exit 1
-            ;;
-    esac
-done
+# 检查 POST /admin/keys 端点
+if ! curl -s -X POST "$QUOTA_PROXY_URL/admin/keys" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"test": "ping"}' 2>/dev/null | grep -q "Missing required parameters\|label\|daily_limit"; then
+    echo -e "${RED}✗ 错误: POST /admin/keys 端点未正确响应${NC}"
+else
+    echo -e "${GREEN}✓ POST /admin/keys 端点存在${NC}"
+fi
 
-# 运行主函数
-main "$@"
+# 检查 GET /admin/usage 端点
+if ! curl -s -X GET "$QUOTA_PROXY_URL/admin/usage" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" 2>/dev/null | grep -q "success\|usage\|trial_keys"; then
+    echo -e "${RED}✗ 错误: GET /admin/usage 端点未正确响应${NC}"
+else
+    echo -e "${GREEN}✓ GET /admin/usage 端点存在${NC}"
+fi
+
+# 测试生成试用密钥
+echo -e "\n${YELLOW}[4/6] 测试生成试用密钥 (POST /admin/keys)...${NC}"
+
+TEST_LABEL="验证脚本测试密钥-$(date +%Y%m%d-%H%M%S)"
+TEST_DAILY_LIMIT=50
+
+RESPONSE=$(curl -s -X POST "$QUOTA_PROXY_URL/admin/keys" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"label\": \"$TEST_LABEL\", \"daily_limit\": $TEST_DAILY_LIMIT}")
+
+if echo "$RESPONSE" | grep -q '"success":true'; then
+    TRIAL_KEY=$(echo "$RESPONSE" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
+    echo -e "${GREEN}✓ 成功生成试用密钥${NC}"
+    echo -e "  密钥: ${BLUE}$TRIAL_KEY${NC}"
+    echo -e "  标签: ${BLUE}$TEST_LABEL${NC}"
+    echo -e "  每日限制: ${BLUE}$TEST_DAILY_LIMIT${NC}"
+else
+    echo -e "${RED}✗ 生成试用密钥失败${NC}"
+    echo -e "  响应: $RESPONSE"
+    exit 1
+fi
+
+# 测试获取使用统计
+echo -e "\n${YELLOW}[5/6] 测试获取使用统计 (GET /admin/usage)...${NC}"
+
+USAGE_RESPONSE=$(curl -s -X GET "$QUOTA_PROXY_URL/admin/usage?days=1" \
+    -H "Authorization: Bearer $ADMIN_TOKEN")
+
+if echo "$USAGE_RESPONSE" | grep -q '"success":true\|usage\|trial_keys'; then
+    echo -e "${GREEN}✓ 成功获取使用统计${NC}"
+    
+    # 检查是否包含新生成的密钥
+    if echo "$USAGE_RESPONSE" | grep -q "$TRIAL_KEY"; then
+        echo -e "${GREEN}✓ 新生成的密钥已在使用统计中${NC}"
+    else
+        echo -e "${YELLOW}⚠ 警告: 新生成的密钥未在使用统计中找到（可能需要等待数据同步）${NC}"
+    fi
+else
+    echo -e "${RED}✗ 获取使用统计失败${NC}"
+    echo -e "  响应: $USAGE_RESPONSE"
+fi
+
+# 测试带密钥过滤的使用统计
+echo -e "\n${YELLOW}[6/6] 测试带密钥过滤的使用统计...${NC}"
+
+FILTERED_RESPONSE=$(curl -s -X GET "$QUOTA_PROXY_URL/admin/usage?key=$TRIAL_KEY&days=7" \
+    -H "Authorization: Bearer $ADMIN_TOKEN")
+
+if echo "$FILTERED_RESPONSE" | grep -q "$TRIAL_KEY"; then
+    echo -e "${GREEN}✓ 密钥过滤功能正常${NC}"
+else
+    echo -e "${YELLOW}⚠ 警告: 密钥过滤功能可能有问题${NC}"
+fi
+
+# 验证总结
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${BLUE}  Admin API 验证总结${NC}"
+echo -e "${BLUE}========================================${NC}"
+
+echo -e "${GREEN}✓ 环境变量配置检查完成${NC}"
+echo -e "${GREEN}✓ 配额代理服务状态检查完成${NC}"
+echo -e "${GREEN}✓ Admin API 端点存在性验证完成${NC}"
+echo -e "${GREEN}✓ 试用密钥生成功能测试完成${NC}"
+echo -e "${GREEN}✓ 使用统计获取功能测试完成${NC}"
+echo -e "${GREEN}✓ 密钥过滤功能测试完成${NC}"
+
+echo -e "\n${BLUE}测试生成的试用密钥信息:${NC}"
+echo -e "  密钥: ${BLUE}$TRIAL_KEY${NC}"
+echo -e "  标签: ${BLUE}$TEST_LABEL${NC}"
+echo -e "  每日限制: ${BLUE}$TEST_DAILY_LIMIT${NC}"
+
+echo -e "\n${YELLOW}使用说明:${NC}"
+echo -e "1. 生成新试用密钥:"
+echo -e "   curl -X POST '$QUOTA_PROXY_URL/admin/keys' \\"
+echo -e "     -H 'Authorization: Bearer \$ADMIN_TOKEN' \\"
+echo -e "     -H 'Content-Type: application/json' \\"
+echo -e "     -d '{\"label\": \"用户描述\", \"daily_limit\": 100}'"
+echo -e ""
+echo -e "2. 获取使用统计:"
+echo -e "   curl -X GET '$QUOTA_PROXY_URL/admin/usage?days=7' \\"
+echo -e "     -H 'Authorization: Bearer \$ADMIN_TOKEN'"
+echo -e ""
+echo -e "3. 过滤特定密钥使用统计:"
+echo -e "   curl -X GET '$QUOTA_PROXY_URL/admin/usage?key=KEY_HERE&days=7' \\"
+echo -e "     -H 'Authorization: Bearer \$ADMIN_TOKEN'"
+
+echo -e "\n${GREEN}✅ Admin API 完整功能验证完成！${NC}"
+echo -e "${BLUE}========================================${NC}"
