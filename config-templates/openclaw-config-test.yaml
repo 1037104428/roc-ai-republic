@@ -1,0 +1,82 @@
+# OpenClaw 测试环境配置模板
+# 适用于测试服务器、CI/CD环境
+
+# 基础配置
+version: "1.0"
+environment: "testing"
+
+# 日志配置
+logging:
+  level: "info"
+  format: "json"
+  file: "/var/log/openclaw-test.log"
+  maxSize: "50MB"
+  maxBackups: 10
+
+# 模型配置
+models:
+  default: "deepseek/deepseek-chat"
+  fallback: "openai-codex/gpt-5.3-codex"
+  timeout: 60000
+  maxTokens: 2048
+
+# 网络配置
+network:
+  proxy: "auto"
+  timeout: 60000
+  retries: 5
+  checkInterval: 300000
+
+# 安全配置
+security:
+  requireAuth: true
+  allowedOrigins: ["http://test-server:*", "https://test-server:*"]
+  rateLimit:
+    enabled: true
+    requestsPerMinute: 30
+
+# 工具配置
+tools:
+  browser:
+    enabled: false
+  exec:
+    enabled: true
+    security: "allowlist"
+    allowlist: ["ls", "ps", "df", "free", "uptime"]
+  file:
+    enabled: true
+    workspace: "/opt/openclaw/workspace"
+
+# 内存配置
+memory:
+  enabled: true
+  path: "/opt/openclaw/memory"
+  maxSize: "500MB"
+
+# 会话配置
+sessions:
+  defaultTimeout: 1800000
+  maxHistory: 50
+  cleanupInterval: 1800000
+
+# 测试专用配置
+testing:
+  debug: false
+  verbose: false
+  skipSafetyChecks: false
+  mockExternalCalls: true
+  testMode: true
+
+# 监控配置
+monitoring:
+  enabled: true
+  metricsPort: 9090
+  healthCheckPath: "/health"
+  prometheus: true
+
+# 使用说明
+# 1. 将此文件复制到 /etc/openclaw/config.yaml
+# 2. 根据实际服务器修改路径和域名
+# 3. 设置适当的权限: chmod 640 /etc/openclaw/config.yaml
+# 4. 启动 OpenClaw: openclaw gateway start --config /etc/openclaw/config.yaml
+# 5. 验证健康检查: curl http://localhost:9090/health

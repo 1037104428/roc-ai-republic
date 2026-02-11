@@ -1,0 +1,73 @@
+# OpenClaw 开发环境配置模板
+# 适用于本地开发、测试环境
+
+# 基础配置
+version: "1.0"
+environment: "development"
+
+# 日志配置
+logging:
+  level: "debug"
+  format: "text"
+  file: "/tmp/openclaw-dev.log"
+  maxSize: "10MB"
+  maxBackups: 3
+
+# 模型配置
+models:
+  default: "openai-codex/gpt-5.3-codex"
+  fallback: "deepseek/deepseek-chat"
+  timeout: 30000
+  maxTokens: 4096
+
+# 网络配置
+network:
+  proxy: "auto"
+  timeout: 30000
+  retries: 3
+  checkInterval: 60000
+
+# 安全配置
+security:
+  requireAuth: false
+  allowedOrigins: ["http://localhost:*", "http://127.0.0.1:*"]
+  rateLimit:
+    enabled: false
+    requestsPerMinute: 60
+
+# 工具配置
+tools:
+  browser:
+    enabled: true
+    profile: "openclaw"
+  exec:
+    enabled: true
+    security: "allowlist"
+  file:
+    enabled: true
+    workspace: "/home/user/.openclaw/workspace"
+
+# 内存配置
+memory:
+  enabled: true
+  path: "/home/user/.openclaw/memory"
+  maxSize: "100MB"
+
+# 会话配置
+sessions:
+  defaultTimeout: 3600000
+  maxHistory: 100
+  cleanupInterval: 3600000
+
+# 开发专用配置
+development:
+  debug: true
+  verbose: true
+  skipSafetyChecks: false
+  mockExternalCalls: false
+
+# 使用说明
+# 1. 将此文件复制到 ~/.openclaw/config.yaml
+# 2. 根据实际路径修改 workspace 和 memory.path
+# 3. 启动 OpenClaw: openclaw gateway start
+# 4. 验证配置: openclaw config validate

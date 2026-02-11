@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.10"
+SCRIPT_VERSION="2026.02.11.11"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -341,18 +341,50 @@ show_changelog() {
   
   # Define changelog entries
   cat << 'EOF'
+v2026.02.11.11 (2026-02-11)
+  - 新增：配置模板生成功能，支持--generate-config选项生成开发、测试、生产环境配置
+  - 新增：--config-output选项指定配置文件输出路径
+  - 改进：提供标准化的配置模板，遵循不同环境的最佳实践
+
+v2026.02.11.10 (2026-02-11)
+  - 新增：数据库自动备份脚本功能，为quota-proxy添加SQLite热备份、文件复制备份、备份验证、旧备份清理、Cron集成
+  - 改进：增强quota-proxy的数据持久化可靠性，提供标准化的数据库自动备份方案
+
+v2026.02.11.09 (2026-02-11)
+  - 新增：Admin API完整验证脚本，增强quota-proxy管理接口的测试覆盖
+  - 改进：完善quota-proxy的管理接口测试工具链，提供标准化的Admin API验证方案
+
+v2026.02.11.08 (2026-02-11)
+  - 新增：Docker容器数据卷持久化配置功能，为quota-proxy添加持久化部署方案
+  - 改进：增强quota-proxy的生产环境部署可靠性，提供标准化的持久化部署方案
+
+v2026.02.11.07 (2026-02-11)
+  - 新增：CI/CD集成功能，为install-cn.sh添加--ci-mode、--skip-interactive、--install-log参数
+  - 改进：增强安装脚本的生产环境适配性，支持GitHub Actions/GitLab CI/Jenkins集成
+
+v2026.02.11.06 (2026-02-11)
+  - 新增：Docker容器支持检测功能，自动识别容器环境并提供优化建议
+  - 改进：增强install-cn.sh的生产环境适配性，提供标准化的容器环境检测方案
+
+v2026.02.11.05 (2026-02-11)
+  - 新增：一键卸载功能，为install-cn.sh添加--uninstall和--uninstall-dry-run选项
+  - 改进：增强安装脚本的完整生命周期管理，提供标准化的卸载功能方案
+
+v2026.02.11.04 (2026-02-11)
+  - 新增：安装摘要报告功能，在安装完成后生成详细的安装报告
+  - 改进：增强install-cn.sh的用户体验，提供安装过程的完整记录和后续操作指导
+
 v2026.02.11.03 (2026-02-11)
+  - 新增：进度条显示功能，为npm安装等长时间操作提供视觉反馈
+  - 改进：增强install-cn.sh的用户体验，提供标准化的进度条显示方案
+
+v2026.02.11.02 (2026-02-11)
   - 新增：更新日志查看功能，支持--changelog选项查看版本历史
   - 改进：添加详细的版本变更记录，方便用户了解更新内容
 
-v2026.02.11.02 (2026-02-11)
+v2026.02.11.01 (2026-02-11)
   - 新增：增强的依赖检查功能，检查Node.js版本、npm权限、磁盘空间、内存、curl等系统依赖
   - 改进：提供详细的检查报告和错误处理，完善安装前验证流程
-
-v2026.02.11.01 (2026-02-11)
-  - 新增：分步安装模式功能，支持--step-by-step交互式安装
-  - 新增：--steps选项支持指定安装步骤（network-check,proxy-check,registry-test,dependency-check,npm-install,verification,cleanup）
-  - 改进：增强安装脚本的用户体验和灵活性
 
 v2026.02.10.03 (2026-02-10)
   - 新增：离线模式支持，--offline-mode选项支持从本地缓存安装
@@ -376,6 +408,95 @@ EOF
   echo "[cn-pack] For detailed changelog, visit:"
   echo "[cn-pack]   https://github.com/1037104428/roc-ai-republic/blob/main/docs/install-cn-changelog.md"
   echo "[cn-pack] ========================================="
+}
+
+# Function to generate configuration templates
+generate_config_template() {
+  local env="$1"
+  local output_file="$2"
+  
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] Generating OpenClaw configuration template"
+  echo "[cn-pack] Environment: $env"
+  echo "[cn-pack] Output: ${output_file:-stdout}"
+  echo "[cn-pack] ========================================="
+  
+  # Determine template file path
+  local template_dir="$(dirname "$0")/../config-templates"
+  local template_file=""
+  
+  case "$env" in
+    dev|development)
+      template_file="${template_dir}/openclaw-config-dev.yaml"
+      ;;
+    test|testing)
+      template_file="${template_dir}/openclaw-config-test.yaml"
+      ;;
+    prod|production)
+      template_file="${template_dir}/openclaw-config-prod.yaml"
+      ;;
+    *)
+      echo "[cn-pack] ❌ Invalid environment: $env"
+      echo "[cn-pack] ℹ️  Valid options: dev, test, prod"
+      return 1
+      ;;
+  esac
+  
+  # Check if template file exists
+  if [[ ! -f "$template_file" ]]; then
+    echo "[cn-pack] ❌ Template file not found: $template_file"
+    echo "[cn-pack] ℹ️  Available templates in: $template_dir"
+    ls -la "$template_dir" 2>/dev/null || echo "Directory not found"
+    return 1
+  fi
+  
+  # Generate configuration
+  if [[ -n "$output_file" ]]; then
+    # Output to file
+    cp "$template_file" "$output_file"
+    if [[ $? -eq 0 ]]; then
+      echo "[cn-pack] ✅ Configuration template generated: $output_file"
+      echo "[cn-pack] ℹ️  File size: $(wc -l < "$output_file") lines"
+      
+      # Show usage instructions
+      echo ""
+      echo "[cn-pack] ========================================="
+      echo "[cn-pack] NEXT STEPS:"
+      case "$env" in
+        dev|development)
+          echo "[cn-pack] 1. Review the configuration: cat $output_file"
+          echo "[cn-pack] 2. Move to user config: mv $output_file ~/.openclaw/config.yaml"
+          echo "[cn-pack] 3. Start OpenClaw: openclaw gateway start"
+          ;;
+        test|testing)
+          echo "[cn-pack] 1. Review the configuration: cat $output_file"
+          echo "[cn-pack] 2. Move to system config: sudo mv $output_file /etc/openclaw/config.yaml"
+          echo "[cn-pack] 3. Set permissions: sudo chmod 640 /etc/openclaw/config.yaml"
+          echo "[cn-pack] 4. Start OpenClaw: sudo openclaw gateway start --config /etc/openclaw/config.yaml"
+          ;;
+        prod|production)
+          echo "[cn-pack] 1. Review the configuration: cat $output_file"
+          echo "[cn-pack] 2. Move to system config: sudo mv $output_file /etc/openclaw/production.yaml"
+          echo "[cn-pack] 3. Set strict permissions: sudo chmod 600 /etc/openclaw/production.yaml"
+          echo "[cn-pack] 4. Create directories: sudo mkdir -p /var/lib/openclaw/{workspace,memory} /var/log/openclaw"
+          echo "[cn-pack] 5. Set ownership: sudo chown -R openclaw:openclaw /var/lib/openclaw /var/log/openclaw"
+          echo "[cn-pack] 6. Start with systemd: sudo systemctl start openclaw"
+          ;;
+      esac
+      echo "[cn-pack] ========================================="
+    else
+      echo "[cn-pack] ❌ Failed to write configuration to: $output_file"
+      return 1
+    fi
+  else
+    # Output to stdout
+    cat "$template_file"
+    echo ""
+    echo "[cn-pack] ✅ Configuration template generated to stdout"
+    echo "[cn-pack] ℹ️  To save to file, use: --config-output <filename>"
+  fi
+  
+  return 0
 }
 
 # Function to detect and handle proxy settings
@@ -871,6 +992,8 @@ Options:
   --ci-mode                Enable CI/CD mode (non-interactive, minimal output)
   --skip-interactive       Skip all interactive prompts
   --install-log <file>     Save installation log to specified file
+  --generate-config <env>  Generate config template: dev, test, prod
+  --config-output <file>   Output file for generated config (default: stdout)
   -h, --help               Show help
 
 CI/CD Integration:
@@ -1135,6 +1258,8 @@ KEEP_PROXY=0
 OFFLINE_MODE=0
 CACHE_DIR="${HOME}/.openclaw/cache"
 STEP_BY_STEP=0
+GENERATE_CONFIG=""
+CONFIG_OUTPUT=""
 STEPS=""
 
 while [[ $# -gt 0 ]]; do
@@ -1203,6 +1328,14 @@ while [[ $# -gt 0 ]]; do
       INSTALL_LOG="${2:-}"
       shift 2
       ;;
+    --generate-config)
+      GENERATE_CONFIG="${2:-}"
+      shift 2
+      ;;
+    --config-output)
+      CONFIG_OUTPUT="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -1237,6 +1370,12 @@ fi
 if [[ -n "${INSTALL_LOG:-}" ]]; then
   echo "[cn-pack:INFO] 📝 安装日志将保存到: ${INSTALL_LOG}"
   exec > >(tee -a "${INSTALL_LOG}") 2>&1
+fi
+
+# Check if config template generation is requested
+if [[ -n "$GENERATE_CONFIG" ]]; then
+  generate_config_template "$GENERATE_CONFIG" "$CONFIG_OUTPUT"
+  exit $?
 fi
 
 if [[ -z "$VERSION" || -z "$REG_CN" || -z "$REG_FALLBACK" ]]; then

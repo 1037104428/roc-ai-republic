@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.10.02"
+SCRIPT_VERSION="2026.02.11.02"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
@@ -26,9 +26,394 @@ VERIFY_LEVEL_DEFAULT="auto"  # auto, basic, quick, full, none
 echo "[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION"
 echo "[cn-pack] ========================================="
 
+# Function to check for script updates
+check_script_updates() {
+  local check_mode="${1:-auto}"  # auto, force, skip
+  
+  if [[ "$check_mode" == "skip" ]]; then
+    echo "[cn-pack] Script update check skipped"
+    return 0
+  fi
+  
+  # Only check for updates if we have curl and it's not a forced check
+  if [[ "$check_mode" == "auto" ]] && ! command -v curl &> /dev/null; then
+    echo "[cn-pack] curl not available, skipping update check"
+    return 0
+  fi
+  
+  echo "[cn-pack] Checking for script updates..."
+  
+  # Try to fetch latest version from GitHub
+  local latest_version=""
+  local update_available=false
+  
+  if command -v curl &> /dev/null; then
+    # Try GitHub first
+    latest_version=$(curl -fsSL "$SCRIPT_UPDATE_URL" 2>/dev/null | grep -E '^SCRIPT_VERSION="[^"]+"' | head -1 | cut -d'"' -f2)
+    
+    # If GitHub fails, try Gitee
+    if [[ -z "$latest_version" ]]; then
+      local gitee_url="https://gitee.com/junkaiWang324/roc-ai-republic/raw/main/scripts/install-cn.sh"
+      latest_version=$(curl -fsSL "$gitee_url" 2>/dev/null | grep -E '^SCRIPT_VERSION="[^"]+"' | head -1 | cut -d'"' -f2)
+    fi
+  fi
+  
+  if [[ -n "$latest_version" ]]; then
+    if [[ "$latest_version" != "$SCRIPT_VERSION" ]]; then
+      echo "[cn-pack] ⚠️  Update available: v$SCRIPT_VERSION → v$latest_version"
+      echo "[cn-pack]    Run with --check-update to see details"
+      update_available=true
+    else
+      echo "[cn-pack] ✓ Script is up to date (v$SCRIPT_VERSION)"
+    fi
+  else
+    echo "[cn-pack] ⚠️  Could not check for updates (network issue)"
+  fi
+  
+  # Return update status
+  if [[ "$update_available" == true ]]; then
+    return 1
+  fi
+  return 0
+}
+
+# Function to show update details
+show_update_details() {
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] Script Update Information"
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] Current version: v$SCRIPT_VERSION"
+  echo "[cn-pack] Update URL: $SCRIPT_UPDATE_URL"
+  echo "[cn-pack]"
+  echo "[cn-pack] To update:"
+  echo "[cn-pack]   1. Download latest: curl -fsSL $SCRIPT_UPDATE_URL -o install-cn.sh"
+  echo "[cn-pack]   2. Make executable: chmod +x install-cn.sh"
+  echo "[cn-pack]   3. Verify: ./install-cn.sh --version"
+  echo "[cn-pack]"
+  echo "[cn-pack] Or use one-liner:"
+  echo "[cn-pack]   curl -fsSL $SCRIPT_UPDATE_URL | bash"
+  echo "[cn-pack] ========================================="
+}
+
+# Function to detect and handle proxy settings
+handle_proxy_settings() {
+  local proxy_mode="${1:-auto}"  # auto, force, skip
+  
+  echo "[cn-pack] Checking proxy settings..."
+  
+  # Simple proxy detection (fallback if detect-proxy.sh is not available)
+  detect_proxy_fallback() {
+    local proxy_vars=("HTTP_PROXY" "HTTPS_PROXY" "http_proxy" "https_proxy" "ALL_PROXY" "all_proxy")
+    local detected_count=0
+    
+    for var in "${proxy_vars[@]}"; do
+      if [[ -n "${!var:-}" ]]; then
+        echo "[cn-pack] Detected proxy: $var=${!var}"
+        detected_count=$((detected_count + 1))
+      fi
+    done
+    
+    # Check npm proxy settings
+    local npm_proxy=$(npm config get proxy 2>/dev/null || echo "null")
+    local npm_https_proxy=$(npm config get https-proxy 2>/dev/null || echo "null")
+    
+    if [[ "$npm_proxy" != "null" && -n "$npm_proxy" ]]; then
+      echo "[cn-pack] Detected npm proxy: $npm_proxy"
+      detected_count=$((detected_count + 1))
+    fi
+    
+    if [[ "$npm_https_proxy" != "null" && -n "$npm_https_proxy" ]]; then
+      echo "[cn-pack] Detected npm https-proxy: $npm_https_proxy"
+      detected_count=$((detected_count + 1))
+    fi
+    
+    if [[ $detected_count -gt 0 ]]; then
+      echo "PROXY_DETECTED=true"
+      echo "PROXY_COUNT=$detected_count"
+      return 0
+    else
+      echo "PROXY_DETECTED=false"
+      echo "PROXY_COUNT=0"
+      return 1
+    fi
+  }
+  
+  # Try to use the full proxy detection script if available
+  if [[ -f "./scripts/detect-proxy.sh" ]]; then
+    # Source the proxy detection script
+    source ./scripts/detect-proxy.sh >/dev/null 2>&1 || {
+      echo "[cn-pack] ⚠ Failed to load proxy detection script, using fallback"
+      detect_proxy_fallback
+      return 0
+    }
+    
+    # Run proxy detection
+    local proxy_info
+    proxy_info=$(detect_proxy_settings 2>/dev/null || echo "PROXY_DETECTED=false")
+    
+    # Parse proxy detection results
+    local proxy_detected=$(echo "$proxy_info" | grep "^PROXY_DETECTED=" | cut -d= -f2)
+    local proxy_type=$(echo "$proxy_info" | grep "^PROXY_TYPE=" | cut -d= -f2)
+    local proxy_count=$(echo "$proxy_info" | grep "^PROXY_COUNT=" | cut -d= -f2)
+    
+    if [[ "$proxy_detected" == "true" ]]; then
+      echo "[cn-pack] ✓ Detected $proxy_count proxy configuration(s)"
+      
+      # Test proxy connectivity if not skipping
+      if [[ "$proxy_mode" != "skip" ]]; then
+        echo "[cn-pack] Testing proxy connectivity..."
+        local test_result
+        test_result=$(test_proxy_connectivity "https://registry.npmmirror.com" 10 2>/dev/null || true)
+        
+        if echo "$test_result" | grep -q "PROXY_TEST_RESULT=success"; then
+          echo "[cn-pack] ✓ Proxy connectivity test passed"
+          
+          # Configure npm proxy if needed and not skipping
+          if [[ -n "${HTTP_PROXY:-}" ]] && [[ "$proxy_mode" == "force" || "$proxy_mode" == "auto" ]]; then
+            echo "[cn-pack] Configuring npm proxy for installation..."
+            configure_npm_proxy "$HTTP_PROXY" "${HTTPS_PROXY:-$HTTP_PROXY}" >/dev/null 2>&1 || true
+          fi
+        else
+          echo "[cn-pack] ⚠ Proxy connectivity test failed"
+          
+          if [[ "$proxy_mode" == "force" ]]; then
+            echo "[cn-pack] ✗ Proxy forced but connectivity failed. Installation may fail."
+            return 1
+          fi
+        fi
+      fi
+      
+      return 0
+    else
+      echo "[cn-pack] ✓ No proxy settings detected"
+      return 0
+    fi
+  else
+    # Use fallback detection
+    detect_proxy_fallback
+    return 0
+  fi
+}
+
+# Function for step-by-step installation
+step_by_step_install() {
+  local steps_to_run=""
+  
+  # Determine which steps to run
+  if [[ -n "$STEPS" ]]; then
+    steps_to_run="$STEPS"
+    echo "[cn-pack] 🔧 运行指定步骤: $steps_to_run"
+  else
+    steps_to_run="network-check,proxy-check,registry-test,dependency-check,npm-install,verification,cleanup"
+    echo "[cn-pack] 🔧 运行完整步骤序列"
+  fi
+  
+  # Convert steps to array
+  IFS=',' read -ra steps_array <<< "$steps_to_run"
+  
+  for step in "${steps_array[@]}"; do
+    step=$(echo "$step" | xargs)  # Trim whitespace
+    
+    case "$step" in
+      network-check)
+        echo "[cn-pack] 🔍 步骤 1/7: 网络连接检查"
+        echo "[cn-pack]   运行网络测试..."
+        if [[ "$NETWORK_TEST" == "1" ]]; then
+          echo "[cn-pack]   ✓ 网络测试已启用"
+        else
+          echo "[cn-pack]   ℹ️ 网络测试未启用 (使用 --network-test 启用)"
+        fi
+        ;;
+        
+      proxy-check)
+        echo "[cn-pack] 🔍 步骤 2/7: 代理配置检查"
+        echo "[cn-pack]   检查代理设置..."
+        if [[ "$PROXY_TEST" == "1" ]]; then
+          echo "[cn-pack]   ✓ 代理测试已启用"
+        else
+          echo "[cn-pack]   ℹ️ 代理测试未启用 (使用 --proxy-test 启用)"
+        fi
+        ;;
+        
+      registry-test)
+        echo "[cn-pack] 🔍 步骤 3/7: NPM 仓库连接测试"
+        echo "[cn-pack]   测试仓库连接性..."
+        echo "[cn-pack]   主仓库: $REG_CN"
+        echo "[cn-pack]   备用仓库: $REG_FALLBACK"
+        ;;
+        
+      dependency-check)
+        echo "[cn-pack] 🔍 步骤 4/7: 系统依赖检查"
+        echo "[cn-pack]   检查 Node.js, npm, curl, 磁盘空间, 权限..."
+        
+        # 增强的依赖检查函数
+        enhanced_dependency_check() {
+          local errors=0
+          local warnings=0
+          
+          echo "[cn-pack]   1. 检查 Node.js..."
+          if command -v node &> /dev/null; then
+            local node_version=$(node --version 2>/dev/null | cut -d'v' -f2)
+            echo "[cn-pack]     ✓ Node.js v$node_version 已安装"
+            
+            # 检查 Node.js 版本是否 >= 16
+            local node_major=$(echo "$node_version" | cut -d'.' -f1)
+            if [[ "$node_major" -ge 16 ]]; then
+              echo "[cn-pack]     ✓ Node.js 版本满足要求 (>= 16)"
+            else
+              echo "[cn-pack]     ⚠️  Node.js 版本较低 (v$node_version < 16)"
+              warnings=$((warnings + 1))
+            fi
+          else
+            echo "[cn-pack]     ❌ Node.js 未安装"
+            errors=$((errors + 1))
+          fi
+          
+          echo "[cn-pack]   2. 检查 npm..."
+          if command -v npm &> /dev/null; then
+            local npm_version=$(npm --version 2>/dev/null)
+            echo "[cn-pack]     ✓ npm v$npm_version 已安装"
+          else
+            echo "[cn-pack]     ❌ npm 未安装"
+            errors=$((errors + 1))
+          fi
+          
+          echo "[cn-pack]   3. 检查 curl..."
+          if command -v curl &> /dev/null; then
+            echo "[cn-pack]     ✓ curl 已安装"
+          else
+            echo "[cn-pack]     ⚠️  curl 未安装 (将影响网络功能)"
+            warnings=$((warnings + 1))
+          fi
+          
+          echo "[cn-pack]   4. 检查磁盘空间..."
+          local free_space_kb=$(df -k . 2>/dev/null | tail -1 | awk '{print $4}')
+          if [[ -n "$free_space_kb" ]]; then
+            local free_space_mb=$((free_space_kb / 1024))
+            if [[ "$free_space_mb" -ge 500 ]]; then
+              echo "[cn-pack]     ✓ 磁盘空间充足 (${free_space_mb}MB 可用)"
+            elif [[ "$free_space_mb" -ge 100 ]]; then
+              echo "[cn-pack]     ⚠️  磁盘空间较低 (${free_space_mb}MB 可用)"
+              warnings=$((warnings + 1))
+            else
+              echo "[cn-pack]     ❌ 磁盘空间不足 (${free_space_mb}MB 可用，需要至少 100MB)"
+              errors=$((errors + 1))
+            fi
+          else
+            echo "[cn-pack]     ⚠️  无法检查磁盘空间"
+            warnings=$((warnings + 1))
+          fi
+          
+          echo "[cn-pack]   5. 检查 npm 全局安装权限..."
+          if command -v npm &> /dev/null; then
+            if npm config get prefix 2>/dev/null | grep -q "Permission denied"; then
+              echo "[cn-pack]     ❌ npm 全局安装权限不足"
+              errors=$((errors + 1))
+            else
+              echo "[cn-pack]     ✓ npm 全局安装权限正常"
+            fi
+          fi
+          
+          echo "[cn-pack]   6. 检查内存..."
+          if [[ -f /proc/meminfo ]]; then
+            local mem_total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+            local mem_total_mb=$((mem_total_kb / 1024))
+            if [[ "$mem_total_mb" -ge 1024 ]]; then
+              echo "[cn-pack]     ✓ 内存充足 (${mem_total_mb}MB)"
+            elif [[ "$mem_total_mb" -ge 512 ]]; then
+              echo "[cn-pack]     ⚠️  内存较低 (${mem_total_mb}MB)"
+              warnings=$((warnings + 1))
+            else
+              echo "[cn-pack]     ❌ 内存不足 (${mem_total_mb}MB，需要至少 512MB)"
+              errors=$((errors + 1))
+            fi
+          else
+            echo "[cn-pack]     ⚠️  无法检查内存"
+            warnings=$((warnings + 1))
+          fi
+          
+          # 总结报告
+          echo "[cn-pack]   -----------------------------------------"
+          echo "[cn-pack]   依赖检查完成:"
+          if [[ "$errors" -eq 0 ]]; then
+            echo "[cn-pack]     ✓ 所有必需依赖检查通过"
+          else
+            echo "[cn-pack]     ❌ 发现 $errors 个错误"
+          fi
+          
+          if [[ "$warnings" -gt 0 ]]; then
+            echo "[cn-pack]     ⚠️  发现 $warnings 个警告"
+          fi
+          
+          if [[ "$errors" -gt 0 ]]; then
+            echo "[cn-pack]   ❌ 依赖检查失败，请解决上述问题后重试"
+            return 1
+          fi
+          
+          return 0
+        }
+        
+        # 执行增强的依赖检查
+        if ! enhanced_dependency_check; then
+          if [[ "$STEP_BY_STEP" == "true" ]]; then
+            echo "[cn-pack]   ⚠️  依赖检查失败，是否继续？[y/N]"
+            read -r continue_install
+            if [[ ! "$continue_install" =~ ^[Yy]$ ]]; then
+              echo "[cn-pack]   ❌ 安装已取消"
+              exit 1
+            fi
+          else
+            echo "[cn-pack]   ❌ 依赖检查失败，安装中止"
+            exit 1
+          fi
+        fi
+        ;;
+        
+      npm-install)
+        echo "[cn-pack] 🔍 步骤 5/7: NPM 包安装"
+        echo "[cn-pack]   安装 OpenClaw v$VERSION..."
+        echo "[cn-pack]   使用仓库: $REG_CN"
+        ;;
+        
+      verification)
+        echo "[cn-pack] 🔍 步骤 6/7: 安装验证"
+        echo "[cn-pack]   验证级别: $VERIFY_LEVEL"
+        ;;
+        
+      cleanup)
+        echo "[cn-pack] 🔍 步骤 7/7: 清理临时文件"
+        echo "[cn-pack]   清理安装过程中的临时文件..."
+        ;;
+        
+      *)
+        echo "[cn-pack] ⚠️  未知步骤: $step (跳过)"
+        continue
+        ;;
+    esac
+    
+    # 在实际实现中，这里会有每个步骤的实际执行代码
+    echo "[cn-pack]   ✓ 步骤 '$step' 准备就绪"
+    echo ""
+  done
+  
+  echo "[cn-pack] ✅ 分步安装模式配置完成"
+  echo "[cn-pack] ℹ️  要实际执行安装，请移除 --step-by-step 或 --steps 参数"
+}
+
+# Function to clear proxy settings after installation
+cleanup_proxy_settings() {
+  echo "[cn-pack] Cleaning up proxy settings..."
+  
+  # Clear npm proxy config
+  npm config delete proxy >/dev/null 2>&1 || true
+  npm config delete https-proxy >/dev/null 2>&1 || true
+  
+  echo "[cn-pack] ✓ Proxy settings cleaned up"
+}
+
 usage() {
-  cat <<'TXT'
-[cn-pack] OpenClaw CN installer
+  cat <<TXT
+[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION
 
 Options:
   --version <ver>          Install a specific OpenClaw version (default: latest)
@@ -38,12 +423,37 @@ Options:
   --network-optimize       Run advanced network optimization (detect best mirrors)
   --force-cn               Force using CN registry (skip fallback)
   --dry-run                Print commands without executing
-  --check-update           Check for script updates
+  --check-update           Check for script updates and exit
+  --version-check          Check script version and update status (non-blocking)
   --verify-level <level>   Verification level: auto, basic, quick, full, none (default: auto)
+  --proxy-mode <mode>      Proxy handling mode: auto, force, skip (default: auto)
+  --proxy-test             Test proxy connectivity before installation
+  --proxy-report           Generate proxy configuration report
+  --keep-proxy             Keep npm proxy settings after installation
+  --offline-mode           Enable offline mode (use local cache only)
+  --cache-dir <dir>        Specify local cache directory (default: ~/.openclaw/cache)
+  --step-by-step           Enable step-by-step interactive installation mode
+  --steps <steps>          Specify installation steps to run (comma-separated)
   -h, --help               Show help
+
+Installation Steps (for --step-by-step or --steps):
+  - network-check: Network connectivity test
+  - proxy-check: Proxy configuration check
+  - registry-test: NPM registry connectivity test
+  - dependency-check: System dependency verification
+  - npm-install: NPM package installation
+  - verification: Installation verification
+  - cleanup: Cleanup temporary files
+
+Version Control:
+  - Script version: $SCRIPT_VERSION
+  - Update URL: $SCRIPT_UPDATE_URL
+  - Use --check-update to check for updates
+  - Use --version-check for non-blocking version check
 
 Env vars (equivalent):
   OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT, OPENCLAW_VERIFY_LEVEL
+  HTTP_PROXY, HTTPS_PROXY, http_proxy, https_proxy (for proxy detection)
 TXT
 }
 
@@ -93,10 +503,19 @@ DRY_RUN=0
 NETWORK_TEST=0
 NETWORK_OPTIMIZE=0
 FORCE_CN=0
+VERSION_CHECK=0
 VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
 REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
 REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
 VERIFY_LEVEL="${OPENCLAW_VERIFY_LEVEL:-$VERIFY_LEVEL_DEFAULT}"
+PROXY_MODE="auto"
+PROXY_TEST=0
+PROXY_REPORT=0
+KEEP_PROXY=0
+OFFLINE_MODE=0
+CACHE_DIR="${HOME}/.openclaw/cache"
+STEP_BY_STEP=0
+STEPS=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -116,9 +535,29 @@ while [[ $# -gt 0 ]]; do
       FORCE_CN=1; shift ;;
     --dry-run)
       DRY_RUN=1; shift ;;
+    --proxy-mode)
+      PROXY_MODE="${2:-auto}"; shift 2 ;;
+    --proxy-test)
+      PROXY_TEST=1; shift ;;
+    --proxy-report)
+      PROXY_REPORT=1; shift ;;
+    --keep-proxy)
+      KEEP_PROXY=1; shift ;;
+    --offline-mode)
+      OFFLINE_MODE=1; shift ;;
+    --cache-dir)
+      CACHE_DIR="${2:-}"; shift 2 ;;
+    --step-by-step)
+      STEP_BY_STEP=1; shift ;;
+    --steps)
+      STEPS="${2:-}"; shift 2 ;;
     --check-update)
       check_script_update
       exit $?
+      ;;
+    --version-check)
+      VERSION_CHECK=1
+      shift
       ;;
     -h|--help)
       usage
@@ -136,6 +575,19 @@ if [[ -z "$VERSION" || -z "$REG_CN" || -z "$REG_FALLBACK" ]]; then
   echo "[cn-pack] Missing required values." >&2
   usage
   exit 2
+fi
+
+# Check if step-by-step mode is enabled (must be before main installation logic)
+if [[ "$STEP_BY_STEP" == "1" || -n "$STEPS" ]]; then
+  step_by_step_install
+  exit 0
+fi
+
+# Run version check if requested (non-blocking)
+if [[ "$VERSION_CHECK" == "1" ]]; then
+  echo "[cn-pack] Running version check..."
+  check_script_updates "auto"
+  # Continue with installation even if updates are available
 fi
 
 run() {
@@ -333,18 +785,129 @@ if [[ -z "${SKIP_NET_CHECK:-}" ]]; then
   fi
 fi
 
+# Function to check if offline mode is available
+check_offline_mode() {
+  if [[ "$OFFLINE_MODE" != "1" ]]; then
+    return 0
+  fi
+  
+  echo "[cn-pack] Offline mode enabled, checking local cache..."
+  
+  # Create cache directory if it doesn't exist
+  mkdir -p "$CACHE_DIR"
+  
+  # Check for cached package
+  local cache_file="${CACHE_DIR}/openclaw-${VERSION}.tgz"
+  if [[ -f "$cache_file" ]]; then
+    echo "[cn-pack] ✅ Found cached package: $cache_file"
+    return 0
+  else
+    echo "[cn-pack] ❌ No cached package found for version: $VERSION"
+    echo "[cn-pack] ℹ️  Cache directory: $CACHE_DIR"
+    echo "[cn-pack] ℹ️  Expected file: openclaw-${VERSION}.tgz"
+    return 1
+  fi
+}
+
+# Function to install from offline cache
+install_from_offline_cache() {
+  local cache_file="${CACHE_DIR}/openclaw-${VERSION}.tgz"
+  
+  echo "[cn-pack] Installing from offline cache: $cache_file"
+  
+  if run npm i -g "$cache_file" --no-audit --no-fund; then
+    echo "[cn-pack] ✅ Offline installation successful"
+    return 0
+  else
+    echo "[cn-pack] ❌ Offline installation failed" >&2
+    return 1
+  fi
+}
+
+# Function to cache package for offline use
+cache_package_for_offline() {
+  local reg="$1"
+  
+  # Only cache if offline mode is supported or cache directory exists
+  if [[ ! -d "$CACHE_DIR" ]]; then
+    mkdir -p "$CACHE_DIR"
+  fi
+  
+  local cache_file="${CACHE_DIR}/openclaw-${VERSION}.tgz"
+  
+  echo "[cn-pack] Caching package for offline use: $cache_file"
+  
+  # Try to download the package tarball
+  if command -v npm &> /dev/null; then
+    # Get package info to find tarball URL
+    local package_info=$(npm view "openclaw@${VERSION}" --registry "$reg" --json 2>/dev/null || echo "{}")
+    local dist_tarball=$(echo "$package_info" | grep -o '"tarball":"[^"]*"' | head -1 | cut -d'"' -f4)
+    
+    if [[ -n "$dist_tarball" ]]; then
+      echo "[cn-pack] Downloading package tarball from: $dist_tarball"
+      if curl -fsSL "$dist_tarball" -o "$cache_file.tmp" 2>/dev/null; then
+        mv "$cache_file.tmp" "$cache_file"
+        echo "[cn-pack] ✅ Package cached successfully: $cache_file"
+        echo "[cn-pack] ℹ️  File size: $(du -h "$cache_file" | cut -f1)"
+      else
+        echo "[cn-pack] ⚠️  Could not download package tarball"
+        rm -f "$cache_file.tmp" 2>/dev/null || true
+      fi
+    else
+      echo "[cn-pack] ⚠️  Could not get package tarball URL"
+    fi
+  else
+    echo "[cn-pack] ⚠️  npm not available for caching"
+  fi
+}
+
 install_openclaw() {
   local reg="$1"
   local attempt="$2"
+  
+  # Check if offline mode is enabled and available
+  if [[ "$OFFLINE_MODE" == "1" ]]; then
+    if check_offline_mode; then
+      if install_from_offline_cache; then
+        return 0
+      else
+        echo "[cn-pack] ❌ Offline installation failed, falling back to online mode" >&2
+      fi
+    else
+      echo "[cn-pack] ❌ Offline mode not available, falling back to online mode" >&2
+    fi
+  fi
+  
   echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg (attempt: $attempt)"
   # no-audit/no-fund: faster & quieter, especially on slow networks
   if run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund; then
+    # Cache the package for future offline use
+    cache_package_for_offline "$reg"
     return 0
   else
     echo "[cn-pack] Install attempt failed via registry: $reg" >&2
     return 1
   fi
 }
+
+# Handle proxy settings before installation
+echo "[cn-pack] ========================================="
+echo "[cn-pack] Proxy Configuration Phase"
+echo "[cn-pack] ========================================="
+
+if [[ "$PROXY_TEST" == "1" ]]; then
+  echo "[cn-pack] Running proxy connectivity test..."
+  handle_proxy_settings "force"
+elif [[ "$PROXY_REPORT" == "1" ]]; then
+  echo "[cn-pack] Generating proxy configuration report..."
+  if [[ -f "./scripts/detect-proxy.sh" ]]; then
+    source ./scripts/detect-proxy.sh >/dev/null 2>&1
+    generate_proxy_report "/tmp/openclaw-proxy-report-$(date +%s).md" >/dev/null 2>&1 || true
+  fi
+fi
+
+# Apply proxy settings for installation
+handle_proxy_settings "$PROXY_MODE"
 
 # 尝试CN源
 if [[ "$FORCE_CN" == "1" ]]; then
@@ -394,6 +957,11 @@ else
   echo "[cn-pack] npm prefix: $(npm config get prefix 2>/dev/null || true)" >&2
   echo "[cn-pack] npm global bin: $(npm bin -g 2>/dev/null || true)" >&2
   exit 2
+fi
+
+# Cleanup proxy settings if not keeping them
+if [[ "$KEEP_PROXY" == "0" ]]; then
+  cleanup_proxy_settings
 fi
 
 echo "[cn-pack] Next steps:"

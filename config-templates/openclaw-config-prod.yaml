@@ -1,0 +1,118 @@
+# OpenClaw 生产环境配置模板
+# 适用于生产服务器、正式环境
+
+# 基础配置
+version: "1.0"
+environment: "production"
+
+# 日志配置
+logging:
+  level: "warn"
+  format: "json"
+  file: "/var/log/openclaw/production.log"
+  maxSize: "100MB"
+  maxBackups: 30
+  retentionDays: 30
+
+# 模型配置
+models:
+  default: "openai-codex/gpt-5.3-codex"
+  fallback: "deepseek/deepseek-chat"
+  timeout: 120000
+  maxTokens: 8192
+  costLimit: 1000
+
+# 网络配置
+network:
+  proxy: "skip"
+  timeout: 120000
+  retries: 3
+  checkInterval: 600000
+
+# 安全配置
+security:
+  requireAuth: true
+  allowedOrigins: ["https://your-domain.com", "https://api.your-domain.com"]
+  rateLimit:
+    enabled: true
+    requestsPerMinute: 10
+    burst: 5
+  cors:
+    enabled: true
+    allowCredentials: true
+  apiKeys:
+    enabled: true
+    rotationDays: 30
+
+# 工具配置
+tools:
+  browser:
+    enabled: false
+  exec:
+    enabled: false
+  file:
+    enabled: true
+    workspace: "/var/lib/openclaw/workspace"
+    readOnly: false
+
+# 内存配置
+memory:
+  enabled: true
+  path: "/var/lib/openclaw/memory"
+  maxSize: "1GB"
+  encryption: true
+
+# 会话配置
+sessions:
+  defaultTimeout: 900000
+  maxHistory: 20
+  cleanupInterval: 900000
+  sessionEncryption: true
+
+# 生产专用配置
+production:
+  debug: false
+  verbose: false
+  skipSafetyChecks: false
+  auditLog: true
+  backupEnabled: true
+  backupInterval: 86400000
+
+# 监控配置
+monitoring:
+  enabled: true
+  metricsPort: 9090
+  healthCheckPath: "/health"
+  prometheus: true
+  alerting:
+    enabled: true
+    slackWebhook: ""
+    email: ""
+
+# 高可用配置
+highAvailability:
+  enabled: false
+  replicaCount: 1
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: "10Gi"
+
+# 备份配置
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retentionDays: 90
+  s3:
+    enabled: false
+    bucket: ""
+    region: ""
+
+# 使用说明
+# 1. 将此文件复制到 /etc/openclaw/production.yaml
+# 2. 修改安全配置中的域名和API密钥设置
+# 3. 设置严格的权限: chmod 600 /etc/openclaw/production.yaml
+# 4. 创建必要的目录: mkdir -p /var/lib/openclaw/{workspace,memory} /var/log/openclaw
+# 5. 设置目录权限: chown -R openclaw:openclaw /var/lib/openclaw /var/log/openclaw
+# 6. 使用systemd服务启动: systemctl start openclaw
+# 7. 验证监控: curl http://localhost:9090/metrics

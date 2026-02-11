@@ -9,7 +9,7 @@ echo "========================================"
 
 # 测试1: 基本CI模式
 echo "📦 测试1: 基本CI模式 (--ci-mode)"
-if ./scripts/install-cn.sh --ci-mode --dry-run --version latest 2>&1 | grep -q "检测到CI/CD环境，启用CI模式"; then
+if timeout 5 ./scripts/install-cn.sh --ci-mode --dry-run --version latest 2>&1 | grep -q "检测到CI/CD环境，启用CI模式"; then
     echo "✅ 测试1通过: CI模式检测成功"
 else
     echo "❌ 测试1失败: CI模式检测失败"
@@ -19,7 +19,7 @@ fi
 # 测试2: 跳过交互式提示
 echo ""
 echo "⏭️  测试2: 跳过交互式提示 (--skip-interactive)"
-if ./scripts/install-cn.sh --skip-interactive --dry-run --version latest 2>&1 | grep -q "跳过交互式提示（CI/CD模式）"; then
+if timeout 5 ./scripts/install-cn.sh --skip-interactive --dry-run --version latest 2>&1 | grep -q "跳过交互式提示（CI/CD模式）"; then
     echo "✅ 测试2通过: 跳过交互式提示成功"
 else
     echo "❌ 测试2失败: 跳过交互式提示失败"
@@ -30,7 +30,7 @@ fi
 echo ""
 echo "📝 测试3: 安装日志功能 (--install-log)"
 TEST_LOG="/tmp/test-ci-install-$(date +%s).log"
-if ./scripts/install-cn.sh --install-log "$TEST_LOG" --dry-run --version latest 2>&1 | grep -q "安装日志将保存到: $TEST_LOG"; then
+if timeout 5 ./scripts/install-cn.sh --install-log "$TEST_LOG" --dry-run --version latest 2>&1 | grep -q "安装日志将保存到: $TEST_LOG"; then
     echo "✅ 测试3通过: 安装日志设置成功"
     if [[ -f "$TEST_LOG" ]]; then
         echo "  日志文件已创建: $TEST_LOG"
@@ -44,7 +44,7 @@ fi
 # 测试4: 环境变量CI模式
 echo ""
 echo "🌐 测试4: 环境变量CI模式 (CI_MODE=1)"
-if CI_MODE=1 ./scripts/install-cn.sh --dry-run --version latest 2>&1 | grep -q "检测到CI/CD环境，启用CI模式"; then
+if timeout 5 CI_MODE=1 ./scripts/install-cn.sh --dry-run --version latest 2>&1 | grep -q "检测到CI/CD环境，启用CI模式"; then
     echo "✅ 测试4通过: 环境变量CI模式检测成功"
 else
     echo "❌ 测试4失败: 环境变量CI模式检测失败"
@@ -56,7 +56,7 @@ echo ""
 echo "🔄 测试5: 常见CI环境变量检测"
 for ci_env in "CI=true" "GITHUB_ACTIONS=true" "GITLAB_CI=true" "JENKINS_HOME=/tmp"; do
     export $ci_env
-    if ./scripts/install-cn.sh --dry-run --version latest 2>&1 | grep -q "检测到CI/CD环境，启用CI模式"; then
+    if timeout 5 ./scripts/install-cn.sh --dry-run --version latest 2>&1 | grep -q "检测到CI/CD环境，启用CI模式"; then
         echo "✅ $ci_env 检测成功"
     else
         echo "❌ $ci_env 检测失败"

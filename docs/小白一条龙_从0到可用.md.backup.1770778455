@@ -1,0 +1,173 @@
+# 小白一条龙（免翻墙｜从 0 到可用）
+
+目标：让第一次接触的人「复制粘贴」就能跑通一次调用。
+
+你将完成：
+1) 官网连通性确认
+2) API 健康检查（不花额度）
+3) 申请并设置 TRIAL_KEY（当前：人工发放）
+4) 用 curl 最小调用一次模型（会消耗额度）
+5) （可选）把 TRIAL_KEY 接入 OpenClaw
+
+- 官网版（外部用户建议读这个）：https://clawdrepublic.cn/quickstart.html
+- TRIAL_KEY / quota-proxy 说明（含管理员接口）：https://clawdrepublic.cn/quota-proxy.html
+- 服务状态页：https://clawdrepublic.cn/status.html
+- 论坛求助：https://clawdrepublic.cn/forum/
+
+---
+
+## 0) 你需要准备什么
+
+- 一台能上网的电脑
+- 一个终端
+  - macOS/Linux：Terminal
+  - Windows：PowerShell / Windows Terminal
+
+下面命令默认以 macOS/Linux 为例；Windows PowerShell 的环境变量写法见第 3 步。
+
+---
+
+## 1) 确认官网可访问
+
+```bash
+curl -fsS -m 5 https://clawdrepublic.cn/ > /dev/null && echo OK
+```
+
+失败怎么办：把 **报错全文** + **失败时间** + **你所在城市/网络（移动/电信/联通/公司/校园）**，发到论坛「问题求助」。
+
+---
+
+## 2) 确认 API 健康（不消耗额度）
+
+```bash
+curl -fsS -m 5 https://api.clawdrepublic.cn/healthz
+```
+
+你应该看到类似：
+
+```json
+{"ok":true}
+```
+
+---
+
+## 3) （推荐）一键自检脚本（把结果发给我们）
+
+如果你只是想快速确认「官网 + API + 你的网络」是否正常，先跑这个自检脚本（不消耗额度）：
+
+```bash
+curl -fsSL https://clawdrepublic.cn/probe-roc-all.sh | bash
+```
+
+你会看到类似 `web_ok/api_healthz_ok/...` 的输出。
+
+失败怎么办：把 **输出全文** + **失败时间** + **你所在城市/网络（移动/电信/联通/公司/校园）** 发到论坛「问题求助」。
+
+---
+
+## 4) 获取 TRIAL_KEY（当前：人工发放）
+
+为了避免被滥用，当前阶段 TRIAL_KEY 先走人工发放。
+
+1) 去论坛发帖申请：https://clawdrepublic.cn/forum/
+2) 正文写清楚 3 件事：用途、预计每天调用次数、想用的模型（不确定就写不确定）
+3) 管理员会私信/回复你一个形如 `sk-...` 的 key
+
+拿到 key 后，在终端设置环境变量：
+
+macOS/Linux（bash/zsh）：
+```bash
+export CLAWD_TRIAL_KEY='sk-xxx'
+```
+
+Windows PowerShell：
+```powershell
+$env:CLAWD_TRIAL_KEY='sk-xxx'
+```
+
+（可选自检）确认环境变量已经生效：
+```bash
+echo "${CLAWD_TRIAL_KEY}" | sed -E 's/(trial_[A-Za-z0-9]{4}).*/\1.../'
+```
+
+---
+
+## 5) 用 curl 做一次“最小验证”（会消耗试用额度）
+
+看到返回 JSON 里有 `choices` 字段就算成功。
+
+```bash
+curl -fsS https://api.clawdrepublic.cn/v1/chat/completions \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY}" \
+  -H 'content-type: application/json' \
+  -d '{
+    "model": "deepseek-chat",
+    "messages": [{"role":"user","content":"用一句话介绍 Clawd 国度"}]
+  }'
+```
+
+常见报错：
+- `401/403`：TRIAL_KEY 不对/未开通/已失效
+- `429`：超过当日试用次数上限（正常限流）
+- `5xx`：服务端异常（请附上失败时间与返回内容）
+
+---
+
+## 6) （可选）把 TRIAL_KEY 接入 OpenClaw（复制粘贴版）
+
+### 6.1 安装 OpenClaw（国内源优先）
+
+```bash
+curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
+openclaw --version
+```
+
+### 6.2 写入 OpenClaw 配置
+
+把下面内容保存为：`~/.openclaw/openclaw.json`
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": { "primary": "clawd-gateway/deepseek-chat" },
+      "models": {
+        "clawd-gateway/deepseek-chat": {},
+        "clawd-gateway/deepseek-reasoner": {}
+      }
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "clawd-gateway": {
+        "baseUrl": "https://api.clawdrepublic.cn/v1",
+        "apiKey": "${CLAWD_TRIAL_KEY}",
+        "api": "openai-completions",
+        "models": [
+          { "id": "deepseek-chat", "name": "DeepSeek Chat" },
+          { "id": "deepseek-reasoner", "name": "DeepSeek Reasoner" }
+        ]
+      }
+    }
+  }
+}
+```
+
+### 6.3 启动并自检
+
+```bash
+openclaw gateway start
+openclaw models status
+```
+
+---
+
+## 7) 需要帮助？（最省时间的提问方式）
+
+到论坛「问题求助」发帖：https://clawdrepublic.cn/forum/t/help
+
+请把下面三样原样贴上：
+1) 失败的命令
+2) 输出（报错全文）
+3) 失败时间（精确到分钟）
