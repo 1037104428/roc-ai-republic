@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.13"
+SCRIPT_VERSION="2026.02.11.14"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -361,6 +361,10 @@ v2026.02.11.08 (2026-02-11)
 v2026.02.11.07 (2026-02-11)
   - 新增：CI/CD集成功能，为install-cn.sh添加--ci-mode、--skip-interactive、--install-log参数
   - 改进：增强安装脚本的生产环境适配性，支持GitHub Actions/GitLab CI/Jenkins集成
+
+v2026.02.11.14 (2026-02-11)
+  - 新增：安装统计收集功能（可选），支持匿名收集安装成功率统计
+  - 改进：增强install-cn.sh的监控和维护能力，提供标准化的安装统计方案
 
 v2026.02.11.06 (2026-02-11)
   - 新增：Docker容器支持检测功能，自动识别容器环境并提供优化建议
@@ -2307,6 +2311,75 @@ fi
       echo "3. 启动网关: openclaw gateway start"
       echo "4. 配置模型: openclaw models status"
       echo ""
+      
+      # 安装统计收集（可选，匿名）
+      if [[ "${ENABLE_INSTALL_STATS:-0}" == "1" ]]; then
+        echo "=== 安装统计收集（匿名） ==="
+        echo "正在收集匿名安装统计信息..."
+        
+        # 生成匿名安装统计
+        local stats_data=""
+        local stats_timestamp=$(date +%s)
+        local stats_os=$(uname -s 2>/dev/null || echo "unknown")
+        local stats_arch=$(uname -m 2>/dev/null || echo "unknown")
+        local stats_node_version=$(node --version 2>/dev/null | sed 's/^v//' || echo "unknown")
+        local stats_openclaw_version=$(openclaw --version 2>/dev/null | head -1 | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "unknown")
+        local stats_install_method="install-cn.sh"
+        local stats_registry="${NPM_REGISTRY:-https://registry.npmmirror.com}"
+        local stats_success="1"
+        
+        # 创建匿名统计JSON
+        stats_data=$(cat <<EOF
+{
+  "timestamp": "$stats_timestamp",
+  "os": "$stats_os",
+  "arch": "$stats_arch",
+  "node_version": "$stats_node_version",
+  "openclaw_version": "$stats_openclaw_version",
+  "install_method": "$stats_install_method",
+  "registry": "$stats_registry",
+  "success": "$stats_success",
+  "script_version": "$SCRIPT_VERSION"
+}
+EOF
+        )
+        
+        # 输出统计信息（开发调试用）
+        if [[ "${DEBUG_INSTALL_STATS:-0}" == "1" ]]; then
+          echo "安装统计信息（调试模式）:"
+          echo "$stats_data" | jq . 2>/dev/null || echo "$stats_data"
+        fi
+        
+        # 发送统计信息（可选，需要配置统计服务器）
+        if [[ -n "${INSTALL_STATS_URL:-}" ]]; then
+          echo "正在发送匿名安装统计到: $INSTALL_STATS_URL"
+          if command -v curl >/dev/null 2>&1; then
+            curl -s -X POST \
+              -H "Content-Type: application/json" \
+              -d "$stats_data" \
+              "$INSTALL_STATS_URL" >/dev/null 2>&1 && \
+              echo "统计信息已发送（匿名）" || \
+              echo "统计信息发送失败（不影响安装）"
+          elif command -v wget >/dev/null 2>&1; then
+            echo "$stats_data" | wget -q -O /dev/null \
+              --header="Content-Type: application/json" \
+              --post-data="$stats_data" \
+              "$INSTALL_STATS_URL" 2>/dev/null && \
+              echo "统计信息已发送（匿名）" || \
+              echo "统计信息发送失败（不影响安装）"
+          else
+            echo "无法发送统计信息（缺少curl/wget）"
+          fi
+        else
+          echo "安装统计收集已启用但未配置统计服务器（INSTALL_STATS_URL）"
+          echo "如需启用统计收集，请设置环境变量:"
+          echo "  export INSTALL_STATS_URL='https://your-stats-server.com/api/install'"
+          echo "  export ENABLE_INSTALL_STATS=1"
+          echo "统计信息（本地）:"
+          echo "$stats_data" | jq -c . 2>/dev/null || echo "$stats_data" | tr -d '\n'
+        fi
+        echo ""
+      fi
       echo "=== 故障排除 ==="
       echo "• 如果 openclaw 命令未找到，尝试: source ~/.bashrc (或 ~/.zshrc)"
       echo "• 或使用 npx: npx openclaw --version"
