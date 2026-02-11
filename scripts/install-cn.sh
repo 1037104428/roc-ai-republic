@@ -546,6 +546,7 @@ OpenClaw CN 快速安装脚本
   --version <version>  指定OpenClaw版本 (默认: latest)
   --dry-run           干运行模式: 只显示安装步骤，不实际执行
   --verify            安装完成后自动验证安装结果
+  --check-update      检查脚本是否有更新版本
   --help               显示此帮助信息
 
 环境变量:
@@ -560,6 +561,7 @@ OpenClaw CN 快速安装脚本
   ✓ 多层回退策略: 安装失败时自动切换到备用registry重试
   ✓ 完整自检: 安装后自动验证OpenClaw版本和基本功能
   ✓ 一键验证: 支持 --verify 参数自动验证安装结果
+  ✓ 脚本更新检查: 支持 --check-update 检查脚本是否有新版本
   ✓ 详细日志: 彩色输出，便于调试和问题诊断
 
 示例:
@@ -604,6 +606,60 @@ check_for_updates() {
     fi
   else
     color_log "DEBUG" "无法检查更新 (网络问题或服务器不可用)"
+  fi
+}
+
+# Enhanced script update check with detailed information
+check_script_update() {
+  color_log "INFO" "检查 OpenClaw CN 安装脚本更新..."
+  color_log "INFO" "当前脚本版本: $SCRIPT_VERSION"
+  color_log "INFO" "更新源: $SCRIPT_UPDATE_URL"
+  
+  local latest_version
+  if latest_version=$(curl -fsSL --max-time 10 "$SCRIPT_UPDATE_URL" 2>/dev/null | grep -o 'SCRIPT_VERSION="[^"]*"' | head -1 | cut -d'"' -f2); then
+    if [[ "$latest_version" != "$SCRIPT_VERSION" ]]; then
+      color_log "SUCCESS" "🎉 发现新版本!"
+      color_log "INFO" "当前版本: $SCRIPT_VERSION"
+      color_log "INFO" "最新版本: $latest_version"
+      
+      # Calculate version difference
+      local current_date=$(echo "$SCRIPT_VERSION" | cut -d'.' -f1-3)
+      local latest_date=$(echo "$latest_version" | cut -d'.' -f1-3)
+      
+      if [[ "$latest_date" != "$current_date" ]]; then
+        color_log "WARNING" "⚠️  重要更新: 发布日期不同 ($current_date → $latest_date)"
+      fi
+      
+      color_log "INFO" ""
+      color_log "INFO" "更新方法:"
+      color_log "INFO" "  方法1: 下载最新脚本并运行"
+      color_log "INFO" "    curl -fsSL $SCRIPT_UPDATE_URL -o install-cn.sh && bash install-cn.sh"
+      color_log "INFO" ""
+      color_log "INFO" "  方法2: 直接使用最新脚本安装"
+      color_log "INFO" "    curl -fsSL $SCRIPT_UPDATE_URL | bash"
+      color_log "INFO" ""
+      color_log "INFO" "  方法3: 使用--check-update参数检查更新"
+      color_log "INFO" "    bash install-cn.sh --check-update"
+      color_log "INFO" ""
+      color_log "INFO" "更新内容预览 (最近5行变更):"
+      if curl -fsSL --max-time 10 "$SCRIPT_UPDATE_URL" 2>/dev/null | tail -n 20 | grep -A5 -B5 "SCRIPT_VERSION=" | head -10; then
+        echo ""
+      fi
+    else
+      color_log "SUCCESS" "✅ 脚本已是最新版本: $SCRIPT_VERSION"
+      color_log "INFO" "无需更新，当前脚本已是最新版本。"
+    fi
+  else
+    color_log "ERROR" "❌ 无法检查更新"
+    color_log "INFO" "可能的原因:"
+    color_log "INFO" "  • 网络连接问题"
+    color_log "INFO" "  • 更新服务器暂时不可用"
+    color_log "INFO" "  • 防火墙或代理设置"
+    color_log "INFO" ""
+    color_log "INFO" "建议:"
+    color_log "INFO" "  • 检查网络连接"
+    color_log "INFO" "  • 稍后重试"
+    color_log "INFO" "  • 手动访问: $SCRIPT_UPDATE_URL"
   fi
 }
 
@@ -701,6 +757,7 @@ verify_installation() {
 # Parse arguments
 args=()
 do_verify=false
+do_check_update=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help)
@@ -711,12 +768,22 @@ while [[ $# -gt 0 ]]; do
       do_verify=true
       shift
       ;;
+    --check-update)
+      do_check_update=true
+      shift
+      ;;
     *)
       args+=("$1")
       shift
       ;;
   esac
 done
+
+# Check for updates if requested
+if [[ "$do_check_update" == true ]]; then
+  check_script_update
+  exit 0
+fi
 
 # Set arguments for main function
 set -- "${args[@]}"
