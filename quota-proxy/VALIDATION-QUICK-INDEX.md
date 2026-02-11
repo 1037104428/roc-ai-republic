@@ -57,6 +57,11 @@
 | `QUICK-VERIFICATION-COMMANDS.md` | 快速验证命令集合文档 | 提供日常运维、故障排查和CI/CD集成的快速命令参考 |
 | `CONFIG-VERIFICATION-GUIDE.md` | 配置验证指南 | 提供配置验证脚本的详细使用指南和最佳实践 |
 
+### 8. 项目管理
+| 脚本 | 功能 | 使用场景 |
+|------|------|----------|
+| `TODO-TICKETS.md` | 开发任务跟踪系统 | 跟踪项目开发任务、功能需求和改进计划 |
+
 ## 🚀 快速开始推荐
 
 ### 新用户快速验证
@@ -122,6 +127,7 @@
 - [QUICK-VERIFICATION-COMMANDS.md](./QUICK-VERIFICATION-COMMANDS.md) - 快速验证命令集合
 - [CONFIG-VERIFICATION-GUIDE.md](./CONFIG-VERIFICATION-GUIDE.md) - 配置验证指南
 - [QUICK-DOCS-CHECK-GUIDE.md](./QUICK-DOCS-CHECK-GUIDE.md) - 快速文档检查指南
+- [TODO-TICKETS.md](./TODO-TICKETS.md) - 开发任务跟踪系统
 
 ---
 

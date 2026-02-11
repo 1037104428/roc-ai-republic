@@ -54,6 +54,7 @@ check_doc "VALIDATION-EXAMPLES.md" "验证脚本使用示例" 50
 check_doc "TROUBLESHOOTING.md" "故障排除指南" 30
 check_doc "QUICK-VERIFICATION-COMMANDS.md" "快速验证命令集合" 30
 check_doc "QUICK-DOCS-CHECK-GUIDE.md" "快速文档检查指南" 20
+check_doc "TODO-TICKETS.md" "开发任务跟踪系统" 20
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"
@@ -149,6 +150,7 @@ docs_to_check=(
     "TROUBLESHOOTING.md:30"
     "ENHANCED-VALIDATION-DOCS-CHECK.md:20"
     "CONFIG-VERIFICATION-GUIDE.md:20"
+    "TODO-TICKETS.md:20"
 )
 
 for doc_spec in "${docs_to_check[@]}"; do
