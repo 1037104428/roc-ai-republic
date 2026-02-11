@@ -25,6 +25,27 @@ set -euo pipefail
 SCRIPT_VERSION="2026.02.11.1839"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
+# Logging functions
+log_info() {
+  color_log "INFO" "$1"
+}
+
+log_success() {
+  color_log "SUCCESS" "$1"
+}
+
+log_warning() {
+  color_log "WARNING" "$1"
+}
+
+log_error() {
+  color_log "ERROR" "$1"
+}
+
+log_debug() {
+  color_log "DEBUG" "$1"
+}
+
 # Version compatibility checking
 check_version_compatibility() {
   local version="$1"
@@ -439,6 +460,7 @@ main_install() {
   local openclaw_version="${OPENCLAW_VERSION:-latest}"
   
   # Parse command line arguments
+  local dry_run=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --version)
@@ -449,6 +471,11 @@ main_install() {
           color_log "ERROR" "--version选项需要参数"
           return 1
         fi
+        ;;
+      --dry-run)
+        dry_run=1
+        color_log "INFO" "干运行模式: 只显示安装步骤，不实际执行"
+        shift
         ;;
       --help)
         show_help
@@ -467,6 +494,18 @@ main_install() {
   if ! check_version_compatibility "$openclaw_version"; then
     color_log "ERROR" "版本兼容性检查失败，安装中止"
     return 1
+  fi
+  
+  # Dry run mode
+  if [[ $dry_run -eq 1 ]]; then
+    color_log "INFO" "=== 干运行模式 ==="
+    color_log "INFO" "将执行以下步骤:"
+    color_log "INFO" "1. 选择最优 npm registry: $npm_registry"
+    color_log "INFO" "2. 安装 OpenClaw 版本: $openclaw_version"
+    color_log "INFO" "3. 执行自检验证"
+    color_log "INFO" "4. 生成安装报告"
+    color_log "INFO" "=== 干运行结束 ==="
+    return 0
   fi
   
   # Install OpenClaw with fallback strategy
@@ -505,6 +544,7 @@ OpenClaw CN 快速安装脚本
 
 选项:
   --version <version>  指定OpenClaw版本 (默认: latest)
+  --dry-run           干运行模式: 只显示安装步骤，不实际执行
   --help               显示此帮助信息
 
 环境变量:
