@@ -1,0 +1,79 @@
+# NodeBB 论坛 Docker Compose 配置
+# 包含 NodeBB + Redis 完整环境
+
+version: '3.8'
+
+services:
+  # Redis 缓存数据库
+  redis:
+    image: redis:7-alpine
+    container_name: nodebb-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # NodeBB 论坛应用
+  nodebb:
+    image: nodebb/nodebb:latest
+    container_name: nodebb-forum
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:4567:4567"
+    environment:
+      - NODE_ENV=production
+      - database=redis
+      - redis:host=redis
+      - redis:port=6379
+      - redis:password=
+      - redis:database=0
+      - url=http://localhost:4567
+      - secret=${NODEBB_SECRET:-change_this_secret_key}
+      - admin:username=${ADMIN_USER:-admin}
+      - admin:email=${ADMIN_EMAIL:-admin@example.com}
+      - admin:password=${ADMIN_PASSWORD:-admin123}
+    volumes:
+      - nodebb-data:/usr/src/app
+      - nodebb-uploads:/usr/src/app/public/uploads
+      - ./config.json:/usr/src/app/config.json
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4567/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Nginx 反向代理（可选）
+  nginx:
+    image: nginx:alpine
+    container_name: nodebb-nginx
+    restart: unless-stopped
+    depends_on:
+      - nodebb
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    environment:
+      - VIRTUAL_HOST=forum.localhost
+      - LETSENCRYPT_HOST=forum.localhost
+      - LETSENCRYPT_EMAIL=admin@example.com
+
+volumes:
+  redis-data:
+    driver: local
+  nodebb-data:
+    driver: local
+  nodebb-uploads:
+    driver: local

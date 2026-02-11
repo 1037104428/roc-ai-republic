@@ -1,147 +1,183 @@
-# Clawd共和国论坛 MVP
+# NodeBB 论坛部署指南
 
-## 🎯 当前状态
+## 概述
 
-- ✅ **论坛引擎**：Flarum 已部署在服务器 `127.0.0.1:8081`
-- ✅ **数据库**：MariaDB 11 运行正常
-- ✅ **容器编排**：Docker Compose 管理
-- ✅ **反向代理**：Caddy 配置完成（主域名子路径方案）
-- ✅ **HTTPS 访问**：通过 `https://clawdrepublic.cn/forum/` 可访问
-- ⚠️ **独立子域名**：`forum.clawdrepublic.cn` 等待 DNS 记录配置
-- ✅ **初始化内容**：标准板块和置顶帖已创建
+NodeBB 是一个现代化的论坛平台，基于 Node.js 构建，支持实时聊天、插件系统和现代化界面。本目录包含完整的 NodeBB 论坛部署配置。
 
-## 🚀 快速验证
+## 快速开始
 
-### 内部服务检查
-```bash
-# SSH 到服务器验证
-ssh -i ~/.ssh/id_ed25519_roc_server root@8.210.185.194 \
-  "docker ps | grep forum && \
-   curl -fsS -m 5 http://127.0.0.1:8081/ >/dev/null && \
-   echo '✅ 论坛内部服务正常'"
-```
+### 1. 环境要求
+- Docker 20.10+
+- Docker Compose 2.0+
+- 至少 2GB 可用内存
 
-### 外部访问检查
-```bash
-# 子路径访问（当前可用）
-curl -fsS -m 5 https://clawdrepublic.cn/forum/ >/dev/null && \
-  echo '✅ 论坛外部访问正常（子路径方案）'
+### 2. 一键部署
 
-# 子域名访问（等待 DNS 配置）
-curl -fsS -m 5 https://forum.clawdrepublic.cn/ 2>/dev/null || \
-  echo '⚠️  子域名访问异常（预期：DNS 记录未配置）'
-```
-
-### 一键验证脚本
-```bash
-# 全量验证
-./scripts/verify-forum-mvp.sh
-
-# 快速检查
-./scripts/quick-verify-forum.sh
-```
-
-## 📋 访问方式
-
-### 当前可用
-- **主域名子路径**：`https://clawdrepublic.cn/forum/`
-- **适用场景**：临时解决方案，无需 DNS 配置
-
-### 待配置
-- **独立子域名**：`https://forum.clawdrepublic.cn/`
-- **需要操作**：添加 DNS A 记录 `forum.clawdrepublic.cn → 8.210.185.194`
-
-## 🔧 运维操作
-
-### 常用命令
 ```bash
 # 进入论坛目录
-cd /opt/roc/forum
+cd forum
 
-# 启动服务
-docker compose up -d
+# 启动论坛
+./start-forum.sh
 
-# 停止服务
-docker compose down
+# 验证部署
+./verify-forum.sh
 
-# 查看日志
-docker compose logs -f forum
-
-# 重启服务
-docker compose restart forum
+# 停止论坛
+./stop-forum.sh
 ```
 
-### 数据备份
+### 3. 访问地址
+- NodeBB 直接访问: http://localhost:4567
+- 通过 Nginx 代理: http://forum.localhost
+
+### 4. 管理员账号
+- 用户名: admin
+- 密码: Clawd@2026!
+- 邮箱: admin@clawd.ai
+
+## 架构说明
+
+### 服务组件
+1. **NodeBB** - 论坛应用 (端口: 4567)
+2. **Redis** - 缓存数据库 (端口: 6379)
+3. **Nginx** - 反向代理 (端口: 80/443)
+
+### 数据持久化
+- Redis 数据: `redis-data` 卷
+- NodeBB 数据: `nodebb-data` 卷
+- 上传文件: `nodebb-uploads` 卷
+
+## 配置文件
+
+### docker-compose-nodebb.yml
+主 Docker Compose 配置文件，包含所有服务定义。
+
+### config.json
+NodeBB 配置文件，包含数据库连接、密钥等设置。
+
+### nginx.conf
+Nginx 反向代理配置，支持 WebSocket 和静态文件缓存。
+
+## 管理脚本
+
+### start-forum.sh
+启动脚本，自动设置环境变量、创建配置文件和启动服务。
+
+### stop-forum.sh
+停止脚本，安全停止所有服务。
+
+### verify-forum.sh
+验证脚本，检查环境、配置和服务状态。
+
+## 高级配置
+
+### 自定义域名
+1. 修改 `docker-compose-nodebb.yml` 中的域名设置
+2. 更新 `nginx.conf` 中的 server_name
+3. 设置 DNS 解析或 hosts 文件
+
+### SSL 证书
+1. 将证书文件放入 `ssl/` 目录
+2. 更新 `nginx.conf` 添加 SSL 配置
+3. 修改端口映射为 443:443
+
+### 备份与恢复
 ```bash
-# 备份数据库
-docker exec forum-db-1 mysqldump -u root -p${MYSQL_ROOT_PASSWORD} flarum > backup.sql
+# 备份数据
+docker run --rm -v nodebb-data:/source -v $(pwd)/backup:/backup alpine tar czf /backup/nodebb-data-$(date +%Y%m%d).tar.gz -C /source .
 
-# 一键备份脚本
-./scripts/backup-forum.sh
+# 恢复数据
+docker run --rm -v nodebb-data:/target -v $(pwd)/backup:/backup alpine tar xzf /backup/nodebb-data-20250212.tar.gz -C /target
 ```
 
-## 📚 详细文档
+## 监控与日志
 
-- [完整部署与运维指南](../docs/forum-deployment-guide.md)
-- [论坛部署 ticket](../docs/tickets.md#论坛-现网优先)
-- [初始化内容脚本](../scripts/init-forum-sticky-posts.sh)
-- [故障排查指南](../docs/forum-deployment-guide.md#故障排查)
-
-## 🎨 初始化内容
-
-### 标准板块
-1. **新手入门** - 安装指南、常见问题
-2. **TRIAL_KEY 申请** - 试用密钥发放
-3. **问题求助** - 技术问题讨论
-4. **Clawd 入驻** - 项目介绍、贡献指南
-5. **杂谈** - 非技术讨论
-
-### 置顶帖
-- TRIAL_KEY 获取与使用指南
-- OpenClaw 小白版一条龙教程
-- 论坛使用指南
-
-初始化脚本：`./scripts/init-forum-sticky-posts.sh`
-
-## 🔄 升级与维护
-
-### 安全更新
+### 查看日志
 ```bash
-# 更新镜像
-docker compose pull
-docker compose up -d
+# 查看所有服务日志
+docker-compose -f docker-compose-nodebb.yml logs -f
 
-# 检查安全更新
-./scripts/check-forum-security-updates.sh
+# 查看特定服务日志
+docker-compose -f docker-compose-nodebb.yml logs -f nodebb
 ```
 
-### 监控健康
-```bash
-# 健康检查
-./scripts/monitor-forum-health.sh
+### 健康检查
+- NodeBB: http://localhost:4567/api/ping
+- Redis: `redis-cli ping`
+- Nginx: http://localhost
 
-# 性能监控
-./scripts/monitor-forum-performance.sh
-```
-
-## 🆘 故障排除
+## 故障排除
 
 ### 常见问题
-1. **论坛无法访问**：检查容器状态 `docker compose ps`
-2. **数据库连接失败**：验证数据库服务 `docker compose logs forum-db`
-3. **权限问题**：检查文件权限 `ls -la /opt/roc/forum/data/`
 
-### 快速修复
-```bash
-# 重启所有服务
-cd /opt/roc/forum && docker compose restart
+1. **端口冲突**
+   ```bash
+   # 检查端口占用
+   sudo lsof -i :4567
+   sudo lsof -i :80
+   
+   # 修改端口映射
+   # 编辑 docker-compose-nodebb.yml 中的 ports 部分
+   ```
 
-# 查看详细错误
-docker compose logs --tail=50 forum
-```
+2. **内存不足**
+   ```bash
+   # 查看容器内存使用
+   docker stats
+   
+   # 增加 Docker 内存限制
+   # 编辑 Docker Desktop 设置或修改 docker-compose.yml 中的 mem_limit
+   ```
 
-## 📞 支持与贡献
+3. **启动失败**
+   ```bash
+   # 查看详细错误
+   docker-compose -f docker-compose-nodebb.yml logs --tail=50
+   
+   # 重新构建服务
+   docker-compose -f docker-compose-nodebb.yml up --build -d
+   ```
 
-- **问题报告**：在论坛"问题求助"板块发帖
-- **改进建议**：提交 GitHub Issue 或 Pull Request
-- **紧急支持**：查看 [运维指南](../docs/forum-deployment-guide.md#故障恢复)
+### 联系支持
+- GitHub Issues: https://github.com/1037104428/roc-ai-republic/issues
+- 社区论坛: 部署后访问 http://forum.localhost
+
+## 安全建议
+
+1. **修改默认密码**
+   - 首次登录后立即修改管理员密码
+   - 使用强密码策略
+
+2. **更新密钥**
+   ```bash
+   # 生成新的密钥
+   export NODEBB_SECRET=$(openssl rand -hex 32)
+   # 更新 config.json
+   ```
+
+3. **防火墙配置**
+   - 仅开放必要的端口 (80, 443)
+   - 使用云服务商的安全组规则
+
+4. **定期更新**
+   ```bash
+   # 更新镜像
+   docker-compose -f docker-compose-nodebb.yml pull
+   docker-compose -f docker-compose-nodebb.yml up -d
+   ```
+
+## 贡献指南
+
+欢迎提交 Issue 和 Pull Request 来改进本部署方案。
+
+### 开发流程
+1. Fork 本仓库
+2. 创建功能分支
+3. 提交更改
+4. 创建 Pull Request
+
+### 测试要求
+- 所有脚本必须通过 `bash -n` 语法检查
+- 验证脚本必须正常运行
+- 更新 README 文档
