@@ -24,6 +24,8 @@ DRY_RUN=false
 VERBOSE=false
 OUTPUT_FORMAT="text"
 SHOW_HELP=false
+BATCH_MODE=false
+BATCH_LEVELS=""
 
 # 显示帮助信息
 show_help() {
@@ -39,6 +41,7 @@ ${YELLOW}选项:${NC}
   -d, --dry-run             生成dry-run命令
   -v, --verbose             生成verbose命令
   -f, --format FORMAT       输出格式 (text|markdown|json) [默认: text]
+  -b, --batch LEVELS        批量验证模式，生成多个级别的命令 (如: "quick,basic,full")
   -h, --help                显示此帮助信息
 
 ${YELLOW}验证级别说明:${NC}
@@ -46,6 +49,10 @@ ${YELLOW}验证级别说明:${NC}
   ${GREEN}basic${NC}     - 基础验证（检查依赖和网络连接）
   ${GREEN}full${NC}      - 完整验证（模拟完整安装流程）
   ${GREEN}complete${NC}  - 完全验证（包含所有检查项）
+
+${YELLOW}批量验证模式:${NC}
+  使用 -b 或 --batch 选项可以一次性生成多个验证级别的命令，支持逗号分隔的级别列表
+  例如：-b "quick,basic,full" 会生成三个级别的验证命令
 
 ${YELLOW}示例:${NC}
   $0 -l quick -d -v
@@ -79,6 +86,11 @@ parse_args() {
                 OUTPUT_FORMAT="$2"
                 shift 2
                 ;;
+            -b|--batch)
+                BATCH_MODE=true
+                BATCH_LEVELS="$2"
+                shift 2
+                ;;
             -h|--help)
                 SHOW_HELP=true
                 shift
@@ -94,17 +106,41 @@ parse_args() {
 
 # 验证参数
 validate_args() {
-    # 检查验证级别
-    case "$VERIFY_LEVEL" in
-        quick|basic|full|complete)
-            # 有效级别
-            ;;
-        *)
-            echo -e "${RED}错误: 无效的验证级别: $VERIFY_LEVEL${NC}"
-            echo -e "${YELLOW}有效级别: quick, basic, full, complete${NC}"
+    # 检查批量模式
+    if [ "$BATCH_MODE" = true ]; then
+        if [ -z "$BATCH_LEVELS" ]; then
+            echo -e "${RED}错误: 批量模式需要指定验证级别列表${NC}"
+            echo -e "${YELLOW}示例: -b \"quick,basic,full\"${NC}"
             exit 1
-            ;;
-    esac
+        fi
+        
+        # 验证批量级别列表
+        IFS=',' read -ra LEVELS <<< "$BATCH_LEVELS"
+        for level in "${LEVELS[@]}"; do
+            case "$level" in
+                quick|basic|full|complete)
+                    # 有效级别
+                    ;;
+                *)
+                    echo -e "${RED}错误: 无效的批量验证级别: $level${NC}"
+                    echo -e "${YELLOW}有效级别: quick, basic, full, complete${NC}"
+                    exit 1
+                    ;;
+            esac
+        done
+    else
+        # 检查单个验证级别
+        case "$VERIFY_LEVEL" in
+            quick|basic|full|complete)
+                # 有效级别
+                ;;
+            *)
+                echo -e "${RED}错误: 无效的验证级别: $VERIFY_LEVEL${NC}"
+                echo -e "${YELLOW}有效级别: quick, basic, full, complete${NC}"
+                exit 1
+                ;;
+        esac
+    fi
 
     # 检查输出格式
     case "$OUTPUT_FORMAT" in
@@ -293,6 +329,163 @@ generate_json_output() {
 EOF
 }
 
+# 批量模式生成函数
+generate_batch_output() {
+    IFS=',' read -ra LEVELS <<< "$BATCH_LEVELS"
+    
+    case "$OUTPUT_FORMAT" in
+        text)
+            echo -e "${CYAN}=== 安装脚本批量验证命令生成器 ===${NC}"
+            echo ""
+            echo -e "${YELLOW}批量验证级别:${NC} $BATCH_LEVELS"
+            echo -e "${YELLOW}Dry-run模式:${NC} $DRY_RUN"
+            echo -e "${YELLOW}Verbose模式:${NC} $VERBOSE"
+            echo ""
+            
+            for level in "${LEVELS[@]}"; do
+                echo -e "${GREEN}=== $level 级别验证命令 ===${NC}"
+                VERIFY_LEVEL="$level"
+                local command_args=$(generate_command_args)
+                local install_script="$PROJECT_ROOT/scripts/install-cn.sh"
+                
+                echo "  $install_script $command_args"
+                echo ""
+                
+                # 显示级别说明
+                case "$level" in
+                    quick)
+                        echo -e "${YELLOW}说明:${NC} 快速验证 - 检查脚本语法和基本功能"
+                        echo "  包含: 脚本语法检查、参数解析、帮助信息显示"
+                        ;;
+                    basic)
+                        echo -e "${YELLOW}说明:${NC} 基础验证 - 检查依赖和网络连接"
+                        echo "  包含: 快速验证 + 依赖检查、网络连接测试、权限检查"
+                        ;;
+                    full)
+                        echo -e "${YELLOW}说明:${NC} 完整验证 - 模拟完整安装流程"
+                        echo "  包含: 基础验证 + 包管理器检测、下载测试、安装模拟"
+                        ;;
+                    complete)
+                        echo -e "${YELLOW}说明:${NC} 完全验证 - 包含所有检查项"
+                        echo "  包含: 完整验证 + 环境检查、配置验证、回退策略测试"
+                        ;;
+                esac
+                echo ""
+                
+                # 显示实际命令示例
+                echo -e "${PURPLE}实际执行命令:${NC}"
+                echo "  cd \"$PROJECT_ROOT\" && ./scripts/install-cn.sh $command_args"
+                echo ""
+                echo "---"
+                echo ""
+            done
+            ;;
+        markdown)
+            echo "# 安装脚本批量验证命令生成器"
+            echo ""
+            echo "## 批量验证配置"
+            echo "- **验证级别列表:** $BATCH_LEVELS"
+            echo "- **Dry-run模式:** $DRY_RUN"
+            echo "- **Verbose模式:** $VERBOSE"
+            echo ""
+            
+            for level in "${LEVELS[@]}"; do
+                echo "## $level 级别验证命令"
+                echo ""
+                VERIFY_LEVEL="$level"
+                local command_args=$(generate_command_args)
+                local install_script="$PROJECT_ROOT/scripts/install-cn.sh"
+                
+                echo "```bash"
+                echo "$install_script $command_args"
+                echo "```"
+                echo ""
+                
+                # 显示级别说明
+                case "$level" in
+                    quick)
+                        echo "**说明:** 快速验证 - 检查脚本语法和基本功能"
+                        echo "- 包含: 脚本语法检查、参数解析、帮助信息显示"
+                        ;;
+                    basic)
+                        echo "**说明:** 基础验证 - 检查依赖和网络连接"
+                        echo "- 包含: 快速验证 + 依赖检查、网络连接测试、权限检查"
+                        ;;
+                    full)
+                        echo "**说明:** 完整验证 - 模拟完整安装流程"
+                        echo "- 包含: 基础验证 + 包管理器检测、下载测试、安装模拟"
+                        ;;
+                    complete)
+                        echo "**说明:** 完全验证 - 包含所有检查项"
+                        echo "- 包含: 完整验证 + 环境检查、配置验证、回退策略测试"
+                        ;;
+                esac
+                echo ""
+                
+                # 显示实际命令示例
+                echo "**实际执行命令:**"
+                echo "```bash"
+                echo "cd \"$PROJECT_ROOT\" && ./scripts/install-cn.sh $command_args"
+                echo "```"
+                echo ""
+                echo "---"
+                echo ""
+            done
+            ;;
+        json)
+            IFS=',' read -ra LEVELS <<< "$BATCH_LEVELS"
+            local levels_json="["
+            local first=true
+            
+            for level in "${LEVELS[@]}"; do
+                if [ "$first" = true ]; then
+                    first=false
+                else
+                    levels_json="$levels_json,"
+                fi
+                
+                VERIFY_LEVEL="$level"
+                local command_args=$(generate_command_args)
+                local install_script="$PROJECT_ROOT/scripts/install-cn.sh"
+                
+                local level_desc=$(case "$level" in
+                    quick) echo "快速验证 - 检查脚本语法和基本功能" ;;
+                    basic) echo "基础验证 - 检查依赖和网络连接" ;;
+                    full) echo "完整验证 - 模拟完整安装流程" ;;
+                    complete) echo "完全验证 - 包含所有检查项" ;;
+                esac)
+                
+                levels_json="$levels_json{\"level\":\"$level\",\"description\":\"$level_desc\",\"command\":\"$install_script $command_args\",\"execution_command\":\"cd \\\"$PROJECT_ROOT\\\" && ./scripts/install-cn.sh $command_args\"}"
+            done
+            
+            levels_json="$levels_json]"
+            
+            cat << EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "config": {
+    "batch_mode": true,
+    "batch_levels": "$BATCH_LEVELS",
+    "dry_run": $DRY_RUN,
+    "verbose": $VERBOSE,
+    "output_format": "$OUTPUT_FORMAT"
+  },
+  "generated_commands": $levels_json,
+  "exit_codes": [
+    {"code": 0, "description": "验证成功"},
+    {"code": 1, "description": "参数错误"},
+    {"code": 2, "description": "依赖检查失败"},
+    {"code": 3, "description": "网络连接失败"},
+    {"code": 4, "description": "权限不足"},
+    {"code": 5, "description": "环境不兼容"},
+    {"code": 6, "description": "其他错误"}
+  ]
+}
+EOF
+            ;;
+    esac
+}
+
 # 主函数
 main() {
     parse_args "$@"
@@ -304,17 +497,21 @@ main() {
     
     validate_args
     
-    case "$OUTPUT_FORMAT" in
-        text)
-            generate_text_output
-            ;;
-        markdown)
-            generate_markdown_output
-            ;;
-        json)
-            generate_json_output
-            ;;
-    esac
+    if [ "$BATCH_MODE" = true ]; then
+        generate_batch_output
+    else
+        case "$OUTPUT_FORMAT" in
+            text)
+                generate_text_output
+                ;;
+            markdown)
+                generate_markdown_output
+                ;;
+            json)
+                generate_json_output
+                ;;
+        esac
+    fi
 }
 
 # 运行主函数

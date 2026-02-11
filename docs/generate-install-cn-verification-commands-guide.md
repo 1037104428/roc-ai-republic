@@ -7,6 +7,7 @@
 ## 功能特性
 
 - **多种验证级别**: 支持 quick、basic、full、complete 四种验证级别
+- **批量验证模式**: 支持一次性生成多个验证级别的命令
 - **灵活的运行模式**: 支持 dry-run 和 verbose 模式
 - **多种输出格式**: 支持 text、markdown、json 三种输出格式
 - **详细的说明信息**: 提供验证级别说明、退出码说明和实际执行命令
@@ -44,6 +45,12 @@
 
 # 完全验证 + json输出
 ./scripts/generate-install-cn-verification-commands.sh -l complete -f json
+
+# 批量验证模式（生成多个级别的命令）
+./scripts/generate-install-cn-verification-commands.sh -b "quick,basic,full"
+
+# 批量验证 + dry-run + markdown输出
+./scripts/generate-install-cn-verification-commands.sh -b "basic,full,complete" -d -f markdown
 ```
 
 ## 验证级别详解
@@ -114,6 +121,7 @@
 | 参数 | 简写 | 说明 | 默认值 | 可选值 |
 |------|------|------|--------|--------|
 | `--verify-level` | `-l` | 验证级别 | `quick` | `quick`, `basic`, `full`, `complete` |
+| `--batch` | `-b` | 批量验证模式，生成多个级别的命令 | `false` | 逗号分隔的级别列表，如 "quick,basic,full" |
 | `--dry-run` | `-d` | 启用 dry-run 模式 | `false` | 无（标志参数） |
 | `--verbose` | `-v` | 启用 verbose 模式 | `false` | 无（标志参数） |
 | `--format` | `-f` | 输出格式 | `text` | `text`, `markdown`, `json` |
@@ -165,7 +173,31 @@
 cat verification-report.md
 ```
 
-### 示例 3：程序化处理
+### 示例 3：批量验证模式
+
+```bash
+# 批量生成多个验证级别的命令
+./scripts/generate-install-cn-verification-commands.sh \
+  --batch "quick,basic,full" \
+  --dry-run \
+  --format text
+
+# 批量生成完整验证报告（Markdown格式）
+./scripts/generate-install-cn-verification-commands.sh \
+  --batch "basic,full,complete" \
+  --verbose \
+  --format markdown > batch-verification-report.md
+
+# 批量生成JSON配置
+BATCH_CONFIG=$(./scripts/generate-install-cn-verification-commands.sh \
+  --batch "quick,basic" \
+  --format json)
+
+# 提取批量生成的命令列表
+echo "$BATCH_CONFIG" | jq -r '.generated_commands[].command'
+```
+
+### 示例 4：程序化处理
 
 ```bash
 # 生成JSON格式的命令配置
@@ -189,6 +221,57 @@ eval "$COMMAND"
 | 1 | 参数错误 | 无效的命令行参数 |
 | 2 | 脚本执行错误 | 脚本内部错误 |
 
+## 批量验证模式详解
+
+批量验证模式允许用户一次性生成多个验证级别的命令，特别适合需要执行多级验证的场景。
+
+### 批量验证的优势
+
+1. **效率提升**: 一次性生成所有需要的验证命令，避免重复执行
+2. **一致性保证**: 所有验证命令使用相同的配置参数
+3. **报告生成**: 生成统一的验证报告，便于审查和存档
+4. **自动化集成**: 方便集成到CI/CD流水线和自动化测试中
+
+### 批量验证使用场景
+
+1. **多级验证流程**: 从快速验证到完整验证的渐进式验证流程
+2. **环境适配测试**: 在不同环境中执行不同级别的验证
+3. **回归测试**: 定期执行多级验证确保安装脚本稳定性
+4. **用户支持**: 为用户提供多级验证选项，便于问题诊断
+
+### 批量验证示例输出
+
+```bash
+# 批量验证输出示例（text格式）
+=== 安装脚本批量验证命令生成器 ===
+
+批量验证级别: quick,basic,full
+Dry-run模式: false
+Verbose模式: false
+
+=== quick 级别验证命令 ===
+  /path/to/install-cn.sh --verify-level quick
+
+说明: 快速验证 - 检查脚本语法和基本功能
+  包含: 脚本语法检查、参数解析、帮助信息显示
+
+实际执行命令:
+  cd "/path/to/project" && ./scripts/install-cn.sh --verify-level quick
+
+---
+
+=== basic 级别验证命令 ===
+  /path/to/install-cn.sh --verify-level basic
+
+说明: 基础验证 - 检查依赖和网络连接
+  包含: 快速验证 + 依赖检查、网络连接测试、权限检查
+
+实际执行命令:
+  cd "/path/to/project" && ./scripts/install-cn.sh --verify-level basic
+
+---
+```
+
 ## 最佳实践
 
 ### 1. 集成到工作流中
@@ -210,7 +293,14 @@ eval "$VERIFY_CMD"
 ### 2. 批量生成验证命令
 
 ```bash
-# 为所有验证级别生成命令
+# 使用批量验证模式（推荐）
+./scripts/generate-install-cn-verification-commands.sh \
+  --batch "quick,basic,full" \
+  --dry-run \
+  --format markdown \
+  > all-verification-commands.md
+
+# 传统循环方式（兼容性）
 for level in quick basic full complete; do
   echo "=== 验证级别: $level ==="
   ./scripts/generate-install-cn-verification-commands.sh \
