@@ -225,6 +225,8 @@ Options:
   --proxy-test             Test proxy connectivity before installation
   --proxy-report           Generate proxy configuration report
   --keep-proxy             Keep npm proxy settings after installation
+  --offline-mode           Enable offline mode (use local cache only)
+  --cache-dir <dir>        Specify local cache directory (default: ~/.openclaw/cache)
   -h, --help               Show help
 
 Version Control:
@@ -294,6 +296,8 @@ PROXY_MODE="auto"
 PROXY_TEST=0
 PROXY_REPORT=0
 KEEP_PROXY=0
+OFFLINE_MODE=0
+CACHE_DIR="${HOME}/.openclaw/cache"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -321,6 +325,10 @@ while [[ $# -gt 0 ]]; do
       PROXY_REPORT=1; shift ;;
     --keep-proxy)
       KEEP_PROXY=1; shift ;;
+    --offline-mode)
+      OFFLINE_MODE=1; shift ;;
+    --cache-dir)
+      CACHE_DIR="${2:-}"; shift 2 ;;
     --check-update)
       check_script_update
       exit $?
@@ -549,12 +557,104 @@ if [[ -z "${SKIP_NET_CHECK:-}" ]]; then
   fi
 fi
 
+# Function to check if offline mode is available
+check_offline_mode() {
+  if [[ "$OFFLINE_MODE" != "1" ]]; then
+    return 0
+  fi
+  
+  echo "[cn-pack] Offline mode enabled, checking local cache..."
+  
+  # Create cache directory if it doesn't exist
+  mkdir -p "$CACHE_DIR"
+  
+  # Check for cached package
+  local cache_file="${CACHE_DIR}/openclaw-${VERSION}.tgz"
+  if [[ -f "$cache_file" ]]; then
+    echo "[cn-pack] ✅ Found cached package: $cache_file"
+    return 0
+  else
+    echo "[cn-pack] ❌ No cached package found for version: $VERSION"
+    echo "[cn-pack] ℹ️  Cache directory: $CACHE_DIR"
+    echo "[cn-pack] ℹ️  Expected file: openclaw-${VERSION}.tgz"
+    return 1
+  fi
+}
+
+# Function to install from offline cache
+install_from_offline_cache() {
+  local cache_file="${CACHE_DIR}/openclaw-${VERSION}.tgz"
+  
+  echo "[cn-pack] Installing from offline cache: $cache_file"
+  
+  if run npm i -g "$cache_file" --no-audit --no-fund; then
+    echo "[cn-pack] ✅ Offline installation successful"
+    return 0
+  else
+    echo "[cn-pack] ❌ Offline installation failed" >&2
+    return 1
+  fi
+}
+
+# Function to cache package for offline use
+cache_package_for_offline() {
+  local reg="$1"
+  
+  # Only cache if offline mode is supported or cache directory exists
+  if [[ ! -d "$CACHE_DIR" ]]; then
+    mkdir -p "$CACHE_DIR"
+  fi
+  
+  local cache_file="${CACHE_DIR}/openclaw-${VERSION}.tgz"
+  
+  echo "[cn-pack] Caching package for offline use: $cache_file"
+  
+  # Try to download the package tarball
+  if command -v npm &> /dev/null; then
+    # Get package info to find tarball URL
+    local package_info=$(npm view "openclaw@${VERSION}" --registry "$reg" --json 2>/dev/null || echo "{}")
+    local dist_tarball=$(echo "$package_info" | grep -o '"tarball":"[^"]*"' | head -1 | cut -d'"' -f4)
+    
+    if [[ -n "$dist_tarball" ]]; then
+      echo "[cn-pack] Downloading package tarball from: $dist_tarball"
+      if curl -fsSL "$dist_tarball" -o "$cache_file.tmp" 2>/dev/null; then
+        mv "$cache_file.tmp" "$cache_file"
+        echo "[cn-pack] ✅ Package cached successfully: $cache_file"
+        echo "[cn-pack] ℹ️  File size: $(du -h "$cache_file" | cut -f1)"
+      else
+        echo "[cn-pack] ⚠️  Could not download package tarball"
+        rm -f "$cache_file.tmp" 2>/dev/null || true
+      fi
+    else
+      echo "[cn-pack] ⚠️  Could not get package tarball URL"
+    fi
+  else
+    echo "[cn-pack] ⚠️  npm not available for caching"
+  fi
+}
+
 install_openclaw() {
   local reg="$1"
   local attempt="$2"
+  
+  # Check if offline mode is enabled and available
+  if [[ "$OFFLINE_MODE" == "1" ]]; then
+    if check_offline_mode; then
+      if install_from_offline_cache; then
+        return 0
+      else
+        echo "[cn-pack] ❌ Offline installation failed, falling back to online mode" >&2
+      fi
+    else
+      echo "[cn-pack] ❌ Offline mode not available, falling back to online mode" >&2
+    fi
+  fi
+  
   echo "[cn-pack] Installing openclaw@${VERSION} via registry: $reg (attempt: $attempt)"
   # no-audit/no-fund: faster & quieter, especially on slow networks
   if run npm i -g "openclaw@${VERSION}" --registry "$reg" --no-audit --no-fund; then
+    # Cache the package for future offline use
+    cache_package_for_offline "$reg"
     return 0
   else
     echo "[cn-pack] Install attempt failed via registry: $reg" >&2
