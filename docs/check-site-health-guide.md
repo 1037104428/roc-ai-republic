@@ -240,6 +240,183 @@ send_to_monitoring "site.response_time" "$response_time"
 - 支持命令行参数和环境变量
 - 详细的检查报告和退出码
 
+## 站点部署验证示例
+
+### 示例1: 快速验证本地静态站点部署
+
+```bash
+#!/bin/bash
+# verify-static-site-deployment.sh
+# 快速验证静态站点部署的完整示例
+
+# 配置参数
+SITE_URL="http://localhost:8080"
+SITE_DIR="./web/landing-page"
+LOG_FILE="/tmp/site-deployment-verify-$(date +%Y%m%d-%H%M%S).log"
+
+echo "=== 静态站点部署验证开始 ===" | tee -a "$LOG_FILE"
+echo "时间: $(date '+%Y-%m-%d %H:%M:%S')" | tee -a "$LOG_FILE"
+echo "站点URL: $SITE_URL" | tee -a "$LOG_FILE"
+echo "站点目录: $SITE_DIR" | tee -a "$LOG_FILE"
+
+# 1. 检查站点目录是否存在
+echo -e "\n[1/5] 检查站点目录..." | tee -a "$LOG_FILE"
+if [ -d "$SITE_DIR" ]; then
+    echo "✅ 站点目录存在: $SITE_DIR" | tee -a "$LOG_FILE"
+    echo "   文件数量: $(find "$SITE_DIR" -type f | wc -l)" | tee -a "$LOG_FILE"
+    echo "   目录大小: $(du -sh "$SITE_DIR" | cut -f1)" | tee -a "$LOG_FILE"
+else
+    echo "❌ 站点目录不存在: $SITE_DIR" | tee -a "$LOG_FILE"
+    exit 1
+fi
+
+# 2. 检查关键文件
+echo -e "\n[2/5] 检查关键文件..." | tee -a "$LOG_FILE"
+REQUIRED_FILES=("index.html" "downloads.html" "quickstart.html" "trial-key-guide.html")
+for file in "${REQUIRED_FILES[@]}"; do
+    if [ -f "$SITE_DIR/$file" ]; then
+        echo "✅ 关键文件存在: $file" | tee -a "$LOG_FILE"
+    else
+        echo "❌ 关键文件缺失: $file" | tee -a "$LOG_FILE"
+    fi
+done
+
+# 3. 启动简单HTTP服务器（如果未运行）
+echo -e "\n[3/5] 检查HTTP服务器..." | tee -a "$LOG_FILE"
+if ! pgrep -f "python3 -m http.server" > /dev/null; then
+    echo "启动HTTP服务器在端口8080..." | tee -a "$LOG_FILE"
+    cd "$SITE_DIR" && python3 -m http.server 8080 > /dev/null 2>&1 &
+    SERVER_PID=$!
+    echo "HTTP服务器已启动 (PID: $SERVER_PID)" | tee -a "$LOG_FILE"
+    sleep 2  # 等待服务器启动
+else
+    echo "✅ HTTP服务器已在运行" | tee -a "$LOG_FILE"
+fi
+
+# 4. 运行健康检查
+echo -e "\n[4/5] 运行站点健康检查..." | tee -a "$LOG_FILE"
+if ./scripts/check-site-health.sh --url "$SITE_URL" --timeout 5 --verbose; then
+    echo "✅ 站点健康检查通过" | tee -a "$LOG_FILE"
+else
+    echo "❌ 站点健康检查失败" | tee -a "$LOG_FILE"
+    # 清理
+    [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null
+    exit 1
+fi
+
+# 5. 验证API网关集成
+echo -e "\n[5/5] 验证API网关集成..." | tee -a "$LOG_FILE"
+if curl -fsS "http://localhost:8787/healthz" > /dev/null 2>&1; then
+    echo "✅ API网关健康检查通过" | tee -a "$LOG_FILE"
+else
+    echo "⚠️ API网关未运行或不可访问" | tee -a "$LOG_FILE"
+fi
+
+# 清理
+[ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null
+
+echo -e "\n=== 静态站点部署验证完成 ===" | tee -a "$LOG_FILE"
+echo "详细日志: $LOG_FILE" | tee -a "$LOG_FILE"
+echo "✅ 所有验证项目通过，站点部署成功！" | tee -a "$LOG_FILE"
+```
+
+### 示例2: 生产环境站点部署验证清单
+
+```bash
+#!/bin/bash
+# production-site-verification-checklist.sh
+# 生产环境站点部署验证清单
+
+VERIFICATION_STEPS=(
+    "1. DNS解析验证: dig +short your-domain.com"
+    "2. SSL证书验证: openssl s_client -connect your-domain.com:443 -servername your-domain.com 2>/dev/null | openssl x509 -noout -dates"
+    "3. HTTP重定向验证: curl -I http://your-domain.com | grep -i 'location\|http'"
+    "4. HTTPS访问验证: curl -fsS https://your-domain.com > /dev/null && echo 'HTTPS访问正常'"
+    "5. 站点健康检查: ./scripts/check-site-health.sh --url https://your-domain.com --timeout 10"
+    "6. 关键页面验证: 手动访问 https://your-domain.com/downloads.html"
+    "7. API网关集成: curl -fsS https://your-domain.com/api/healthz"
+    "8. 性能基准测试: ab -n 100 -c 10 https://your-domain.com/"
+    "9. 移动端兼容性: 使用浏览器开发者工具模拟移动设备访问"
+    "10. SEO基础检查: curl -s https://your-domain.com | grep -i 'title\|meta.*description'"
+)
+
+echo "=== 生产环境站点部署验证清单 ==="
+echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "域名: your-domain.com"
+echo ""
+
+for step in "${VERIFICATION_STEPS[@]}"; do
+    echo "$step"
+    read -p "  完成? (y/n/skip): " answer
+    case $answer in
+        y|Y) echo "   ✅ 已完成" ;;
+        n|N) echo "   ❌ 未完成" ;;
+        s|S) echo "   ⏭️  已跳过" ;;
+        *) echo "   ❓ 未知状态" ;;
+    esac
+    echo ""
+done
+
+echo "=== 验证完成 ==="
+echo "建议: 保存此清单作为部署文档的一部分"
+```
+
+### 示例3: CI/CD集成示例
+
+```yaml
+# .github/workflows/deploy-verify.yml
+name: Deploy and Verify Site
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy-and-verify:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl bc
+    
+    - name: Build static site
+      run: |
+        mkdir -p dist
+        cp -r web/landing-page/* dist/
+        echo "站点构建完成: $(ls -la dist/)"
+    
+    - name: Start test server
+      run: |
+        cd dist && python3 -m http.server 8080 &
+        echo "测试服务器启动中..."
+        sleep 3
+    
+    - name: Run site health check
+      run: |
+        ./scripts/check-site-health.sh \
+          --url http://localhost:8080 \
+          --timeout 10 \
+          --verbose
+    
+    - name: Verify deployment
+      if: success()
+      run: |
+        echo "✅ 站点部署验证通过"
+        echo "部署时间: $(date)"
+        echo "提交: ${{ github.sha }}"
+```
+
 ## 相关资源
 
 - [站点部署指南](./landing-page-deployment.md)
