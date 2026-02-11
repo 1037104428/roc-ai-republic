@@ -40,6 +40,10 @@
   - **完整验证模式**：`./install-cn-self-check.sh --full` - 完整功能验证（默认模式）
   - **版本验证模式**：`./install-cn-self-check.sh --version <version>` - 验证特定版本
 
+### 7. 测试环境配置
+- **Admin API测试环境配置指南**：`ADMIN-API-TEST-ENV-SETUP.md` - Admin API测试环境的快速配置指南，包含环境变量设置、服务启动、测试脚本使用和故障排除
+- **Admin API快速测试示例**：`ADMIN-API-QUICK-TEST-EXAMPLES.md` - Admin API的快速测试示例，包含curl命令一键测试所有核心功能
+
 ## 快速使用示例
 
 ### 场景1：新部署环境快速验证
