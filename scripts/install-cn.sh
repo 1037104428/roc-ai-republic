@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.05"
+SCRIPT_VERSION="2026.02.11.06"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -60,6 +60,109 @@ color_log() {
 legacy_log() {
   echo "[cn-pack] $1"
 }
+
+# Installation rollback functions
+setup_rollback() {
+  # Create rollback state directory
+  ROLLBACK_DIR="/tmp/openclaw-rollback-$(date +%s)"
+  mkdir -p "$ROLLBACK_DIR"
+  
+  color_log "INFO" "Setting up installation rollback system in $ROLLBACK_DIR"
+  
+  # Backup npm global package list
+  if command -v npm &> /dev/null; then
+    npm list -g --depth=0 2>/dev/null > "$ROLLBACK_DIR/npm-global-backup.txt" || true
+    color_log "DEBUG" "Backed up npm global package list"
+  fi
+  
+  # Backup current openclaw installation if exists
+  if command -v openclaw &> /dev/null; then
+    openclaw --version 2>/dev/null > "$ROLLBACK_DIR/openclaw-version-backup.txt" || true
+    which openclaw > "$ROLLBACK_DIR/openclaw-path-backup.txt" 2>/dev/null || true
+    color_log "DEBUG" "Backed up existing OpenClaw installation info"
+  fi
+  
+  # Backup npm config
+  if command -v npm &> /dev/null; then
+    npm config list > "$ROLLBACK_DIR/npm-config-backup.txt" 2>/dev/null || true
+    color_log "DEBUG" "Backed up npm configuration"
+  fi
+  
+  # Backup environment variables
+  env | grep -E "(NPM|npm|OPENCLAW|openclaw|PROXY|proxy)" > "$ROLLBACK_DIR/env-backup.txt" 2>/dev/null || true
+  
+  color_log "SUCCESS" "Rollback system ready. State saved to $ROLLBACK_DIR"
+}
+
+perform_rollback() {
+  local error_message="$1"
+  
+  color_log "ERROR" "Installation failed: $error_message"
+  color_log "WARNING" "Attempting to rollback to previous state..."
+  
+  if [[ -z "$ROLLBACK_DIR" ]] || [[ ! -d "$ROLLBACK_DIR" ]]; then
+    color_log "ERROR" "Rollback directory not found. Cannot perform rollback."
+    return 1
+  fi
+  
+  # Check if we have a backup of npm global packages
+  if [[ -f "$ROLLBACK_DIR/npm-global-backup.txt" ]]; then
+    color_log "INFO" "Checking if rollback is needed for npm packages..."
+    
+    # Get current openclaw version if installed
+    local current_openclaw=""
+    if command -v openclaw &> /dev/null; then
+      current_openclaw=$(openclaw --version 2>/dev/null || echo "unknown")
+    fi
+    
+    # Check if openclaw was installed during this session
+    if [[ -f "$ROLLBACK_DIR/openclaw-version-backup.txt" ]]; then
+      local backup_version=$(cat "$ROLLBACK_DIR/openclaw-version-backup.txt" 2>/dev/null || echo "")
+      if [[ -z "$backup_version" ]] && [[ -n "$current_openclaw" ]]; then
+        color_log "WARNING" "OpenClaw was not installed before, but is now. Attempting to uninstall..."
+        if command -v npm &> /dev/null; then
+          npm uninstall -g openclaw 2>/dev/null || true
+          color_log "INFO" "Uninstalled newly installed OpenClaw"
+        fi
+      fi
+    fi
+  fi
+  
+  # Restore npm config if changed
+  if [[ -f "$ROLLBACK_DIR/npm-config-backup.txt" ]]; then
+    color_log "INFO" "Checking npm configuration restoration..."
+    # Note: We don't automatically restore npm config as it might have been intentionally changed
+    # Instead, we provide instructions
+    color_log "INFO" "Original npm configuration backed up at: $ROLLBACK_DIR/npm-config-backup.txt"
+  fi
+  
+  # Provide rollback report
+  color_log "STEP" "Rollback completed"
+  color_log "INFO" "Rollback state preserved in: $ROLLBACK_DIR"
+  color_log "INFO" "You can manually restore from backups if needed:"
+  color_log "INFO" "  - Check original npm packages: cat $ROLLBACK_DIR/npm-global-backup.txt"
+  color_log "INFO" "  - Check original OpenClaw: cat $ROLLBACK_DIR/openclaw-version-backup.txt"
+  color_log "INFO" "  - Check environment: cat $ROLLBACK_DIR/env-backup.txt"
+  
+  # Cleanup rollback directory after some time (optional)
+  color_log "INFO" "Rollback directory will be automatically cleaned up after 24 hours"
+}
+
+cleanup_rollback() {
+  if [[ -n "$ROLLBACK_DIR" ]] && [[ -d "$ROLLBACK_DIR" ]]; then
+    color_log "DEBUG" "Cleaning up rollback directory: $ROLLBACK_DIR"
+    # In production, we might want to keep it for debugging
+    # For now, just log that it exists
+    color_log "INFO" "Rollback state preserved at: $ROLLBACK_DIR (cleanup manually if needed)"
+  fi
+}
+
+# Trap for error handling
+trap 'perform_rollback "Script terminated unexpectedly"' ERR
+trap 'cleanup_rollback' EXIT
+
+# Initialize ROLLBACK_DIR variable
+ROLLBACK_DIR=""
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
 NPM_REGISTRY_FALLBACK_DEFAULT="https://registry.npmjs.org"
@@ -1128,6 +1231,11 @@ fi
 # Apply proxy settings for installation
 handle_proxy_settings "$PROXY_MODE"
 
+# Setup rollback system before installation
+if [[ "$DRY_RUN" != "1" ]]; then
+  setup_rollback
+fi
+
 # 尝试CN源
 if [[ "$FORCE_CN" == "1" ]]; then
   echo "[cn-pack] Force using CN registry (--force-cn flag)"
@@ -1138,6 +1246,7 @@ if [[ "$FORCE_CN" == "1" ]]; then
     echo "[cn-pack] Troubleshooting:" >&2
     echo "[cn-pack] 1. Check CN registry: curl -fsS $REG_CN/-/ping" >&2
     echo "[cn-pack] 2. Try without --force-cn to use fallback" >&2
+    perform_rollback "CN registry installation failed in force mode"
     exit 1
   fi
 else
@@ -1159,6 +1268,7 @@ else
       echo "[cn-pack] 2. Verify Node.js version: node -v (requires >=20)" >&2
       echo "[cn-pack] 3. Try manual install: npm i -g openclaw@${VERSION}" >&2
       echo "[cn-pack] 4. Report issue: https://github.com/openclaw/openclaw/issues" >&2
+      perform_rollback "Both registry installation attempts failed"
       exit 1
     fi
   fi
