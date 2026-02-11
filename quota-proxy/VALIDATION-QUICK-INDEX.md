@@ -65,7 +65,12 @@
 | `quick-verify-install-cn.sh` | 安装脚本快速验证 | 快速检查 install-cn.sh 脚本的基本功能和完整性 |
 | `install-cn-script-verification-guide.md` | 安装脚本验证指南 | 提供安装脚本验证的完整指南和最佳实践 |
 
-### 8. 快速命令参考
+### 8. 验证工具链概览
+| 文档 | 功能 | 使用场景 |
+|------|------|----------|
+| `validation-toolchain-overview.md` | 验证工具链概览文档 | 提供完整的验证工具链概览和快速使用指南，位于docs目录 |
+
+### 9. 快速命令参考
 | 脚本 | 功能 | 使用场景 |
 |------|------|----------|
 | `QUICK-VERIFICATION-COMMANDS.md` | 快速验证命令集合文档 | 提供日常运维、故障排查和CI/CD集成的快速命令参考 |
