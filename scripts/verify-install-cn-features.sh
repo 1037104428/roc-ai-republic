@@ -313,7 +313,7 @@ verify_installation_verification() {
     fi
     
     # 检查安装后验证选项
-    if grep -q "--verify\|--check-install\|验证.*安装" "$script_path"; then
+    if grep -q -E "--verify|--check-install|验证.*安装" "$script_path"; then
         log_success "  ✓ 找到安装验证选项"
     fi
 }
