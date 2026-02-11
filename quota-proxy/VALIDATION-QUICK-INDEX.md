@@ -66,6 +66,7 @@
 |------|------|----------|
 | `verify-install-cn.sh` | 安装脚本完整性验证 | 全面验证 install-cn.sh 脚本的功能和完整性 |
 | `quick-verify-install-cn.sh` | 安装脚本快速验证 | 快速检查 install-cn.sh 脚本的基本功能和完整性 |
+| `quick-verify-install-cn-enhanced.sh` | 安装脚本增强版快速验证 | 增强版验证脚本，测试更多实际功能和完整性 |
 | `install-cn-script-verification-guide.md` | 安装脚本验证指南 | 提供安装脚本验证的完整指南和最佳实践 |
 | `install-cn-quick-test-examples.md` | 安装脚本快速测试示例 | 提供 install-cn.sh 不同使用场景的测试示例和命令参考 |
 

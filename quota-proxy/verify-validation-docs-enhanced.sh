@@ -63,6 +63,7 @@ check_doc "quick-test-admin-api.sh" "Admin API快速测试脚本" 10
 check_doc "quick-test-admin-api-usage.md" "Admin API快速测试脚本使用说明文档" 20
 check_doc "../scripts/verify-install-cn.sh" "安装脚本验证脚本" 10
 check_doc "../scripts/quick-verify-install-cn.sh" "安装脚本快速验证工具" 10
+check_doc "../scripts/quick-verify-install-cn-enhanced.sh" "安装脚本增强版快速验证工具" 10
 check_doc "../docs/install-cn-script-verification-guide.md" "安装脚本验证指南" 20
 check_doc "../docs/install-cn-quick-test-examples.md" "安装脚本快速测试示例" 20
 check_doc "../docs/validation-toolchain-overview.md" "验证工具链概览文档" 20
@@ -104,6 +105,7 @@ check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-script-verification-guide.md" 
 check_ref "VALIDATION-QUICK-INDEX.md" "install-cn-quick-test-examples.md" "安装脚本快速测试示例"
 check_ref "VALIDATION-QUICK-INDEX.md" "validation-toolchain-overview.md" "验证工具链概览文档"
 check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn.sh" "安装脚本快速验证工具"
+check_ref "VALIDATION-QUICK-INDEX.md" "quick-verify-install-cn-enhanced.sh" "安装脚本增强版快速验证工具"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-sqlite-persistence.sh" "SQLite持久化验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "verify-web-deployment-ready.sh" "Web站点部署就绪验证脚本"
 check_ref "VALIDATION-QUICK-INDEX.md" "ops-web-deploy.md" "Web站点部署指南"
