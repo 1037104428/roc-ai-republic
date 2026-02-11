@@ -301,11 +301,32 @@ EOF
     
     # 生成验证报告
     if [[ "$DRY_RUN" != "true" ]]; then
+        # 检查数据库文件大小（如果存在）
+        DB_SIZE="N/A"
+        if [[ -f "$DB_PATH" ]]; then
+            if command -v stat >/dev/null 2>&1; then
+                DB_SIZE=$(stat -c%s "$DB_PATH" 2>/dev/null || echo "未知")
+                if [[ "$DB_SIZE" != "未知" ]]; then
+                    # 转换为人类可读的格式
+                    if (( DB_SIZE < 1024 )); then
+                        DB_SIZE="${DB_SIZE} B"
+                    elif (( DB_SIZE < 1048576 )); then
+                        DB_SIZE="$((DB_SIZE / 1024)) KB"
+                    elif (( DB_SIZE < 1073741824 )); then
+                        DB_SIZE="$((DB_SIZE / 1048576)) MB"
+                    else
+                        DB_SIZE="$((DB_SIZE / 1073741824)) GB"
+                    fi
+                fi
+            fi
+        fi
+        
         cat << EOF
 
 === SQLite配置验证报告 ===
 配置文件:     $CONFIG_FILE $( [[ -f "$CONFIG_FILE" ]] && echo "[存在]" || echo "[不存在]" )
 数据库路径:   $DB_PATH $( [[ -f "$DB_PATH" ]] && echo "[存在]" || echo "[不存在]" )
+数据库大小:   $DB_SIZE
 SQLite3命令:  $(command -v sqlite3 >/dev/null 2>&1 && echo "[已安装]" || echo "[未安装]" )
 目录权限:     $( [[ -w "$(dirname "$DB_PATH")" ]] && echo "[可写]" || echo "[不可写]" )
 验证时间:     $(date '+%Y-%m-%d %H:%M:%S')
@@ -316,6 +337,7 @@ SQLite3命令:  $(command -v sqlite3 >/dev/null 2>&1 && echo "[已安装]" || ec
 2. 在生产环境中使用WAL模式提高性能
 3. 定期备份数据库文件
 4. 监控数据库文件大小和性能
+5. 当数据库大小超过100MB时考虑性能优化
 
 EOF
     fi
