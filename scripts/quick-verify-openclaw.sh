@@ -9,7 +9,7 @@ usage() {
 OpenClaw 快速验证脚本（简化版）
 
 用法:
-  ./quick-verify-openclaw-fixed.sh [选项]
+  ./quick-verify-openclaw.sh [选项]
 
 选项:
   --quiet         安静模式，只输出关键信息
