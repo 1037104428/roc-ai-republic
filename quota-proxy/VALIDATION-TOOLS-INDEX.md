@@ -26,6 +26,7 @@
 - **试用密钥生成测试**：`test-trial-key-generation.sh` - 完整试用密钥功能测试
 - **Admin API性能检查**：`check-admin-performance.sh` - API性能监控
 - **Admin API快速测试**：`quick-admin-api-test.sh` - 一键测试Admin API所有核心功能
+- **Admin API自动化测试套件**：`test-admin-api.sh` - 完整的Admin API自动化测试，支持健康检查、认证、Keys管理、Usage统计、错误处理等完整测试
 
 ### 5. 数据库工具
 - **SQLite数据库初始化**：`init-sqlite-db.sh` - 初始化数据库表结构
@@ -163,6 +164,20 @@
 **输出**：彩色验证报告、数据库文件统计、修复建议
 **特点**：支持多个数据库文件批量验证，提供详细的修复指导
 
+### Admin API自动化测试套件
+```bash
+./test-admin-api.sh [--verbose] [--url URL] [--token TOKEN] [--timeout SECONDS]
+```
+**用途**：完整的Admin API自动化测试，支持所有API端点的功能测试和集成测试
+**验证内容**：
+- 健康检查端点验证
+- Admin API认证验证（有效/无效令牌）
+- Admin Keys管理（创建、获取、更新、删除）
+- Admin Usage统计查询
+- 错误处理（无效端点、无效JSON、缺失字段）
+**输出**：彩色测试报告、详细的测试结果汇总、通过率统计
+**特点**：支持命令行参数和环境变量配置，提供详细的错误诊断，支持测试环境自动清理
+
 ### 试用密钥生成测试
 ```bash
 ./test-trial-key-generation.sh [--dry-run] [--token ADMIN_TOKEN]
@@ -230,6 +245,7 @@ jobs:
 - **2026-02-11**：添加快速选择指南和使用建议
 - **2026-02-11**：提供CI/CD集成示例和故障排查流程
 - **2026-02-12**：添加环境变量验证脚本 `verify-env-vars.sh`
+- **2026-02-12**：添加Admin API自动化测试套件 `test-admin-api.sh`
 
 ## 贡献指南
 
