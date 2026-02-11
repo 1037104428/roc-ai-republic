@@ -383,3 +383,99 @@ ADMIN_TOKEN=your_token ./scripts/verify-quota-proxy-admin-ui.sh
 5. ✅ 提供快速测试命令示例
 
 这对于部署后的验收和日常运维检查非常有用。
+
+## Admin API 性能检查脚本
+
+`check-admin-performance.sh` 脚本用于快速检查 quota-proxy Admin API 的响应时间性能，提供性能基准报告。
+
+### 功能特性
+
+- **响应时间测量**: 测量关键 Admin API 端点的响应时间
+- **性能评级**: 根据响应时间提供性能评级（优秀/良好/一般/较慢）
+- **完整测试**: 测试所有关键 Admin API 端点
+- **详细报告**: 提供详细的性能测试报告和建议
+
+### 使用方法
+
+```bash
+# 基本用法
+./check-admin-performance.sh
+
+# 自定义配置
+./check-admin-performance.sh --url http://localhost:8787 --token myadmin
+
+# 使用环境变量
+ADMIN_TOKEN=mysecret BASE_URL=http://192.168.1.100:8787 ./check-admin-performance.sh
+```
+
+### 测试端点
+
+脚本会测试以下端点：
+- `GET /admin/keys` - 密钥列表查询
+- `GET /admin/usage` - 使用统计查询
+- `POST /admin/keys` - 密钥创建
+- `GET /healthz` - 健康检查
+
+### 输出示例
+
+```
+[INFO] 开始Admin API性能检查
+[INFO] 配置:
+[INFO]   Base URL: http://127.0.0.1:8787
+[INFO]   Timeout: 10s
+[SUCCESS] 服务运行正常
+
+[INFO] 开始性能测试...
+----------------------------------------
+[INFO] 测试: GET /admin/keys
+[INFO]   端点: /admin/keys
+[SUCCESS]   成功 (HTTP 200) - 响应时间: 45ms
+
+[INFO] 测试: GET /admin/usage
+[INFO]   端点: /admin/usage
+[SUCCESS]   成功 (HTTP 200) - 响应时间: 52ms
+
+[INFO] 测试: POST /admin/keys
+[INFO]   端点: /admin/keys
+[SUCCESS]   成功 (HTTP 201) - 响应时间: 78ms
+
+[INFO] 测试: GET /healthz
+[INFO]   端点: /healthz
+[SUCCESS]   成功 (HTTP 200) - 响应时间: 12ms
+
+----------------------------------------
+[INFO] 性能测试完成
+[SUCCESS] 平均响应时间: 46ms (优秀)
+[SUCCESS] 成功测试数: 4/4
+
+[INFO] 建议:
+  - 响应时间良好，保持当前配置
+
+[INFO] 脚本执行完成
+```
+
+### 性能评级标准
+
+- **优秀**: < 100ms
+- **良好**: 100-300ms
+- **一般**: 300-500ms
+- **较慢**: ≥ 500ms
+
+### 依赖要求
+
+- `curl` - HTTP 客户端
+- `jq` - JSON 处理器（可选，用于更复杂的响应解析）
+
+### 集成建议
+
+1. **定期性能监控**: 将脚本加入 Cron 任务，定期检查 API 性能
+2. **部署验证**: 在部署新版本后运行脚本验证性能
+3. **容量规划**: 根据性能数据规划服务器资源
+4. **告警配置**: 设置响应时间阈值告警
+
+### 相关脚本
+
+- `check-admin-health.sh` - 健康状态检查
+- `verify-admin-api.sh` - 完整功能验证
+- `quick-verify.sh` - 快速验证
+
