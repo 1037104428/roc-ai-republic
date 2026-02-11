@@ -2,6 +2,7 @@
 /**
  * SQLite数据库初始化脚本
  * 用于初始化quota-proxy的试用密钥和使用统计数据库
+ * 使用CommonJS模块（.cjs扩展名）
  */
 
 const sqlite3 = require('sqlite3').verbose();

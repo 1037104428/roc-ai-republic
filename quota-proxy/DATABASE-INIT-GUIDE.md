@@ -25,7 +25,7 @@ npm install sqlite3
 
 ```bash
 cd quota-proxy
-node init-db.js
+node init-db.cjs
 ```
 
 预期输出：
