@@ -45,6 +45,7 @@
 - [x] 健康检查端点增强（包含数据库状态） - 2026-02-11 10:11 CST 完成，创建增强健康检查端点和测试脚本
 - [x] 监控指标导出（Prometheus 格式） - 2026-02-11 12:10 CST 完成，创建Prometheus监控指标中间件和验证脚本，提供HTTP请求统计、数据库状态、密钥使用情况等核心指标监控，支持/metrics端点用于Prometheus抓取
 - [x] 日志结构化（JSON 格式） - 2026-02-11 12:15 CST 完成，创建JSON日志中间件和验证脚本，提供结构化JSON日志输出，支持INFO/ERROR日志级别、请求追踪和JSON序列化
+- [x] 数据库数据导出功能（JSON/CSV 格式） - 2026-02-11 12:42 CST 完成，创建export-database-data.sh和verify-export-database.sh脚本，支持将SQLite数据库导出为JSON或CSV格式，便于数据迁移和分析
 
 ## 实施优先级
 1. **高优先级**: 数据库连接池优化、操作日志记录
