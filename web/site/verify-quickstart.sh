@@ -5,6 +5,7 @@
 set -e
 
 echo "=== OpenClaw 小白一条龙验证脚本 ==="
+echo "包含：官网、API、论坛、安装脚本、TRIAL_KEY（可选）"
 echo ""
 
 # 检查参数
@@ -35,7 +36,7 @@ fi
 
 # 2. 检查 API 健康状态
 echo "2. 检查 API 健康状态..."
-API_HEALTH=$(curl -fsS -m 10 https://clawdrepublic.cn/api/healthz 2>/dev/null || echo "{}")
+API_HEALTH=$(curl -fsS -m 10 https://api.clawdrepublic.cn/healthz 2>/dev/null || echo "{}")
 if echo "$API_HEALTH" | grep -q '"ok":true'; then
     echo "   ✅ API 健康检查通过"
 else
@@ -44,10 +45,28 @@ else
     exit 1
 fi
 
-# 3. 如果有 key，检查模型列表
+# 3. 检查论坛可达性（新增）
+echo "3. 检查论坛可达性..."
+FORUM_CHECK=$(curl -fsS -m 10 https://clawdrepublic.cn/forum/ 2>/dev/null || echo "")
+if echo "$FORUM_CHECK" | grep -q "Clawd 国度论坛"; then
+    echo "   ✅ 论坛可访问，标题正确"
+    
+    # 检查论坛是否返回502错误（历史问题修复验证）
+    if echo "$FORUM_CHECK" | head -1 | grep -q "<!doctype html>"; then
+        echo "   ✅ 论坛无502错误（历史问题已修复）"
+    else
+        echo "   ⚠️  论坛返回非标准响应，但标题正确"
+    fi
+else
+    echo "   ❌ 论坛不可访问或标题不正确"
+    echo "   提示：论坛曾出现502错误，现已修复。如仍失败请检查网络。"
+    exit 1
+fi
+
+# 4. 如果有 key，检查模型列表
 if [[ -n "$KEY" ]]; then
-    echo "3. 检查 TRIAL_KEY 有效性..."
-    MODELS_RESPONSE=$(curl -fsS -m 10 https://clawdrepublic.cn/api/v1/models \
+    echo "4. 检查 TRIAL_KEY 有效性..."
+    MODELS_RESPONSE=$(curl -fsS -m 10 https://api.clawdrepublic.cn/v1/models \
         -H "Authorization: Bearer $KEY" 2>/dev/null || echo "{}")
     
     if echo "$MODELS_RESPONSE" | grep -q '"object":"list"'; then
@@ -62,11 +81,11 @@ if [[ -n "$KEY" ]]; then
         exit 1
     fi
 else
-    echo "3. 跳过 TRIAL_KEY 验证（未提供 key）"
+    echo "4. 跳过 TRIAL_KEY 验证（未提供 key）"
 fi
 
-# 4. 检查安装脚本可达性
-echo "4. 检查安装脚本可达性..."
+# 5. 检查安装脚本可达性
+echo "5. 检查安装脚本可达性..."
 if curl -fsS -m 10 https://clawdrepublic.cn/install-cn.sh > /dev/null 2>&1; then
     echo "   ✅ 安装脚本可下载"
 else
@@ -76,11 +95,19 @@ fi
 
 echo ""
 echo "=== 验证完成 ==="
-echo "✅ 所有基础检查通过"
+echo "✅ 所有检查通过"
+echo ""
+echo "总结："
+echo "- 官网: ✅ 可访问"
+echo "- API网关: ✅ 健康"
+echo "- 论坛: ✅ 可访问（502错误已修复）"
+echo "- 安装脚本: ✅ 可下载"
+if [[ -n "$KEY" ]]; then
+    echo "- TRIAL_KEY: ✅ 有效"
+fi
 echo ""
 echo "下一步："
-echo "1. 运行安装命令：curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash"
-echo "2. 设置环境变量：export CLAWD_TRIAL_KEY='你的TRIAL_KEY'"
-echo "3. 测试对话：openclaw chat '你好'"
-echo ""
-echo "遇到问题？请到论坛发帖：https://clawdrepublic.cn/forum/"
+echo "1. 运行安装脚本: curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash"
+echo "2. 配置环境变量: export CLAWD_TRIAL_KEY=\"你的key\""
+echo "3. 启动OpenClaw: openclaw gateway start"
+echo "4. 遇到问题？去论坛提问: https://clawdrepublic.cn/forum/"
