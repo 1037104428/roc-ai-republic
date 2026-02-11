@@ -142,18 +142,37 @@ test_dry_run() {
     local temp_db="$temp_dir/test.db"
     
     # 测试 --dry-run 参数
-    if "$script_path" --db-path "$temp_db" --dry-run 2>&1 | grep -q "模拟运行模式"; then
-        record_result "模拟运行" "PASS" "--dry-run 参数正常"
+    # 临时设置PATH来避免sqlite3依赖检查
+    local original_path="$PATH"
+    export PATH="/usr/bin:/bin:$PATH"  # 确保有基本命令
+    
+    if output=$("$script_path" --db-path "$temp_db" --dry-run 2>&1); then
+        if echo "$output" | grep -q "模拟运行模式"; then
+            record_result "模拟运行" "PASS" "--dry-run 参数正常"
+        else
+            record_result "模拟运行" "FAIL" "--dry-run 参数异常，输出不包含'模拟运行模式'"
+            echo "输出前50字符: ${output:0:50}"
+        fi
     else
-        record_result "模拟运行" "FAIL" "--dry-run 参数异常"
+        record_result "模拟运行" "FAIL" "--dry-run 参数执行失败，退出码: $?"
     fi
     
+    export PATH="$original_path"
+    
     # 测试自定义参数
-    if "$script_path" --db-path "$temp_db" --count 5 --threads 2 --dry-run 2>&1 | grep -q "模拟运行模式"; then
-        record_result "自定义参数" "PASS" "自定义参数正常"
+    export PATH="/usr/bin:/bin:$PATH"  # 确保有基本命令
+    
+    if output=$("$script_path" --db-path "$temp_db" --count 5 --threads 2 --dry-run 2>&1); then
+        if echo "$output" | grep -q "模拟运行模式"; then
+            record_result "自定义参数" "PASS" "自定义参数正常"
+        else
+            record_result "自定义参数" "FAIL" "自定义参数异常，输出不包含'模拟运行模式'"
+        fi
     else
-        record_result "自定义参数" "FAIL" "自定义参数异常"
+        record_result "自定义参数" "FAIL" "自定义参数执行失败，退出码: $?"
     fi
+    
+    export PATH="$original_path"
     
     # 清理临时目录
     rm -rf "$temp_dir"

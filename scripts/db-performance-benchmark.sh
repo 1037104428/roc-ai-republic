@@ -91,6 +91,11 @@ parse_args() {
 
 # 检查依赖
 check_dependencies() {
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        echo -e "${GREEN}[模拟] 跳过依赖检查${NC}"
+        return 0
+    fi
+    
     if ! command -v sqlite3 &> /dev/null; then
         echo -e "${RED}错误: sqlite3 未安装${NC}"
         echo "请安装 sqlite3:"
