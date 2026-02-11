@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.01"
+SCRIPT_VERSION="2026.02.11.02"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 NPM_REGISTRY_CN_DEFAULT="https://registry.npmmirror.com"
@@ -25,6 +25,75 @@ VERIFY_LEVEL_DEFAULT="auto"  # auto, basic, quick, full, none
 # Show script version
 echo "[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION"
 echo "[cn-pack] ========================================="
+
+# Function to check for script updates
+check_script_updates() {
+  local check_mode="${1:-auto}"  # auto, force, skip
+  
+  if [[ "$check_mode" == "skip" ]]; then
+    echo "[cn-pack] Script update check skipped"
+    return 0
+  fi
+  
+  # Only check for updates if we have curl and it's not a forced check
+  if [[ "$check_mode" == "auto" ]] && ! command -v curl &> /dev/null; then
+    echo "[cn-pack] curl not available, skipping update check"
+    return 0
+  fi
+  
+  echo "[cn-pack] Checking for script updates..."
+  
+  # Try to fetch latest version from GitHub
+  local latest_version=""
+  local update_available=false
+  
+  if command -v curl &> /dev/null; then
+    # Try GitHub first
+    latest_version=$(curl -fsSL "$SCRIPT_UPDATE_URL" 2>/dev/null | grep -E '^SCRIPT_VERSION="[^"]+"' | head -1 | cut -d'"' -f2)
+    
+    # If GitHub fails, try Gitee
+    if [[ -z "$latest_version" ]]; then
+      local gitee_url="https://gitee.com/junkaiWang324/roc-ai-republic/raw/main/scripts/install-cn.sh"
+      latest_version=$(curl -fsSL "$gitee_url" 2>/dev/null | grep -E '^SCRIPT_VERSION="[^"]+"' | head -1 | cut -d'"' -f2)
+    fi
+  fi
+  
+  if [[ -n "$latest_version" ]]; then
+    if [[ "$latest_version" != "$SCRIPT_VERSION" ]]; then
+      echo "[cn-pack] ⚠️  Update available: v$SCRIPT_VERSION → v$latest_version"
+      echo "[cn-pack]    Run with --check-update to see details"
+      update_available=true
+    else
+      echo "[cn-pack] ✓ Script is up to date (v$SCRIPT_VERSION)"
+    fi
+  else
+    echo "[cn-pack] ⚠️  Could not check for updates (network issue)"
+  fi
+  
+  # Return update status
+  if [[ "$update_available" == true ]]; then
+    return 1
+  fi
+  return 0
+}
+
+# Function to show update details
+show_update_details() {
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] Script Update Information"
+  echo "[cn-pack] ========================================="
+  echo "[cn-pack] Current version: v$SCRIPT_VERSION"
+  echo "[cn-pack] Update URL: $SCRIPT_UPDATE_URL"
+  echo "[cn-pack]"
+  echo "[cn-pack] To update:"
+  echo "[cn-pack]   1. Download latest: curl -fsSL $SCRIPT_UPDATE_URL -o install-cn.sh"
+  echo "[cn-pack]   2. Make executable: chmod +x install-cn.sh"
+  echo "[cn-pack]   3. Verify: ./install-cn.sh --version"
+  echo "[cn-pack]"
+  echo "[cn-pack] Or use one-liner:"
+  echo "[cn-pack]   curl -fsSL $SCRIPT_UPDATE_URL | bash"
+  echo "[cn-pack] ========================================="
+}
 
 # Function to detect and handle proxy settings
 handle_proxy_settings() {
@@ -138,8 +207,8 @@ cleanup_proxy_settings() {
 }
 
 usage() {
-  cat <<'TXT'
-[cn-pack] OpenClaw CN installer
+  cat <<TXT
+[cn-pack] OpenClaw CN installer v$SCRIPT_VERSION
 
 Options:
   --version <ver>          Install a specific OpenClaw version (default: latest)
@@ -149,13 +218,20 @@ Options:
   --network-optimize       Run advanced network optimization (detect best mirrors)
   --force-cn               Force using CN registry (skip fallback)
   --dry-run                Print commands without executing
-  --check-update           Check for script updates
+  --check-update           Check for script updates and exit
+  --version-check          Check script version and update status (non-blocking)
   --verify-level <level>   Verification level: auto, basic, quick, full, none (default: auto)
   --proxy-mode <mode>      Proxy handling mode: auto, force, skip (default: auto)
   --proxy-test             Test proxy connectivity before installation
   --proxy-report           Generate proxy configuration report
   --keep-proxy             Keep npm proxy settings after installation
   -h, --help               Show help
+
+Version Control:
+  - Script version: $SCRIPT_VERSION
+  - Update URL: $SCRIPT_UPDATE_URL
+  - Use --check-update to check for updates
+  - Use --version-check for non-blocking version check
 
 Env vars (equivalent):
   OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT, OPENCLAW_VERIFY_LEVEL
@@ -209,6 +285,7 @@ DRY_RUN=0
 NETWORK_TEST=0
 NETWORK_OPTIMIZE=0
 FORCE_CN=0
+VERSION_CHECK=0
 VERSION="${OPENCLAW_VERSION:-$OPENCLAW_VERSION_DEFAULT}"
 REG_CN="${NPM_REGISTRY:-$NPM_REGISTRY_CN_DEFAULT}"
 REG_FALLBACK="${NPM_REGISTRY_FALLBACK:-$NPM_REGISTRY_FALLBACK_DEFAULT}"
@@ -248,6 +325,10 @@ while [[ $# -gt 0 ]]; do
       check_script_update
       exit $?
       ;;
+    --version-check)
+      VERSION_CHECK=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -264,6 +345,13 @@ if [[ -z "$VERSION" || -z "$REG_CN" || -z "$REG_FALLBACK" ]]; then
   echo "[cn-pack] Missing required values." >&2
   usage
   exit 2
+fi
+
+# Run version check if requested (non-blocking)
+if [[ "$VERSION_CHECK" == "1" ]]; then
+  echo "[cn-pack] Running version check..."
+  check_script_updates "auto"
+  # Continue with installation even if updates are available
 fi
 
 run() {
