@@ -1,8 +1,7 @@
 #!/bin/bash
+
 # verify-env-config.sh - 验证quota-proxy环境变量配置脚本
-# 版本: 1.0.0
-# 创建时间: 2026-02-11
-# 功能: 检查关键环境变量配置是否正确
+# 快速检查部署环境的关键配置变量，帮助用户诊断配置问题
 
 set -euo pipefail
 
@@ -13,7 +12,80 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 日志函数
+# 默认配置
+DRY_RUN=false
+VERBOSE=false
+CONFIG_FILE=""
+ENV_FILE=""
+
+# 显示帮助信息
+show_help() {
+    cat << 'HELPEOF'
+验证quota-proxy环境变量配置脚本
+
+用法: $0 [选项]
+
+选项:
+  --dry-run           干运行模式，只显示检查项，不实际验证
+  --verbose           详细输出模式
+  --config-file FILE  指定配置文件路径（默认：当前目录的.env文件）
+  --env-file FILE     指定环境变量文件路径（默认：当前目录的.env文件）
+  --help              显示此帮助信息
+
+功能:
+  1. 检查必需环境变量是否设置
+  2. 验证环境变量格式和有效性
+  3. 检查配置文件是否存在和可读
+  4. 验证端口和URL格式
+  5. 提供配置建议和修复提示
+
+必需环境变量:
+  - ADMIN_TOKEN: 管理员令牌（用于管理API）
+  - PORT: 服务端口（默认：8787）
+  - DATABASE_URL: SQLite数据库路径（可选，默认：./data/quota.db）
+
+示例:
+  $0 --dry-run
+  $0 --config-file /opt/roc/quota-proxy/.env
+  $0 --verbose
+
+HELPEOF
+}
+
+# 解析命令行参数
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            --verbose)
+                VERBOSE=true
+                shift
+                ;;
+            --config-file)
+                CONFIG_FILE="$2"
+                shift 2
+                ;;
+            --env-file)
+                ENV_FILE="$2"
+                shift 2
+                ;;
+            --help)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}错误: 未知选项: $1${NC}"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
+# 打印消息
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -30,202 +102,250 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 显示帮助信息
-show_help() {
-    cat << 'HELP'
-verify-env-config.sh - 验证quota-proxy环境变量配置脚本
-
-用法:
-  ./verify-env-config.sh [选项]
-
-选项:
-  --dry-run        干运行模式，只显示检查项不实际验证
-  --quiet          安静模式，只显示错误和警告
-  --help           显示此帮助信息
-  --version        显示版本信息
-
-功能:
-  1. 检查环境变量配置文件是否存在
-  2. 验证关键配置项格式
-  3. 检查必需的环境变量是否设置
-  4. 验证配置值是否有效
-
-示例:
-  ./verify-env-config.sh                 # 完整验证
-  ./verify-env-config.sh --dry-run       # 干运行模式
-  ./verify-env-config.sh --quiet         # 安静模式
-
-HELP
+# 检查环境变量
+check_env_var() {
+    local var_name="$1"
+    local required="${2:-false}"
+    local description="$3"
+    
+    if [ "$DRY_RUN" = true ]; then
+        if [ "$required" = true ]; then
+            log_info "将检查必需环境变量: $var_name ($description)"
+        else
+            log_info "将检查可选环境变量: $var_name ($description)"
+        fi
+        return 0
+    fi
+    
+    # 使用间接引用获取变量值
+    local value=""
+    if [ -n "${!var_name+x}" ]; then
+        value="${!var_name}"
+    fi
+    
+    if [ -z "$value" ]; then
+        if [ "$required" = true ]; then
+            log_error "必需环境变量未设置: $var_name ($description)"
+            return 1
+        else
+            log_warning "可选环境变量未设置: $var_name ($description)"
+            return 0
+        fi
+    else
+        if [ "$VERBOSE" = true ]; then
+            log_success "环境变量已设置: $var_name=$value ($description)"
+        else
+            log_success "环境变量已设置: $var_name"
+        fi
+        return 0
+    fi
 }
 
-# 显示版本信息
-show_version() {
-    echo "verify-env-config.sh 版本 1.0.0"
-    echo "创建时间: 2026-02-11"
-    echo "功能: 检查quota-proxy环境变量配置"
+# 验证端口格式
+validate_port() {
+    local port="$1"
+    
+    if [ "$DRY_RUN" = true ]; then
+        log_info "将验证端口格式: $port"
+        return 0
+    fi
+    
+    if [[ ! "$port" =~ ^[0-9]+$ ]]; then
+        log_error "端口格式无效: $port (必须是数字)"
+        return 1
+    fi
+    
+    if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+        log_error "端口范围无效: $port (必须在1-65535之间)"
+        return 1
+    fi
+    
+    if [ "$port" -lt 1024 ]; then
+        log_warning "端口 $port 小于1024，可能需要root权限"
+    fi
+    
+    log_success "端口格式有效: $port"
+    return 0
 }
 
-# 解析命令行参数
-DRY_RUN=false
-QUIET=false
+# 验证URL格式
+validate_url() {
+    local url="$1"
+    local var_name="$2"
+    
+    if [ "$DRY_RUN" = true ]; then
+        log_info "将验证URL格式: $var_name=$url"
+        return 0
+    fi
+    
+    if [[ "$url" =~ ^https?:// ]]; then
+        log_success "URL格式有效: $var_name"
+        return 0
+    else
+        log_warning "URL格式可能无效: $var_name=$url (应以http://或https://开头)"
+        return 0
+    fi
+}
 
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --dry-run)
-            DRY_RUN=true
-            shift
-            ;;
-        --quiet)
-            QUIET=true
-            shift
-            ;;
-        --help)
-            show_help
-            exit 0
-            ;;
-        --version)
-            show_version
-            exit 0
-            ;;
-        *)
-            log_error "未知参数: $1"
-            show_help
-            exit 1
-            ;;
-    esac
-done
+# 验证数据库路径
+validate_db_path() {
+    local db_path="$1"
+    
+    if [ "$DRY_RUN" = true ]; then
+        log_info "将验证数据库路径: $db_path"
+        return 0
+    fi
+    
+    if [[ "$db_path" == *.db ]] || [[ "$db_path" == *.sqlite ]] || [[ "$db_path" == *.sqlite3 ]]; then
+        log_success "数据库路径格式有效: $db_path"
+        return 0
+    else
+        log_warning "数据库路径可能无效: $db_path (建议使用.db、.sqlite或.sqlite3扩展名)"
+        return 0
+    fi
+}
+
+# 加载环境变量文件
+load_env_file() {
+    local env_file="${ENV_FILE:-${CONFIG_FILE:-.env}}"
+    
+    if [ "$DRY_RUN" = true ]; then
+        log_info "将加载环境变量文件: $env_file"
+        return 0
+    fi
+    
+    if [ -f "$env_file" ]; then
+        if [ -r "$env_file" ]; then
+            # 安全地加载环境变量，不执行代码
+            while IFS='=' read -r key value || [ -n "$key" ]; do
+                # 跳过注释和空行
+                [[ "$key" =~ ^#.*$ ]] && continue
+                [[ -z "$key" ]] && continue
+                
+                # 移除可能的引号
+                key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed "s/^['\"]//;s/['\"]$//")
+                
+                # 设置环境变量
+                export "$key"="$value"
+                
+                if [ "$VERBOSE" = true ]; then
+                    log_info "从文件加载: $key=$value"
+                fi
+            done < "$env_file"
+            
+            log_success "环境变量文件加载成功: $env_file"
+            return 0
+        else
+            log_error "环境变量文件不可读: $env_file"
+            return 1
+        fi
+    else
+        log_warning "环境变量文件不存在: $env_file (将检查已设置的环境变量)"
+        return 0
+    fi
+}
 
 # 主验证函数
+main_validation() {
+    local errors=0
+    local warnings=0
+    
+    log_info "开始验证quota-proxy环境变量配置..."
+    
+    # 加载环境变量文件
+    if ! load_env_file; then
+        errors=$((errors + 1))
+    fi
+    
+    # 检查必需环境变量
+    log_info "检查必需环境变量..."
+    
+    if ! check_env_var "ADMIN_TOKEN" true "管理员令牌（用于管理API）"; then
+        errors=$((errors + 1))
+    fi
+    
+    # 检查可选环境变量
+    log_info "检查可选环境变量..."
+    
+    check_env_var "PORT" false "服务端口（默认：8787）"
+    check_env_var "DATABASE_URL" false "SQLite数据库路径（默认：./data/quota.db）"
+    check_env_var "LOG_LEVEL" false "日志级别（默认：info）"
+    check_env_var "CORS_ORIGIN" false "CORS允许的源（默认：*）"
+    check_env_var "RATE_LIMIT" false "速率限制（默认：100/分钟）"
+    
+    # 验证端口格式
+    if [ -n "${PORT:-}" ]; then
+        if ! validate_port "$PORT"; then
+            errors=$((errors + 1))
+        fi
+    fi
+    
+    # 验证数据库路径格式
+    if [ -n "${DATABASE_URL:-}" ]; then
+        if ! validate_db_path "$DATABASE_URL"; then
+            warnings=$((warnings + 1))
+        fi
+    fi
+    
+    # 验证其他URL格式的变量
+    if [ -n "${CORS_ORIGIN:-}" ] && [ "$CORS_ORIGIN" != "*" ]; then
+        validate_url "$CORS_ORIGIN" "CORS_ORIGIN"
+    fi
+    
+    # 提供配置建议
+    log_info "配置建议检查..."
+    
+    if [ -z "${PORT:-}" ]; then
+        log_warning "建议设置PORT环境变量（默认使用8787）"
+        warnings=$((warnings + 1))
+    fi
+    
+    if [ -z "${DATABASE_URL:-}" ]; then
+        log_warning "建议设置DATABASE_URL环境变量以启用持久化（默认：./data/quota.db）"
+        warnings=$((warnings + 1))
+    fi
+    
+    if [ -z "${LOG_LEVEL:-}" ]; then
+        log_info "建议设置LOG_LEVEL环境变量控制日志详细程度（可选：debug, info, warn, error）"
+    fi
+    
+    # 总结
+    log_info "验证完成"
+    log_info "错误数: $errors"
+    log_info "警告数: $warnings"
+    
+    if [ "$errors" -gt 0 ]; then
+        log_error "环境变量配置验证失败，请修复上述错误"
+        return 1
+    elif [ "$warnings" -gt 0 ]; then
+        log_warning "环境变量配置验证通过，但有警告需要关注"
+        return 0
+    else
+        log_success "环境变量配置验证通过"
+        return 0
+    fi
+}
+
+# 主函数
 main() {
+    parse_args "$@"
+    
     if [ "$DRY_RUN" = true ]; then
-        log_info "干运行模式: 显示检查项但不实际验证"
-        echo ""
-        echo "将检查以下项目:"
-        echo "1. 环境变量配置文件 (.env) 是否存在"
-        echo "2. 关键配置项格式验证"
-        echo "3. 必需环境变量检查"
-        echo "4. 配置值有效性验证"
-        echo ""
-        log_success "干运行完成 - 所有检查项已列出"
+        log_info "=== 干运行模式 ==="
+        log_info "将执行以下验证步骤:"
+        log_info "1. 加载环境变量文件"
+        log_info "2. 检查必需环境变量 (ADMIN_TOKEN)"
+        log_info "3. 检查可选环境变量 (PORT, DATABASE_URL等)"
+        log_info "4. 验证端口格式"
+        log_info "5. 验证数据库路径格式"
+        log_info "6. 提供配置建议"
+        log_info "=== 干运行结束 ==="
         exit 0
     fi
-
-    if [ "$QUIET" = false ]; then
-        log_info "开始验证quota-proxy环境变量配置..."
-    fi
-
-    # 1. 检查环境变量配置文件
-    if [ "$QUIET" = false ]; then
-        log_info "检查环境变量配置文件..."
-    fi
     
-    ENV_FILE=".env"
-    ENV_EXAMPLE_FILE=".env.example"
-    
-    if [ -f "$ENV_FILE" ]; then
-        if [ "$QUIET" = false ]; then
-            log_success "找到环境变量配置文件: $ENV_FILE"
-        fi
-    else
-        if [ -f "$ENV_EXAMPLE_FILE" ]; then
-            log_warning "未找到 $ENV_FILE，但找到示例文件 $ENV_EXAMPLE_FILE"
-            log_warning "建议复制示例文件: cp $ENV_EXAMPLE_FILE $ENV_FILE"
-        else
-            log_error "未找到环境变量配置文件: $ENV_FILE"
-            log_error "也未找到示例文件: $ENV_EXAMPLE_FILE"
-            exit 1
-        fi
-    fi
-
-    # 2. 验证关键配置项格式
-    if [ "$QUIET" = false ]; then
-        log_info "验证关键配置项格式..."
-    fi
-    
-    if [ -f "$ENV_FILE" ]; then
-        # 检查必需配置项
-        REQUIRED_VARS=("DATABASE_URL" "PORT" "ADMIN_TOKEN" "TRIAL_KEY_PREFIX")
-        
-        for var in "${REQUIRED_VARS[@]}"; do
-            if grep -q "^${var}=" "$ENV_FILE"; then
-                if [ "$QUIET" = false ]; then
-                    log_success "找到必需配置项: $var"
-                fi
-            else
-                log_error "缺少必需配置项: $var"
-                log_error "请在 $ENV_FILE 中添加 $var 配置"
-                exit 1
-            fi
-        done
-        
-        # 检查端口号格式
-        PORT_VALUE=$(grep "^PORT=" "$ENV_FILE" | cut -d'=' -f2)
-        if [[ "$PORT_VALUE" =~ ^[0-9]+$ ]] && [ "$PORT_VALUE" -ge 1 ] && [ "$PORT_VALUE" -le 65535 ]; then
-            if [ "$QUIET" = false ]; then
-                log_success "端口号格式正确: $PORT_VALUE"
-            fi
-        else
-            log_error "端口号格式错误: $PORT_VALUE"
-            log_error "端口号应为1-65535之间的数字"
-            exit 1
-        fi
-        
-        # 检查数据库URL格式
-        DB_URL=$(grep "^DATABASE_URL=" "$ENV_FILE" | cut -d'=' -f2)
-        if [[ "$DB_URL" == file:* ]] || [[ "$DB_URL" == sqlite:* ]]; then
-            if [ "$QUIET" = false ]; then
-                log_success "数据库URL格式正确: (SQLite格式)"
-            fi
-        else
-            log_warning "数据库URL格式可能不是SQLite: $DB_URL"
-            log_warning "建议使用SQLite格式: file:/path/to/database.db 或 sqlite:/path/to/database.db"
-        fi
-    fi
-
-    # 3. 检查环境变量是否已导出
-    if [ "$QUIET" = false ]; then
-        log_info "检查环境变量是否已导出..."
-    fi
-    
-    # 尝试从.env文件加载并检查
-    if [ -f "$ENV_FILE" ]; then
-        # 临时导出变量检查
-        TEMP_ENV=$(mktemp)
-        grep -E '^[A-Z_]+=' "$ENV_FILE" > "$TEMP_ENV"
-        
-        # 检查关键变量
-        if source "$TEMP_ENV" 2>/dev/null; then
-            if [ -n "${DATABASE_URL:-}" ]; then
-                if [ "$QUIET" = false ]; then
-                    log_success "DATABASE_URL 已正确设置"
-                fi
-            fi
-            
-            if [ -n "${PORT:-}" ]; then
-                if [ "$QUIET" = false ]; then
-                    log_success "PORT 已正确设置: $PORT"
-                fi
-            fi
-            
-            if [ -n "${ADMIN_TOKEN:-}" ]; then
-                if [ "$QUIET" = false ]; then
-                    log_success "ADMIN_TOKEN 已设置（长度: ${#ADMIN_TOKEN} 字符）"
-                fi
-            fi
-        fi
-        
-        rm -f "$TEMP_ENV"
-    fi
-
-    if [ "$QUIET" = false ]; then
-        log_success "环境变量配置验证完成！"
-        echo ""
-        echo "建议:"
-        echo "1. 运行 'source .env' 或 'export \$(grep -v '^#' .env | xargs)' 导出环境变量"
-        echo "2. 使用 './verify-sqlite-persistence.sh' 验证数据库功能"
-        echo "3. 使用 './check-deployment-status.sh' 检查部署状态"
-    else
-        echo "环境变量配置验证通过"
+    if ! main_validation; then
+        exit 1
     fi
 }
 
