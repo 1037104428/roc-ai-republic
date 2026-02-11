@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.15"
+SCRIPT_VERSION="2026.02.11.1533"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -2719,13 +2719,39 @@ EOF
           color_log "INFO" "启动命令: openclaw gateway start"
         fi
         
-        # 5. 提供快速测试命令
+        # 5. 检查quota-proxy部署状态（可选）
+        color_log "INFO" "检查quota-proxy部署状态..."
+        if [[ -f "$HOME/.openclaw/openclaw.json" ]] && grep -q "api.clawdrepublic.cn" "$HOME/.openclaw/openclaw.json" 2>/dev/null; then
+          color_log "INFO" "检测到quota-proxy配置，测试连接..."
+          if curl -fsS -m 5 https://api.clawdrepublic.cn/healthz 2>/dev/null | grep -q '"ok":true'; then
+            color_log "SUCCESS" "✓ quota-proxy API连接正常"
+            
+            # 尝试获取TRIAL_KEY（如果有）
+            if [[ -f "$HOME/.openclaw/openclaw.json" ]]; then
+              local trial_key
+              trial_key=$(grep -o '"apiKey":"[^"]*"' "$HOME/.openclaw/openclaw.json" | head -1 | cut -d'"' -f4)
+              if [[ -n "$trial_key" ]]; then
+                color_log "SUCCESS" "✓ 检测到TRIAL_KEY配置"
+                color_log "INFO" "测试API调用: curl -H 'Authorization: Bearer $trial_key' https://api.clawdrepublic.cn/v1/models"
+              fi
+            fi
+          else
+            color_log "WARNING" "⚠ quota-proxy API连接失败（可能需要TRIAL_KEY）"
+            color_log "INFO" "获取TRIAL_KEY: 访问 https://clawdrepublic.cn 或查看 ~/.openclaw/openclaw.json"
+          fi
+        else
+          color_log "INFO" "ℹ 未配置quota-proxy，跳过API测试"
+          color_log "INFO" "配置quota-proxy: 编辑 ~/.openclaw/openclaw.json 添加api.clawdrepublic.cn"
+        fi
+        
+        # 6. 提供快速测试命令
         echo ""
         color_log "INFO" "🚀 快速测试命令:"
         color_log "INFO" "• 检查状态: openclaw status"
         color_log "INFO" "• 查看帮助: openclaw help"
         color_log "INFO" "• 启动网关: openclaw gateway start"
         color_log "INFO" "• 查看日志: tail -f ~/.openclaw/logs/gateway.log"
+        color_log "INFO" "• 测试quota-proxy: curl -fsS https://api.clawdrepublic.cn/healthz"
         
       else
         color_log "ERROR" "✗ openclaw命令未找到"
