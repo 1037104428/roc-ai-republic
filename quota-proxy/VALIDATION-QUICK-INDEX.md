@@ -22,6 +22,9 @@
 | `verify-admin-api.sh` | 完整Admin API验证 | 全面测试所有Admin API端点 |
 | `test-batch-keys.sh` | 批量密钥生成测试 | 测试批量生成试用密钥功能 |
 | `verify-admin-keys-endpoint.sh` | 密钥端点验证 | 专门测试 `/admin/keys` 相关功能 |
+| `server-sqlite-admin.js` | Admin API 服务器 | 完整的SQLite持久化Admin API服务器 |
+| `ADMIN-API-GUIDE.md` | Admin API 使用指南 | 详细的Admin API使用、部署和运维文档 |
+| `verify-admin-api.sh` | Admin API 验证脚本 | 验证Admin API所有端点的功能完整性 |
 
 ### 3. 部署验证
 | 脚本 | 功能 | 使用场景 |
