@@ -218,6 +218,110 @@ curl -s -o /dev/null -w "%{http_code}\n" \
   -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"ping"}]}'
 ```
 
+## 一键验证命令
+
+为了方便快速测试 quota-proxy 的基本功能，可以使用以下一键验证命令：
+
+### 基础功能验证（无需管理员权限）
+```bash
+# 1. 健康检查 - 验证服务是否运行
+curl -fsS http://127.0.0.1:8787/healthz && echo "✅ 健康检查通过"
+
+# 2. 状态检查 - 查看服务状态信息
+curl -fsS http://127.0.0.1:8787/status | jq . || curl -fsS http://127.0.0.1:8787/status
+
+# 3. 模型列表 - 验证API端点可用性（需要有效的TRIAL_KEY）
+curl -fsS http://127.0.0.1:8787/v1/models \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY:-your_trial_key_here}" \
+  && echo "✅ 模型列表API正常"
+
+# 4. 聊天测试 - 验证完整请求流程
+curl -fsS http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer ${CLAWD_TRIAL_KEY:-your_trial_key_here}" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"你好，请回复'ping'确认连接正常。"}],"max_tokens":10}' \
+  && echo "✅ 聊天API正常"
+```
+
+### Docker Compose环境一键验证
+```bash
+# 在quota-proxy目录下运行
+cd /opt/roc/quota-proxy
+
+# 一键验证脚本
+cat > quick-verify.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "🔍 开始quota-proxy快速验证..."
+
+# 检查服务状态
+echo "1. 检查Docker Compose服务状态..."
+docker compose ps
+
+# 健康检查
+echo "2. 健康检查..."
+curl -fsS http://127.0.0.1:8787/healthz && echo "✅ 健康检查通过"
+
+# 状态检查
+echo "3. 服务状态..."
+curl -fsS http://127.0.0.1:8787/status | jq -r '.mode' || curl -fsS http://127.0.0.1:8787/status
+
+# 检查日志
+echo "4. 查看最近日志..."
+docker compose logs --tail=5
+
+echo "✅ 快速验证完成！"
+EOF
+
+chmod +x quick-verify.sh
+./quick-verify.sh
+```
+
+### 管理员功能快速验证
+```bash
+# 一键管理员验证脚本
+cat > admin-quick-verify.sh << 'EOF'
+#!/bin/bash
+set -e
+
+ADMIN_TOKEN="${ADMIN_TOKEN:-your_admin_token}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:8787}"
+
+echo "🔐 开始管理员功能快速验证..."
+
+# 1. 创建测试密钥
+echo "1. 创建测试密钥..."
+KEY_RESPONSE=$(curl -fsS -X POST "${BASE_URL}/admin/keys" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"label":"quick-verify-test"}')
+  
+TRIAL_KEY=$(echo "$KEY_RESPONSE" | jq -r '.key')
+echo "✅ 创建密钥: ${TRIAL_KEY:0:10}..."
+
+# 2. 列出所有密钥
+echo "2. 列出所有密钥..."
+curl -fsS "${BASE_URL}/admin/keys" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" | jq '. | length' && echo "✅ 密钥列表正常"
+
+# 3. 查询今日用量
+echo "3. 查询今日用量..."
+curl -fsS "${BASE_URL}/admin/usage?day=$(date +%F)" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" | jq '.items | length' && echo "✅ 用量查询正常"
+
+# 4. 清理测试密钥
+echo "4. 清理测试密钥..."
+curl -fsS -X DELETE "${BASE_URL}/admin/keys/${TRIAL_KEY}" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" && echo "✅ 密钥清理完成"
+
+echo "✅ 管理员功能验证完成！"
+EOF
+
+chmod +x admin-quick-verify.sh
+ADMIN_TOKEN=your_token ./admin-quick-verify.sh
+```
+
 ## 验证脚本
 
 我们提供了多个验证脚本来测试 quota-proxy 功能：
