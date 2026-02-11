@@ -36,8 +36,9 @@ docker compose up -d
 
 ### 3.2 方式二：通过 curl 命令行
 
+#### 3.2.1 本地开发环境
 ```bash
-# 生成新密钥
+# 生成新密钥（本地localhost）
 curl -X POST http://localhost:8787/admin/keys \
   -H "Authorization: Bearer 你的管理员令牌" \
   -H "Content-Type: application/json" \
@@ -53,6 +54,81 @@ curl -X POST http://localhost:8787/admin/keys \
   "daily_limit": 200,
   "created_at": "2025-02-10T15:20:00Z"
 }
+```
+
+#### 3.2.2 Docker 容器环境
+```bash
+# 从宿主机访问容器（默认桥接网络）
+curl -X POST http://localhost:8787/admin/keys \
+  -H "Authorization: Bearer 你的管理员令牌" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "docker-user-20250211",
+    "daily_limit": 100
+  }'
+
+# 从其他容器访问（使用容器名）
+curl -X POST http://quota-proxy:8787/admin/keys \
+  -H "Authorization: Bearer 你的管理员令牌" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "容器间用户",
+    "daily_limit": 150
+  }'
+```
+
+#### 3.2.3 Docker Compose 环境
+```bash
+# 在Docker Compose网络中访问
+curl -X POST http://quota-proxy:8787/admin/keys \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "compose-network-user",
+    "daily_limit": 300
+  }'
+```
+
+#### 3.2.4 生产服务器环境
+```bash
+# 使用域名访问
+curl -X POST https://api.yourdomain.com/admin/keys \
+  -H "Authorization: Bearer 你的管理员令牌" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "生产用户-20250211",
+    "daily_limit": 500
+  }'
+
+# 使用服务器IP访问
+curl -X POST http://192.168.1.100:8787/admin/keys \
+  -H "Authorization: Bearer 你的管理员令牌" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "内网用户",
+    "daily_limit": 200
+  }'
+```
+
+#### 3.2.5 Kubernetes 环境
+```bash
+# 通过Service访问
+curl -X POST http://quota-proxy-service.default.svc.cluster.local:8787/admin/keys \
+  -H "Authorization: Bearer 你的管理员令牌" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "k8s-user",
+    "daily_limit": 1000
+  }'
+
+# 通过Ingress访问
+curl -X POST https://quota-proxy.yourdomain.com/admin/keys \
+  -H "Authorization: Bearer 你的管理员令牌" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "ingress-user",
+    "daily_limit": 800
+  }'
 ```
 
 ### 3.3 方式三：通过 SQLite 数据库直接操作（高级）
