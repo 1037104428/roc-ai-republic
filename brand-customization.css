@@ -1,0 +1,620 @@
+/* 
+ * Clawd 国度论坛品牌定制CSS
+ * 版本: 1.0
+ * 创建时间: 2026-02-11
+ * 描述: 增强品牌识别度的CSS定制
+ */
+
+/* ============================================
+   颜色变量系统
+   ============================================ */
+
+:root {
+  /* 主色调 - 深蓝色 (保持现有品牌色) */
+  --color-primary: #4D698E;
+  --color-primary-light: #6C8CB5;
+  --color-primary-dark: #3A5270;
+  --color-primary-rgb: 77, 105, 142;
+  
+  /* 辅助色 - 浅蓝色 */
+  --color-secondary: #6C8CB5;
+  --color-secondary-light: #8CA7D1;
+  --color-secondary-dark: #56729C;
+  --color-secondary-rgb: 108, 140, 181;
+  
+  /* 强调色 - 橙色 */
+  --color-accent: #FF6B35;
+  --color-accent-light: #FF8C5C;
+  --color-accent-dark: #E55A2B;
+  --color-accent-rgb: 255, 107, 53;
+  
+  /* 中性色 */
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  
+  --color-background: #FFFFFF;
+  --color-background-alt: #F9FAFB;
+  --color-background-hover: #F3F4F6;
+  
+  --color-border: #E5E7EB;
+  --color-border-light: #F3F4F6;
+  --color-border-dark: #D1D5DB;
+  
+  /* 功能色 (基于现有标签颜色) */
+  --color-success: #23A26D;
+  --color-success-light: #34D399;
+  --color-success-dark: #059669;
+  
+  --color-warning: #F59E0B;
+  --color-warning-light: #FBBF24;
+  --color-warning-dark: #D97706;
+  
+  --color-error: #EF4444;
+  --color-error-light: #F87171;
+  --color-error-dark: #DC2626;
+  
+  --color-info: #0EA5E9;
+  --color-info-light: #38BDF8;
+  --color-info-dark: #0284C7;
+  
+  --color-purple: #8B5CF6;
+  --color-purple-light: #A78BFA;
+  --color-purple-dark: #7C3AED;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* 圆角 */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+  
+  /* 过渡效果 */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   全局样式增强
+   ============================================ */
+
+/* 链接样式增强 */
+a {
+  color: var(--color-primary);
+  transition: color var(--transition-fast);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+a:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 按钮样式增强 */
+.Button {
+  transition: all var(--transition-normal);
+}
+
+.Button--primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.Button--primary:hover,
+.Button--primary:focus {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.Button--secondary {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.Button--secondary:hover,
+.Button--secondary:focus {
+  background-color: var(--color-secondary-dark);
+  border-color: var(--color-secondary-dark);
+}
+
+/* 强调按钮 */
+.Button--accent {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+}
+
+.Button--accent:hover,
+.Button--accent:focus {
+  background-color: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   导航栏和头部样式
+   ============================================ */
+
+/* 头部背景 */
+.Header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.Header-controls .Button {
+  border-radius: var(--radius-lg);
+}
+
+/* 导航链接 */
+.Header-nav .item-link {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.Header-nav .item-link:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+}
+
+.Header-nav .item-link.active {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+}
+
+/* ============================================
+   内容区域样式
+   ============================================ */
+
+/* 卡片样式增强 */
+.DiscussionListItem,
+.Post {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+  background-color: var(--color-background);
+}
+
+.DiscussionListItem:hover,
+.Post:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* 帖子元信息 */
+.DiscussionListItem-author,
+.Post-author {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.DiscussionListItem-badges .Badge,
+.Post-badges .Badge {
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+}
+
+/* ============================================
+   标签样式增强
+   ============================================ */
+
+/* 通用标签样式 */
+.TagLabel {
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  border: 2px solid transparent;
+}
+
+.TagLabel:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 特定标签颜色 */
+.TagLabel[data-slug="getting-started"] {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.TagLabel[data-slug="trial-key"] {
+  background-color: var(--color-purple);
+  color: white;
+}
+
+.TagLabel[data-slug="help"] {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.TagLabel[data-slug="clawd-onboarding"] {
+  background-color: var(--color-info);
+  color: white;
+}
+
+.TagLabel[data-slug="general"] {
+  background-color: var(--color-text-tertiary);
+  color: white;
+}
+
+/* ============================================
+   表单样式增强
+   ============================================ */
+
+.FormControl {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  background-color: var(--color-background);
+}
+
+.FormControl:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(77, 105, 142, 0.1);
+  outline: none;
+}
+
+.FormControl:hover {
+  border-color: var(--color-border-dark);
+}
+
+/* 表单标签 */
+.Form-group > label {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   工具提示和弹出框
+   ============================================ */
+
+.Tooltip {
+  background-color: var(--color-primary-dark);
+  color: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-weight: 500;
+}
+
+.Dropdown-menu {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  background-color: var(--color-background);
+}
+
+.Dropdown-menu .Dropdown-item {
+  color: var(--color-text-primary);
+  padding: 0.75rem 1rem;
+  transition: all var(--transition-fast);
+}
+
+.Dropdown-menu .Dropdown-item:hover {
+  background-color: var(--color-background-hover);
+  color: var(--color-primary);
+}
+
+/* ============================================
+   页脚样式
+   ============================================ */
+
+.App-footer {
+  background-color: var(--color-background-alt);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  padding: 2rem 0;
+}
+
+.Footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.Footer-links a {
+  color: var(--color-text-secondary);
+  margin-right: 1.5rem;
+}
+
+.Footer-links a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* ============================================
+   响应式设计
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* 移动端调整 */
+  .Header-nav .item-link {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .DiscussionListItem,
+  .Post {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+  }
+  
+  /* 按钮在移动端更大 */
+  .Button {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 小屏幕调整 */
+  .Header-title {
+    font-size: 1.25rem;
+  }
+  
+  .TagLabel {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* ============================================
+   动画效果
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* 新内容淡入效果 */
+.DiscussionListItem,
+.Post,
+.Alert {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* 加载状态 */
+.LoadingIndicator {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   辅助类
+   ============================================ */
+
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+.text-accent {
+  color: var(--color-accent) !important;
+}
+
+.bg-primary {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+.bg-accent {
+  background-color: var(--color-accent) !important;
+  color: white !important;
+}
+
+.border-primary {
+  border-color: var(--color-primary) !important;
+}
+
+.border-accent {
+  border-color: var(--color-accent) !important;
+}
+
+.shadow-sm {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg) !important;
+}
+
+.rounded-full {
+  border-radius: var(--radius-full) !important;
+}
+
+/* ============================================
+   可访问性增强
+   ============================================ */
+
+/* 焦点样式 */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  :root {
+    --color-primary: #2D4A6E;
+    --color-accent: #D45A25;
+  }
+  
+  .Button {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   打印样式
+   ============================================ */
+
+@media print {
+  .Header,
+  .Footer,
+  .SideNav,
+  .Composer {
+    display: none !important;
+  }
+  
+  .DiscussionPage,
+  .UserPage {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  a {
+    color: black !important;
+    text-decoration: underline !important;
+  }
+  
+  .Post-body {
+    break-inside: avoid;
+  }
+}
+
+/* ============================================
+   自定义滚动条
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-alt);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary-light);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-light) var(--color-background-alt);
+}
+
+/* ============================================
+   主题切换支持 (未来功能)
+   ============================================ */
+
+[data-theme="dark"] {
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-tertiary: #9CA3AF;
+  
+  --color-background: #111827;
+  --color-background-alt: #1F2937;
+  --color-background-hover: #374151;
+  
+  --color-border: #374151;
+  --color-border-light: #4B5563;
+  --color-border-dark: #6B7280;
+}
+
+/* 主题切换过渡 */
+* {
+  transition: background-color var(--transition-normal),
+              border-color var(--transition-normal),
+              color var(--transition-normal);
+}
+
+/* ============================================
+   品牌元素占位符
+   ============================================ */
+
+/* Logo占位符 - 实际Logo添加后替换 */
+.Header-title::before {
+  content: "🐾 ";
+  font-size: 1.2em;
+}
+
+/* 品牌水印背景 (可选) */
+.App::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 20% 80%, rgba(108, 140, 181, 0.03) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ============================================
+   调试模式 (开发时使用)
+   ============================================ */
+
+.debug-outline * {
+  outline: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.debug-grid {
+  background-image: linear-gradient(rgba(108, 140, 181, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(108, 140, 181, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
