@@ -70,6 +70,7 @@
 |------|------|----------|
 | `verify-validation-docs.sh` | 验证文档完整性检查 | 检查核心验证文档的存在性和基本完整性 |
 | `verify-validation-docs-enhanced.sh` | 增强版文档完整性检查 | 全面评估验证文档体系完整性，包括引用关系和README集成 |
+| `install-cn-quick-test-example.md` | 安装脚本快速测试示例 | 提供install-cn.sh脚本的快速测试示例和验证步骤 |
 | `quick-docs-check.sh` | 快速文档完整性检查 | 一键检查所有核心文档的存在性和互引用关系 |
 | `QUICK-DOCS-CHECK-GUIDE.md` | 快速文档检查指南 | 提供快速文档检查脚本的详细使用指南和最佳实践 |
 
