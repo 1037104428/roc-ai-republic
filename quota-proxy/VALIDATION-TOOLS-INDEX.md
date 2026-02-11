@@ -47,6 +47,11 @@
 - **Admin API测试环境配置指南**：`ADMIN-API-TEST-ENV-SETUP.md` - Admin API测试环境的快速配置指南，包含环境变量设置、服务启动、测试脚本使用和故障排除
 - **Admin API快速测试示例**：`ADMIN-API-QUICK-TEST-EXAMPLES.md` - Admin API的快速测试示例，包含curl命令一键测试所有核心功能
 
+### 8. 日志增强工具
+- **JSON格式日志增强验证**：`verify-json-logger-enhanced.sh` - 验证JSON格式日志增强功能，包括日志级别控制、结构化日志输出等
+- **日志级别控制指南**：`LOG-LEVEL-CONTROL.md` - 日志级别控制系统指南，包含日志级别定义、配置方法和使用示例
+- **结构化日志示例**：`STRUCTURED-LOG-EXAMPLES.md` - 结构化日志示例文档，展示不同场景下的日志格式和最佳实践
+
 ## 快速使用示例
 
 ### 场景1：新部署环境快速验证
