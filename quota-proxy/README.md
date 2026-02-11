@@ -798,6 +798,89 @@ chmod +x verify-validation-docs.sh
 ./verify-admin-api.sh --admin-token YOUR_ADMIN_TOKEN
 ```
 
+## 快速命令参考
+
+以下是quota-proxy最常用的命令参考表，按使用场景分类：
+
+### 基础部署和启动
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **Docker启动** | 使用Docker Compose启动服务 | `docker compose up -d` |
+| **Docker停止** | 停止服务 | `docker compose down` |
+| **Docker日志** | 查看服务日志 | `docker compose logs -f` |
+| **SQLite持久化启动** | 启动SQLite持久化版本 | `./start-sqlite-persistent.sh` |
+
+### 健康检查和状态验证
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **快速健康检查** | 5秒内完成基础健康检查 | `./quick-verify.sh` |
+| **完整部署验证** | 全面验证部署状态 | `./deployment-verification.sh` |
+| **SQLite健康检查** | SQLite服务器专用检查 | `./quick-sqlite-health-check.sh` |
+| **手动健康检查** | 直接调用健康端点 | `curl -fsS http://127.0.0.1:8787/healthz` |
+| **状态检查** | 查看服务状态信息 | `curl -fsS http://127.0.0.1:8787/status` |
+
+### 管理员功能
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **管理员API验证** | 完整管理员功能测试 | `./verify-admin-api.sh --admin-token YOUR_TOKEN` |
+| **管理员健康检查** | 快速管理员状态检查 | `./check-admin-health.sh` |
+| **生成试用密钥** | 生成新的试用密钥 | `curl -X POST -H "Authorization: Bearer YOUR_ADMIN_TOKEN" http://127.0.0.1:8787/admin/keys` |
+| **查看密钥用量** | 查看所有密钥使用情况 | `curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" http://127.0.0.1:8787/admin/usage` |
+
+### 数据库管理
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **数据库初始化** | 初始化SQLite数据库 | `./init-sqlite-db.sh` |
+| **数据库检查** | 检查数据库状态 | `./check-db.sh --info` |
+| **数据库备份** | 备份数据库文件 | `./backup-sqlite-db.sh` |
+| **数据库验证** | 验证数据库完整性 | `./verify-sqlite-integrity.sh` |
+
+### 配置验证
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **环境配置验证** | 验证环境变量配置 | `./verify-config.sh` |
+| **SQLite配置验证** | 验证SQLite相关配置 | `./verify-sqlite-config.sh` |
+| **部署配置验证** | 验证部署配置完整性 | `./verify-env-config.sh` |
+
+### 故障排查
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **快速诊断** | 快速诊断常见问题 | `./quick-verify.sh --verbose` |
+| **详细故障排查** | 详细故障排查模式 | `./deployment-verification.sh --debug` |
+| **端口检查** | 检查端口占用情况 | `netstat -tlnp | grep 8787` |
+| **进程检查** | 检查服务进程状态 | `ps aux | grep node` |
+
+### 文档和验证
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **文档完整性检查** | 检查所有文档完整性 | `./verify-validation-docs.sh` |
+| **增强版文档检查** | 增强版文档完整性检查 | `./verify-validation-docs-enhanced.sh` |
+| **快速文档检查** | 快速检查核心文档 | `./quick-docs-check.sh` |
+
+### 一键式验证
+
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| **运行所有验证** | 运行所有验证脚本 | `./run-all-verifications.sh` |
+| **快速开始验证** | 快速开始流程验证 | `./quick-start-verify.sh` |
+
+### 使用提示
+
+1. **首次使用**：建议从 `./quick-verify.sh` 开始，快速验证基础功能
+2. **部署验证**：使用 `./deployment-verification.sh` 进行全面部署验证
+3. **故障排查**：参考 `TROUBLESHOOTING.md` 中的详细指南
+4. **管理员操作**：确保设置了正确的 `ADMIN_TOKEN` 环境变量
+5. **数据库操作**：定期使用 `./backup-sqlite-db.sh` 备份数据库
+
+更多详细信息和高级用法，请参考各个脚本的详细文档。
+
 ## 故障排除
 
 遇到问题时，请参考详细的故障排除指南：[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
