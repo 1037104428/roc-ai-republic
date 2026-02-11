@@ -136,7 +136,71 @@ app.use('/apply', express.static(path.join(__dirname, 'apply')));
 
 // 健康检查端点
 app.get('/healthz', (req, res) => {
-    res.json({ ok: true });
+    const healthStatus = {
+        ok: true,
+        timestamp: new Date().toISOString(),
+        service: 'quota-proxy',
+        version: '1.0.0',
+        checks: {
+            server: { ok: true, message: 'Express server is running' },
+            database: { ok: false, message: 'Database check pending' }
+        }
+    };
+    
+    // 检查数据库连接
+    db.get('SELECT 1 as test', (err, row) => {
+        if (err) {
+            healthStatus.checks.database = { 
+                ok: false, 
+                message: `Database error: ${err.message}`,
+                error: err.message
+            };
+            healthStatus.ok = false;
+        } else if (row && row.test === 1) {
+            healthStatus.checks.database = { 
+                ok: true, 
+                message: 'Database connection is healthy',
+                queryTest: 'SELECT 1 executed successfully'
+            };
+        } else {
+            healthStatus.checks.database = { 
+                ok: false, 
+                message: 'Database query returned unexpected result'
+            };
+            healthStatus.ok = false;
+        }
+        
+        // 检查数据库表结构
+        db.all("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name", (err, tables) => {
+            if (err) {
+                healthStatus.checks.database.tables = { 
+                    ok: false, 
+                    message: `Failed to list tables: ${err.message}`,
+                    error: err.message
+                };
+                healthStatus.ok = false;
+            } else {
+                const tableNames = tables.map(t => t.name);
+                healthStatus.checks.database.tables = {
+                    ok: true,
+                    message: `Found ${tableNames.length} tables`,
+                    tables: tableNames,
+                    requiredTables: ['api_keys', 'usage_log'].filter(t => tableNames.includes(t))
+                };
+                
+                // 检查必需的表是否存在
+                const missingTables = ['api_keys', 'usage_log'].filter(t => !tableNames.includes(t));
+                if (missingTables.length > 0) {
+                    healthStatus.checks.database.tables.ok = false;
+                    healthStatus.checks.database.tables.message = `Missing required tables: ${missingTables.join(', ')}`;
+                    healthStatus.ok = false;
+                }
+            }
+            
+            // 返回完整的健康状态
+            res.json(healthStatus);
+        });
+    });
 });
 
 // API 网关端点
