@@ -470,6 +470,57 @@ curl -H "Authorization: Bearer your_trial_key_here" \
   http://localhost:8787/v1/models
 ```
 
+### 命令行申请脚本
+
+我们提供了一个命令行脚本，方便管理员通过命令行快速申请和发放 TRIAL_KEY：
+
+```bash
+# 查看帮助
+./scripts/request-trial-key.sh --help
+
+# 干运行模式（只显示命令，不实际执行）
+./scripts/request-trial-key.sh --dry-run --token "admin_token" --email "user@example.com"
+
+# 实际申请（需要有效的管理员令牌）
+export ADMIN_TOKEN="your_admin_token_here"
+./scripts/request-trial-key.sh --email "user@example.com" --name "测试用户" --usage "OpenClaw 集成测试"
+
+# 或直接指定参数
+./scripts/request-trial-key.sh --host 127.0.0.1:8787 --token "admin_token" --email "test@example.com"
+```
+
+脚本功能：
+- ✅ **参数验证** - 检查必需参数，提供清晰的错误提示
+- ✅ **干运行模式** - 预览将要执行的命令，避免误操作
+- ✅ **环境变量支持** - 支持 `ADMIN_TOKEN` 和 `QUOTA_PROXY_URL` 环境变量
+- ✅ **彩色输出** - 使用颜色区分信息、成功、警告和错误
+- ✅ **JSON 响应解析** - 自动解析服务器响应，提取 TRIAL_KEY
+- ✅ **使用指南** - 申请成功后显示详细的使用说明
+
+#### 验证脚本
+我们还提供了验证脚本来确保申请脚本正常工作：
+
+```bash
+# 运行完整验证
+./scripts/verify-request-trial-key.sh
+
+# 验证结果会显示：
+# ✓ 文件存在且可执行
+# ✓ 帮助功能完整
+# ✓ 干运行模式正常
+# ✓ 参数验证正确
+# ✓ 语法正确
+# ✓ 颜色和日志功能完整
+# ✓ 版本信息完整
+```
+
+#### 脚本特点
+1. **安全性** - 支持干运行模式，避免误操作
+2. **友好性** - 彩色输出和详细的使用指南
+3. **灵活性** - 支持环境变量和命令行参数
+4. **可验证** - 提供完整的验证脚本
+5. **生产就绪** - 包含错误处理和日志功能
+
 ### 自助申请流程（规划中）
 
 未来将实现自助申请页面，用户可通过 Web 表单申请试用密钥，系统自动审核发放。
