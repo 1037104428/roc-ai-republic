@@ -12,6 +12,14 @@ set -euo pipefail
 #   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash
 #   curl -fsSL https://clawdrepublic.cn/install-cn.sh | bash -s -- --version 0.3.12
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
+#
+# CI/CD Integration:
+#   export CI_MODE=1
+#   export OPENCLAW_VERSION=latest
+#   export NPM_REGISTRY=https://registry.npmmirror.com
+#   export SKIP_INTERACTIVE=1
+#   export INSTALL_LOG=/tmp/openclaw-install-ci.log
+#   bash install-cn.sh
 
 # Script version for update checking
 SCRIPT_VERSION="2026.02.11.10"
@@ -860,7 +868,27 @@ Options:
   --steps <steps>          Specify installation steps to run (comma-separated)
   --uninstall              Uninstall OpenClaw and clean up installation
   --uninstall-dry-run      Dry run uninstall (show what would be removed)
+  --ci-mode                Enable CI/CD mode (non-interactive, minimal output)
+  --skip-interactive       Skip all interactive prompts
+  --install-log <file>     Save installation log to specified file
   -h, --help               Show help
+
+CI/CD Integration:
+  Environment variables for CI/CD:
+    CI_MODE=1              Enable CI mode (non-interactive)
+    SKIP_INTERACTIVE=1     Skip interactive prompts
+    INSTALL_LOG=<file>     Save installation log
+    OPENCLAW_VERSION       Set OpenClaw version
+    NPM_REGISTRY           Set npm registry URL
+    NPM_REGISTRY_FALLBACK  Set fallback registry URL
+  
+  Example CI/CD usage:
+    export CI_MODE=1
+    export OPENCLAW_VERSION=latest
+    export NPM_REGISTRY=https://registry.npmmirror.com
+    export SKIP_INTERACTIVE=1
+    export INSTALL_LOG=/tmp/openclaw-install-ci.log
+    bash install-cn.sh
 
 Installation Steps (for --step-by-step or --steps):
   - network-check: Network connectivity test
@@ -1163,6 +1191,18 @@ while [[ $# -gt 0 ]]; do
       uninstall_openclaw "true"
       exit $?
       ;;
+    --ci-mode)
+      CI_MODE=1
+      shift
+      ;;
+    --skip-interactive)
+      SKIP_INTERACTIVE=1
+      shift
+      ;;
+    --install-log)
+      INSTALL_LOG="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -1174,6 +1214,28 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# CI/CD模式环境变量覆盖
+if [[ "${CI_MODE:-0}" == "1" ]] || [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]] || [[ -n "${GITLAB_CI:-}" ]] || [[ -n "${JENKINS_HOME:-}" ]]; then
+  CI_MODE=1
+  SKIP_INTERACTIVE="${SKIP_INTERACTIVE:-1}"
+  VERIFY_LEVEL="${VERIFY_LEVEL:-minimal}"
+  echo "[cn-pack] 📦 检测到CI/CD环境，启用CI模式"
+fi
+
+# 如果设置了SKIP_INTERACTIVE，禁用交互式提示
+if [[ "${SKIP_INTERACTIVE:-0}" == "1" ]]; then
+  echo "[cn-pack] ⏭️  跳过交互式提示（CI/CD模式）"
+  # 设置默认值以避免交互
+  AUTO_FIX_PERMISSIONS="${AUTO_FIX_PERMISSIONS:-1}"
+  AUTO_SELECT_REGISTRY="${AUTO_SELECT_REGISTRY:-1}"
+fi
+
+# 安装日志文件设置
+if [[ -n "${INSTALL_LOG:-}" ]]; then
+  echo "[cn-pack] 📝 安装日志将保存到: ${INSTALL_LOG}"
+  exec > >(tee -a "${INSTALL_LOG}") 2>&1
+fi
 
 if [[ -z "$VERSION" || -z "$REG_CN" || -z "$REG_FALLBACK" ]]; then
   echo "[cn-pack] Missing required values." >&2
