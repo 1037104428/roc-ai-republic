@@ -108,10 +108,15 @@
 
 ### 环境变量验证
 ```bash
-./verify-env-vars.sh
+./verify-env-vars.sh [--quick]
 ```
 **用途**：快速验证关键环境变量是否设置
-**验证内容**：必需环境变量（ADMIN_TOKEN, DATABASE_URL, PORT）、可选环境变量
+**验证内容**：
+- 必需环境变量（ADMIN_TOKEN, DATABASE_URL, PORT）
+- 可选环境变量（仅在完整模式下）
+**模式**：
+- 完整验证：`./verify-env-vars.sh` - 包含必需和可选环境变量检查
+- 快速验证：`./verify-env-vars.sh --quick` - 仅检查必需环境变量，适合CI/CD流水线
 **输出**：彩色验证报告、通过/警告/失败状态、设置建议
 
 ### 快速健康检查
