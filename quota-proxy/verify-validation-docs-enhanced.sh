@@ -61,6 +61,8 @@ check_doc "QUICK-DEPLOY-ADMIN-API.md" "Admin API快速部署指南" 30
 check_doc "test-admin-api-quick.js" "Admin API快速测试用例" 10
 check_doc "quick-test-admin-api.sh" "Admin API快速测试脚本" 10
 check_doc "quick-test-admin-api-usage.md" "Admin API快速测试脚本使用说明文档" 20
+check_doc "test-admin-keys-usage.sh" "Admin密钥生成和用量统计测试脚本" 10
+check_doc "test-admin-keys-usage-usage.md" "Admin密钥生成和用量统计测试使用说明" 20
 check_doc "../scripts/verify-install-cn.sh" "安装脚本验证脚本" 10
 check_doc "../scripts/quick-verify-install-cn.sh" "安装脚本快速验证工具" 10
 check_doc "../scripts/quick-verify-install-cn-enhanced.sh" "安装脚本增强版快速验证工具" 10

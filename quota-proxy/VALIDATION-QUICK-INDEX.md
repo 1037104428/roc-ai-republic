@@ -31,6 +31,8 @@
 | `quick-verify-admin-api.sh` | Admin API快速验证脚本 | 一键验证Admin API所有核心功能，包含自动服务器启动和完整测试流程 |
 | `test-admin-api-quick.js` | Admin API快速测试用例 | Node.js测试脚本，快速验证Admin API核心功能，支持模块化导入和独立运行 |
 | `quick-test-admin-api.sh` | Admin API快速测试脚本 | Bash脚本快速测试Admin API核心功能，包含创建密钥、获取列表、使用情况、API调用和删除验证 |
+| `test-admin-keys-usage.sh` | Admin密钥生成和用量统计测试 | 专门测试POST /admin/keys和GET /admin/usage端点，包含完整的授权测试和错误处理 |
+| `test-admin-keys-usage-usage.md` | Admin密钥生成和用量统计测试使用说明 | 详细的测试脚本使用指南，包含快速开始、功能详解、故障排除和CI/CD集成 |
 
 ### 3. 部署验证
 | 脚本 | 功能 | 使用场景 |
