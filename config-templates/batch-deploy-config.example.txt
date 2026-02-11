@@ -1,0 +1,70 @@
+# OpenClaw 批量部署配置文件示例
+# 格式: 服务器地址|用户名|密码|安装选项
+# 
+# 注意:
+# 1. 密码以明文存储，建议使用SSH密钥认证替代
+# 2. 安装选项与install-cn.sh脚本参数一致
+# 3. 使用#开头的行是注释，会被忽略
+# 4. 字段之间使用竖线(|)分隔
+
+# ============================================
+# 示例1: 开发环境服务器
+# ============================================
+# server1.example.com|admin|devpassword123|--version latest --ci-mode --skip-interactive
+# server2.example.com|root|rootpass456|--registry-cn https://registry.npmmirror.com --ci-mode
+
+# ============================================
+# 示例2: 生产环境服务器 (国内优化)
+# ============================================
+# prod-server-01.cn|opadmin|ProdPass789|--version stable --force-cn --ci-mode --skip-interactive
+# prod-server-02.cn|opadmin|ProdPass789|--version stable --force-cn --ci-mode --skip-interactive
+# prod-server-03.cn|opadmin|ProdPass789|--version stable --force-cn --ci-mode --skip-interactive
+
+# ============================================
+# 示例3: 测试环境服务器 (带网络优化)
+# ============================================
+# test-server.local|testuser|TestPass123|--network-optimize --proxy-test --ci-mode
+# 192.168.1.100|admin|localpass|--offline-mode --cache-dir /opt/openclaw-cache
+
+# ============================================
+# 示例4: 混合环境部署
+# ============================================
+# 开发服务器 - 使用最新版本
+dev.example.com|devops|DevPass123|--version latest --ci-mode
+
+# 测试服务器 - 使用稳定版本，带验证
+test.example.com|tester|TestPass456|--version stable --verify-level full --ci-mode
+
+# 预生产服务器 - 生产配置模板
+staging.example.com|admin|StagePass789|--generate-config prod --ci-mode --skip-interactive
+
+# ============================================
+# 常用安装选项说明:
+# ============================================
+# --version latest           # 安装最新版本
+# --version stable           # 安装稳定版本
+# --version 0.3.12           # 安装特定版本
+# --ci-mode                  # CI/CD模式 (非交互式)
+# --skip-interactive         # 跳过所有交互提示
+# --force-cn                 # 强制使用国内源
+# --registry-cn <url>        # 指定国内registry
+# --network-optimize         # 网络优化
+# --proxy-test               # 代理测试
+# --offline-mode             # 离线模式
+# --cache-dir <dir>          # 缓存目录
+# --generate-config <env>    # 生成配置模板 (dev/test/prod)
+# --verify-level <level>     # 验证级别 (minimal/full)
+
+# ============================================
+# 使用示例:
+# ============================================
+# 1. 创建配置文件 (如: deploy-config.txt)
+# 2. 添加服务器配置行
+# 3. 执行批量部署:
+#    ./install-cn.sh --batch-deploy deploy-config.txt
+# 4. Dry Run模式 (仅显示计划):
+#    ./install-cn.sh --batch-deploy deploy-config.txt --batch-dry-run
+
+# 实际部署示例 (取消注释以下行并修改):
+# example-server-01.com|admin|yourpassword|--version latest --ci-mode
+# example-server-02.com|root|rootpassword|--force-cn --ci-mode --skip-interactive

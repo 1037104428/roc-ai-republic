@@ -22,7 +22,7 @@ set -euo pipefail
 #   bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.12"
+SCRIPT_VERSION="2026.02.11.13"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -994,6 +994,8 @@ Options:
   --install-log <file>     Save installation log to specified file
   --generate-config <env>  Generate config template: dev, test, prod
   --config-output <file>   Output file for generated config (default: stdout)
+  --batch-deploy <file>    Batch deploy to multiple servers using config file
+  --batch-dry-run          Dry run batch deployment (show what would be done)
   -h, --help               Show help
 
 CI/CD Integration:
@@ -1033,6 +1035,180 @@ Env vars (equivalent):
   OPENCLAW_VERSION, NPM_REGISTRY, NPM_REGISTRY_FALLBACK, OPENCLAW_VERIFY_SCRIPT, OPENCLAW_VERIFY_LEVEL
   HTTP_PROXY, HTTPS_PROXY, http_proxy, https_proxy (for proxy detection)
 TXT
+}
+
+# Function for batch deployment to multiple servers
+batch_deploy_openclaw() {
+  local config_file="$1"
+  local dry_run="${2:-0}"
+  local batch_summary_file="/tmp/openclaw-batch-deploy-summary-$(date +%Y%m%d-%H%M%S).txt"
+  local batch_log_dir="/tmp/openclaw-batch-deploy-logs-$(date +%Y%m%d-%H%M%S)"
+  
+  echo ""
+  color_log "STEP" "========================================="
+  color_log "STEP" "🚀 OpenClaw 批量部署"
+  color_log "STEP" "========================================="
+  
+  if [[ ! -f "$config_file" ]]; then
+    color_log "ERROR" "批量部署配置文件不存在: $config_file"
+    color_log "INFO" "请创建配置文件，格式参考:"
+    color_log "INFO" "  # 批量部署配置文件示例"
+    color_log "INFO" "  # 每行格式: 服务器地址|用户名|密码|安装选项"
+    color_log "INFO" "  # 示例:"
+    color_log "INFO" "  # server1.example.com|admin|password123|--version latest --ci-mode"
+    color_log "INFO" "  # 192.168.1.100|root|mypass|--registry-cn https://registry.npmmirror.com"
+    return 1
+  fi
+  
+  if [[ "$dry_run" == "1" ]]; then
+    color_log "WARNING" "📋 DRY RUN MODE - 仅显示部署计划，不实际执行"
+  fi
+  
+  # Create log directory
+  mkdir -p "$batch_log_dir"
+  
+  # Initialize summary
+  {
+    echo "=== OpenClaw 批量部署摘要 ==="
+    echo "部署时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+    echo "配置文件: $config_file"
+    echo "部署模式: $([[ "$dry_run" == "1" ]] && echo "Dry Run" || echo "实际部署")"
+    echo "日志目录: $batch_log_dir"
+    echo ""
+    echo "=== 服务器列表 ==="
+  } > "$batch_summary_file"
+  
+  local total_servers=0
+  local success_count=0
+  local failed_count=0
+  local skipped_count=0
+  
+  # Read config file
+  while IFS='|' read -r server username password options || [[ -n "$server" ]]; do
+    # Skip empty lines and comments
+    [[ -z "$server" || "$server" =~ ^[[:space:]]*# ]] && continue
+    
+    total_servers=$((total_servers + 1))
+    
+    # Log server info
+    echo "服务器 $total_servers: $server" >> "$batch_summary_file"
+    echo "  用户名: $username" >> "$batch_summary_file"
+    echo "  安装选项: $options" >> "$batch_summary_file"
+    
+    color_log "INFO" "准备部署到服务器 $total_servers: $server"
+    
+    if [[ "$dry_run" == "1" ]]; then
+      color_log "INFO" "  [Dry Run] 将执行: ssh $username@$server 'bash -s' < 安装脚本 $options"
+      skipped_count=$((skipped_count + 1))
+      echo "  状态: Dry Run (跳过)" >> "$batch_summary_file"
+      continue
+    fi
+    
+    # Create individual server log file
+    local server_log="$batch_log_dir/server-${total_servers}-${server//[^a-zA-Z0-9]/_}.log"
+    
+    {
+      echo "=== 服务器部署日志: $server ==="
+      echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
+      echo "用户名: $username"
+      echo "安装选项: $options"
+      echo ""
+    } > "$server_log"
+    
+    # Check if SSH is available
+    if ! command -v ssh >/dev/null 2>&1; then
+      color_log "ERROR" "  SSH客户端不可用，跳过服务器: $server"
+      echo "  状态: 失败 (SSH客户端不可用)" >> "$batch_summary_file"
+      failed_count=$((failed_count + 1))
+      continue
+    fi
+    
+    # Test SSH connection
+    color_log "INFO" "  测试SSH连接..."
+    if ! ssh -o ConnectTimeout=10 -o BatchMode=no "$username@$server" "echo 'SSH连接测试成功'" >> "$server_log" 2>&1; then
+      color_log "ERROR" "  SSH连接失败，跳过服务器: $server"
+      echo "  状态: 失败 (SSH连接失败)" >> "$batch_summary_file"
+      failed_count=$((failed_count + 1))
+      continue
+    fi
+    
+    # Get current script path
+    local script_path
+    script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    
+    # Deploy using SSH
+    color_log "INFO" "  开始部署OpenClaw..."
+    echo "开始部署..." >> "$server_log"
+    
+    if ssh "$username@$server" "bash -s" -- "$options" < "$script_path" >> "$server_log" 2>&1; then
+      color_log "SUCCESS" "  ✅ 部署成功: $server"
+      echo "  状态: 成功" >> "$batch_summary_file"
+      success_count=$((success_count + 1))
+      
+      # Get deployment result
+      ssh "$username@$server" "openclaw --version 2>/dev/null || echo '未找到openclaw命令'" >> "$server_log" 2>&1
+    else
+      color_log "ERROR" "  ❌ 部署失败: $server"
+      echo "  状态: 失败" >> "$batch_summary_file"
+      failed_count=$((failed_count + 1))
+    fi
+    
+    echo "" >> "$server_log"
+    echo "结束时间: $(date '+%Y-%m-%d %H:%M:%S')" >> "$server_log"
+    
+  done < "$config_file"
+  
+  # Generate final summary
+  {
+    echo ""
+    echo "=== 部署统计 ==="
+    echo "总服务器数: $total_servers"
+    echo "成功: $success_count"
+    echo "失败: $failed_count"
+    echo "跳过(Dry Run): $skipped_count"
+    echo ""
+    echo "=== 详细日志 ==="
+    echo "单个服务器日志: $batch_log_dir/"
+    echo "  每个服务器对应一个日志文件: server-<序号>-<服务器名>.log"
+    echo ""
+    echo "=== 后续步骤 ==="
+    echo "1. 检查失败服务器的日志: $batch_log_dir/"
+    echo "2. 验证成功服务器的安装: ssh <用户>@<服务器> 'openclaw --version'"
+    echo "3. 启动网关服务: ssh <用户>@<服务器> 'openclaw gateway start'"
+    echo "4. 检查状态: ssh <用户>@<服务器> 'openclaw status'"
+  } >> "$batch_summary_file"
+  
+  # Display summary
+  echo ""
+  color_log "STEP" "========================================="
+  color_log "STEP" "📊 批量部署完成"
+  color_log "STEP" "========================================="
+  color_log "INFO" "总服务器数: $total_servers"
+  color_log "SUCCESS" "成功: $success_count"
+  if [[ "$failed_count" -gt 0 ]]; then
+    color_log "ERROR" "失败: $failed_count"
+  else
+    color_log "INFO" "失败: $failed_count"
+  fi
+  if [[ "$skipped_count" -gt 0 ]]; then
+    color_log "WARNING" "跳过(Dry Run): $skipped_count"
+  fi
+  
+  color_log "INFO" "部署摘要已保存到: $batch_summary_file"
+  color_log "INFO" "详细日志目录: $batch_log_dir/"
+  
+  echo ""
+  color_log "INFO" "📋 摘要内容预览:"
+  echo "-----------------------------------------"
+  tail -20 "$batch_summary_file"
+  echo "-----------------------------------------"
+  
+  # Return success if all deployments succeeded
+  if [[ "$failed_count" -eq 0 ]]; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 # Function to uninstall OpenClaw
@@ -1261,6 +1437,8 @@ STEP_BY_STEP=0
 GENERATE_CONFIG=""
 CONFIG_OUTPUT=""
 STEPS=""
+BATCH_DEPLOY_FILE=""
+BATCH_DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -1335,6 +1513,14 @@ while [[ $# -gt 0 ]]; do
     --config-output)
       CONFIG_OUTPUT="${2:-}"
       shift 2
+      ;;
+    --batch-deploy)
+      BATCH_DEPLOY_FILE="${2:-}"
+      shift 2
+      ;;
+    --batch-dry-run)
+      BATCH_DRY_RUN=1
+      shift
       ;;
     -h|--help)
       usage
@@ -2175,4 +2361,10 @@ fi
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "[cn-pack] Dry-run done (no changes made)."
   exit 0
+fi
+
+# Batch deployment check
+if [[ -n "$BATCH_DEPLOY_FILE" ]]; then
+  batch_deploy_openclaw "$BATCH_DEPLOY_FILE" "$BATCH_DRY_RUN"
+  exit $?
 fi
