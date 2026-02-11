@@ -14,7 +14,7 @@ set -euo pipefail
 #   NPM_REGISTRY=https://registry.npmmirror.com OPENCLAW_VERSION=latest bash install-cn.sh
 
 # Script version for update checking
-SCRIPT_VERSION="2026.02.11.09"
+SCRIPT_VERSION="2026.02.11.10"
 SCRIPT_UPDATE_URL="https://raw.githubusercontent.com/1037104428/roc-ai-republic/main/scripts/install-cn.sh"
 
 # Color logging functions
@@ -713,7 +713,31 @@ step_by_step_install() {
             fi
           fi
           
-          echo "[cn-pack]   8. 检查内存..."
+          echo "[cn-pack]   8. 检查 Docker 容器环境..."
+          # 检测是否在 Docker 容器中运行
+          if [[ -f /.dockerenv ]] || grep -q docker /proc/1/cgroup 2>/dev/null; then
+            echo "[cn-pack]     ⚠️  检测到在 Docker 容器中运行"
+            echo "[cn-pack]     ℹ️  提示: 在容器中安装时，请确保:"
+            echo "[cn-pack]     ℹ️    1. 使用持久化卷保存配置和数据"
+            echo "[cn-pack]     ℹ️    2. 考虑使用 Docker 镜像而非全局安装"
+            echo "[cn-pack]     ℹ️    3. 容器重启后安装的包会丢失"
+            warnings=$((warnings + 1))
+            
+            # 检查容器内是否有持久化目录
+            if [[ -d /data ]] && [[ -w /data ]]; then
+              echo "[cn-pack]     ✓ 检测到可写的持久化目录: /data"
+            elif [[ -d /app ]] && [[ -w /app ]]; then
+              echo "[cn-pack]     ✓ 检测到可写的应用目录: /app"
+            else
+              echo "[cn-pack]     ⚠️  未检测到推荐的持久化目录 (/data 或 /app)"
+              echo "[cn-pack]     ℹ️  建议在容器中创建持久化目录:"
+              echo "[cn-pack]     ℹ️    mkdir -p /data && chmod 755 /data"
+            fi
+          else
+            echo "[cn-pack]     ✓ 不在 Docker 容器中运行"
+          fi
+          
+          echo "[cn-pack]   9. 检查内存..."
           if [[ -f /proc/meminfo ]]; then
             local mem_total_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
             local mem_total_mb=$((mem_total_kb / 1024))
@@ -1817,6 +1841,21 @@ fi
       echo "主机名: $(hostname)"
       echo "用户: $(whoami)"
       echo ""
+      echo "=== 系统信息 ==="
+      echo "操作系统: $(uname -s) $(uname -r)"
+      echo "主机名: $(hostname)"
+      echo "用户: $(whoami)"
+      
+      # Docker 容器检测
+      if [[ -f /.dockerenv ]] || grep -q docker /proc/1/cgroup 2>/dev/null; then
+        echo "运行环境: Docker 容器"
+        echo "容器提示: 全局安装的包在容器重启后会丢失"
+        echo "持久化建议: 使用 -v /host/path:/data 挂载持久化卷"
+      else
+        echo "运行环境: 物理机/虚拟机"
+      fi
+      echo ""
+      
       echo "=== Node.js 环境 ==="
       if command -v node >/dev/null 2>&1; then
         echo "Node.js 版本: $(node --version 2>/dev/null || echo '未安装')"
