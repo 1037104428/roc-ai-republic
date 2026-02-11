@@ -53,6 +53,7 @@ check_doc "VALIDATION-TOOLS-INDEX.md" "验证工具详细索引" 40
 check_doc "VALIDATION-EXAMPLES.md" "验证脚本使用示例" 50
 check_doc "TROUBLESHOOTING.md" "故障排除指南" 30
 check_doc "QUICK-VERIFICATION-COMMANDS.md" "快速验证命令集合" 30
+check_doc "QUICK-DOCS-CHECK-GUIDE.md" "快速文档检查指南" 20
 
 echo ""
 echo -e "${BLUE}🔗 文档互引用检查${NC}"

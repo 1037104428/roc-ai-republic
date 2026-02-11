@@ -48,11 +48,12 @@
 |------|------|----------|
 | `verify-validation-docs.sh` | 验证文档完整性检查 | 检查核心验证文档的存在性和基本完整性 |
 | `verify-validation-docs-enhanced.sh` | 增强版文档完整性检查 | 全面评估验证文档体系完整性，包括引用关系和README集成 |
+| `quick-docs-check.sh` | 快速文档完整性检查 | 一键检查所有核心文档的存在性和互引用关系 |
+| `QUICK-DOCS-CHECK-GUIDE.md` | 快速文档检查指南 | 提供快速文档检查脚本的详细使用指南和最佳实践 |
 
 ### 7. 快速命令参考
 | 脚本 | 功能 | 使用场景 |
 |------|------|----------|
-| `quick-docs-check.sh` | 快速文档完整性检查 | 一键检查所有核心文档的存在性和互引用关系 |
 | `QUICK-VERIFICATION-COMMANDS.md` | 快速验证命令集合文档 | 提供日常运维、故障排查和CI/CD集成的快速命令参考 |
 | `CONFIG-VERIFICATION-GUIDE.md` | 配置验证指南 | 提供配置验证脚本的详细使用指南和最佳实践 |
 
@@ -120,6 +121,7 @@
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - 故障排除指南
 - [QUICK-VERIFICATION-COMMANDS.md](./QUICK-VERIFICATION-COMMANDS.md) - 快速验证命令集合
 - [CONFIG-VERIFICATION-GUIDE.md](./CONFIG-VERIFICATION-GUIDE.md) - 配置验证指南
+- [QUICK-DOCS-CHECK-GUIDE.md](./QUICK-DOCS-CHECK-GUIDE.md) - 快速文档检查指南
 
 ---
 
