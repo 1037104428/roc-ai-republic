@@ -20,3 +20,10 @@ URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/7bf895c
 ✓ 完成：推送主仓库提交 c9fce8f (chore: 更新roc-ai-republic子模块到最新提交)
 URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/fd15353
 下一步：继续完善论坛MVP，准备编写论坛信息架构文档或部署脚本
+=== 2026-02-11 19:43:01 CST ===
+阻塞点：论坛部署脚本存在但未实际部署运行；需要测试部署或完善部署文档
+下一步：尝试运行论坛部署脚本的简化版本，或编写论坛部署验证文档
+✓ 完成：推送主仓库提交 d913b72 (docs: 添加论坛部署快速测试指南)
+URL: https://gitee.com/junkaiWang324/roc-ai-republic/commit/d913b72
+下一步：实际运行论坛部署测试，验证部署脚本可行性
+⚠️ 发现：Docker不可用，论坛部署需要先安装Docker环境
