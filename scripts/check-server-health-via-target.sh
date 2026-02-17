@@ -12,6 +12,7 @@ DRY_RUN=0
 HEALTHZ_ONLY=0
 COMPOSE_ONLY=0
 SHOW_HELP=0
+SET_SERVER_ARG=""
 SSH_USER_ARG=""
 SSH_PORT_ARG=""
 SSH_CONNECT_TIMEOUT_ARG=""
@@ -74,6 +75,10 @@ while [[ $# -gt 0 ]]; do
       HEALTHZ_TIMEOUT_ARG="${2:-}"
       shift 2
       ;;
+    --set-server)
+      SET_SERVER_ARG="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       SHOW_HELP=1
       shift
@@ -91,7 +96,7 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-compose-cmd|--print-check-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-compose-cmd|--print-check-cmd] [--set-server HOST] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
@@ -102,6 +107,7 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   --print-healthz-cmd      仅打印 healthz curl 命令（可直接用于现有 SSH/监控）
   --print-compose-cmd      仅打印 compose ps 命令（便于复用到现有 SSH/监控）
   --print-check-cmd        仅打印 compose+healthz 合并命令（便于一次性巡检）
+  --set-server HOST        将 HOST 写入 TARGET_FILE（默认 /tmp/server.txt）后退出
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
   --compose-only           仅执行 docker compose ps（跳过 healthz curl）
@@ -143,6 +149,13 @@ if [[ -n "${SSH_USER_ARG}" ]]; then SSH_USER="${SSH_USER_ARG}"; fi
 if [[ -n "${SSH_PORT_ARG}" ]]; then SSH_PORT="${SSH_PORT_ARG}"; fi
 if [[ -n "${SSH_CONNECT_TIMEOUT_ARG}" ]]; then SSH_CONNECT_TIMEOUT="${SSH_CONNECT_TIMEOUT_ARG}"; fi
 if [[ -n "${HEALTHZ_TIMEOUT_ARG}" ]]; then HEALTHZ_TIMEOUT="${HEALTHZ_TIMEOUT_ARG}"; fi
+
+if [[ -n "${SET_SERVER_ARG}" ]]; then
+  mkdir -p "$(dirname "$TARGET_FILE")"
+  printf "%s\n" "${SET_SERVER_ARG}" > "$TARGET_FILE"
+  echo "[INFO] 已写入服务器目标: $TARGET_FILE -> ${SET_SERVER_ARG}"
+  exit 0
+fi
 
 if [[ -z "$SERVER" ]]; then
   if [[ ! -f "$TARGET_FILE" ]]; then
