@@ -127,6 +127,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 # 仅验证目标解析（不发起SSH），适合在CI里先做自检
 ./scripts/check-server-health-via-target.sh --print-target
 
+# 仅校验目标文件存在且可解析（不改写文件）
+./scripts/prepare-server-target.sh --check
+
 # 15 分钟落地窗口检查（支持 ROC_SERVER 或 /tmp/server.txt）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-artifact-window.sh --json --strict
 
