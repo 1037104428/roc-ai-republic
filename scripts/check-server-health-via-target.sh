@@ -10,6 +10,7 @@ PRINT_HEALTHZ_URL_ONLY=0
 PRINT_COMPOSE_CMD_ONLY=0
 PRINT_CHECK_CMD_ONLY=0
 PRINT_BOOTSTRAP_CMD_ONLY=0
+PRINT_BOOTSTRAP_CMD_FOR=""
 DRY_RUN=0
 HEALTHZ_ONLY=0
 COMPOSE_ONLY=0
@@ -56,6 +57,10 @@ while [[ $# -gt 0 ]]; do
     --print-bootstrap-cmd)
       PRINT_BOOTSTRAP_CMD_ONLY=1
       shift
+      ;;
+    --print-bootstrap-cmd-for)
+      PRINT_BOOTSTRAP_CMD_FOR="${2:-}"
+      shift 2
       ;;
     --dry-run)
       DRY_RUN=1
@@ -106,7 +111,7 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-healthz-url|--print-compose-cmd|--print-check-cmd|--print-bootstrap-cmd] [--set-server HOST] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-healthz-url|--print-compose-cmd|--print-check-cmd|--print-bootstrap-cmd|--print-bootstrap-cmd-for HOST] [--set-server HOST] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
@@ -119,6 +124,8 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   --print-compose-cmd      仅打印 compose ps 命令（便于复用到现有 SSH/监控）
   --print-check-cmd        仅打印 compose+healthz 合并命令（便于一次性巡检）
   --print-bootstrap-cmd    仅打印“写入目标 + 巡检”一行命令（适合首次接管）
+  --print-bootstrap-cmd-for HOST
+                           与 --print-bootstrap-cmd 类似，但直接使用给定 HOST（不依赖 ROC_SERVER/目标文件）
   --set-server HOST        将 HOST 写入 TARGET_FILE（默认 /tmp/server.txt）后退出
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
@@ -147,6 +154,11 @@ fi
 
 TARGET_FILE="${1:-${ROC_SERVER_FILE:-/tmp/server.txt}}"
 SERVER="${ROC_SERVER:-}"
+
+if [[ -n "${PRINT_BOOTSTRAP_CMD_FOR}" ]]; then
+  printf "./scripts/check-server-health-via-target.sh --set-server %q %q && ./scripts/check-server-health-via-target.sh %q\n" "${PRINT_BOOTSTRAP_CMD_FOR}" "${TARGET_FILE}" "${TARGET_FILE}"
+  exit 0
+fi
 SSH_USER="${ROC_SSH_USER:-root}"
 SSH_PORT="${ROC_SSH_PORT:-22}"
 SSH_CONNECT_TIMEOUT="${ROC_SSH_CONNECT_TIMEOUT:-8}"

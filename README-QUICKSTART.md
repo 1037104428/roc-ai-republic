@@ -171,6 +171,9 @@ ROC_SERVER=your.server.ip.or.domain bash -lc "$(./scripts/check-server-health-vi
 # 仅打印“写入目标 + 巡检”一行命令（适合首次接管新服务器）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --print-bootstrap-cmd
 
+# 当还没写 /tmp/server.txt 且不想先 export ROC_SERVER 时，可直接指定目标主机生成同款一行命令
+./scripts/check-server-health-via-target.sh --print-bootstrap-cmd-for your.server.ip.or.domain
+
 # 仅做 healthz 快速探测（跳过 docker compose ps，适合服务已稳定时高频探活）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --healthz-only
 
