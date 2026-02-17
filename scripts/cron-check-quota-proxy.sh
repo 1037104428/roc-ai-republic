@@ -9,6 +9,7 @@ REMOTE_DIR="/opt/roc/quota-proxy"
 HEALTHZ_URL="http://127.0.0.1:8787/healthz"
 SSH_TIMEOUT="8"
 JSON_ONLY=0
+PRINT_SERVER_CHECK_CMD=0
 
 usage() {
   cat <<'EOF'
@@ -22,6 +23,7 @@ usage() {
   --healthz-url URL   远端健康检查地址（默认 http://127.0.0.1:8787/healthz）
   --ssh-timeout SEC   SSH ConnectTimeout 秒数（默认 8）
   --json-only         仅输出 JSON 汇总
+  --print-server-check-cmd  输出可直接粘贴到进度日志的服务器验证命令模板
   -h, --help          显示帮助
 EOF
 }
@@ -38,12 +40,20 @@ while [[ $# -gt 0 ]]; do
     --healthz-url) HEALTHZ_URL="$2"; shift 2 ;;
     --ssh-timeout) SSH_TIMEOUT="$2"; shift 2 ;;
     --json-only) JSON_ONLY=1; shift ;;
+    --print-server-check-cmd) PRINT_SERVER_CHECK_CMD=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "未知参数: $1" >&2; usage; exit 2 ;;
   esac
 done
 
 TS="$(TZ=Asia/Shanghai date '+%F %T %Z')"
+
+if [[ "$PRINT_SERVER_CHECK_CMD" -eq 1 ]]; then
+  cat <<'EOF'
+if [ -f /tmp/server.txt ]; then SERVER=$(sed -nE "s/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\2/ip; t; s/^[[:space:]]*([^[:space:]]+).*/\1/p" /tmp/server.txt | head -n1); ssh -o BatchMode=yes -o ConnectTimeout=8 root@"$SERVER" 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'; else echo '/tmp/server.txt 缺失，服务器检查未执行'; fi
+EOF
+  exit 0
+fi
 
 if [[ ! -d "$REPO_PATH/.git" && -d "$REPO_PATH_FALLBACK/.git" ]]; then
   REPO_PATH="$REPO_PATH_FALLBACK"

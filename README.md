@@ -84,6 +84,9 @@
 
 # 仅输出 JSON（适合 cron/告警采集）
 ./scripts/cron-check-quota-proxy.sh --json-only
+
+# 输出“不会提前展开 $SERVER”的服务器验证命令模板（用于写进进度日志）
+./scripts/cron-check-quota-proxy.sh --print-server-check-cmd
 ```
 
 ## 🤝 参与贡献
