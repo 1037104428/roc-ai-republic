@@ -15,6 +15,10 @@ while [[ $# -gt 0 ]]; do
       WINDOW_MINUTES="${2:-}"
       shift 2
       ;;
+    --server-file)
+      SERVER_FILE="${2:-}"
+      shift 2
+      ;;
     --strict-remote)
       STRICT_REMOTE=1
       shift
@@ -33,10 +37,11 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/cron-check-quota-proxy.sh [--window-minutes N]
+  ./scripts/cron-check-quota-proxy.sh [--window-minutes N] [--server-file PATH] [--strict-remote]
 
 参数:
   --window-minutes N  覆盖落地窗口分钟数（默认 15，可由 WINDOW_MINUTES 环境变量设置）
+  --server-file PATH  覆盖服务器目标文件路径（默认 /tmp/server.txt，可由 SERVER_FILE 环境变量设置）
   --strict-remote     远程检查失败时立即以退出码 3 失败（缺失 server 文件/不可解析/SSH 或 healthz 失败）
   -h, --help          显示帮助
 EOF

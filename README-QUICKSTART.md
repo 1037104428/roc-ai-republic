@@ -205,6 +205,9 @@ ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-artifact-window.sh --json --
 # 可通过参数临时调整窗口（例如值班时改为 20 分钟），不改环境变量
 ./scripts/cron-check-quota-proxy.sh --window-minutes 20
 
+# 覆盖 server 目标文件路径（交接时常见），避免依赖默认 /tmp/server.txt
+./scripts/cron-check-quota-proxy.sh --server-file /path/to/server.txt
+
 # 可配合退出码做告警：0=窗口内有落地，2=窗口 MISS
 ./scripts/cron-check-quota-proxy.sh >/tmp/roc-cron-check.out 2>&1 || rc=$?; echo "exit=${rc:-0}"; grep -E 'artifact_window=' /tmp/roc-cron-check.out
 
