@@ -151,6 +151,9 @@ SERVER=$(./scripts/check-server-health-via-target.sh --print-server)
 # 仅打印完整 SSH 命令（纯文本一行，适合命令替换/日志采集）
 ./scripts/check-server-health-via-target.sh --print-ssh-cmd
 
+# 直接执行脚本生成的 SSH 命令（推荐先 --dry-run 审计后再执行）
+ROC_SERVER=your.server.ip.or.domain bash -lc "$(./scripts/check-server-health-via-target.sh --print-ssh-cmd)"
+
 # 仅打印 healthz curl 命令（便于复用到现有 SSH/监控平台）
 ./scripts/check-server-health-via-target.sh --print-healthz-cmd
 
