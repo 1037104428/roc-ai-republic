@@ -7,6 +7,7 @@ SERVER_FILE="${SERVER_FILE:-/tmp/server.txt}"
 PROGRESS_LOG="${PROGRESS_LOG:-/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md}"
 WINDOW_MINUTES="${WINDOW_MINUTES:-15}"
 STRICT_REMOTE=0
+PRINT_LOG_SNIPPETS=0
 SHOW_HELP=0
 
 while [[ $# -gt 0 ]]; do
@@ -23,6 +24,10 @@ while [[ $# -gt 0 ]]; do
       STRICT_REMOTE=1
       shift
       ;;
+    --print-log-snippets)
+      PRINT_LOG_SNIPPETS=1
+      shift
+      ;;
     -h|--help)
       SHOW_HELP=1
       shift
@@ -37,13 +42,23 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/cron-check-quota-proxy.sh [--window-minutes N] [--server-file PATH] [--strict-remote]
+  ./scripts/cron-check-quota-proxy.sh [--window-minutes N] [--server-file PATH] [--strict-remote] [--print-log-snippets]
 
 参数:
-  --window-minutes N  覆盖落地窗口分钟数（默认 15，可由 WINDOW_MINUTES 环境变量设置）
-  --server-file PATH  覆盖服务器目标文件路径（默认 /tmp/server.txt，可由 SERVER_FILE 环境变量设置）
-  --strict-remote     远程检查失败时立即以退出码 3 失败（缺失 server 文件/不可解析/SSH 或 healthz 失败）
-  -h, --help          显示帮助
+  --window-minutes N    覆盖落地窗口分钟数（默认 15，可由 WINDOW_MINUTES 环境变量设置）
+  --server-file PATH    覆盖服务器目标文件路径（默认 /tmp/server.txt，可由 SERVER_FILE 环境变量设置）
+  --strict-remote       远程检查失败时立即以退出码 3 失败（缺失 server 文件/不可解析/SSH 或 healthz 失败）
+  --print-log-snippets  仅输出可直接粘贴到进度日志的验证命令模板（避免 shell 变量被提前展开）
+  -h, --help            显示帮助
+EOF
+  exit 0
+fi
+
+if (( PRINT_LOG_SNIPPETS == 1 )); then
+  cat <<EOF
+验证命令模板（可直接复制到进度日志）：
+- 验证：cd $REPO_DIR && ./scripts/cron-check-quota-proxy.sh --server-file $SERVER_FILE --strict-remote >/tmp/roc-cron-check.out 2>&1 || rc=\$?; echo "exit=\${rc:-0}"; tail -n 8 /tmp/roc-cron-check.out
+- 服务器验证：if [ -f "$SERVER_FILE" ]; then SERVER=\$(sed -nE "s/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\\2/ip; t; s/^[[:space:]]*([^[:space:]]+).*/\\1/p" "$SERVER_FILE" | head -n1); ssh -o BatchMode=yes -o ConnectTimeout=8 root@"\$SERVER" 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'; else echo '$SERVER_FILE 缺失，服务器检查未执行'; fi
 EOF
   exit 0
 fi
