@@ -208,6 +208,9 @@ ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-artifact-window.sh --json --
 # 可配合退出码做告警：0=窗口内有落地，2=窗口 MISS
 ./scripts/cron-check-quota-proxy.sh >/tmp/roc-cron-check.out 2>&1 || rc=$?; echo "exit=${rc:-0}"; grep -E 'artifact_window=' /tmp/roc-cron-check.out
 
+# 远程巡检要求严格成功（缺失 server 文件 / SSH / healthz 失败会返回 exit=3，便于告警）
+./scripts/cron-check-quota-proxy.sh --strict-remote >/tmp/roc-cron-check-remote.out 2>&1 || rc=$?; echo "exit=${rc:-0}"; tail -n 5 /tmp/roc-cron-check-remote.out
+
 # 查看脚本参数帮助
 ./scripts/cron-check-quota-proxy.sh --help
 
