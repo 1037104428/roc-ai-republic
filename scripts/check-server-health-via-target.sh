@@ -73,6 +73,9 @@ if [[ -z "$SERVER" ]]; then
     echo "可选 1: echo '1.2.3.4' > $TARGET_FILE" >&2
     echo "可选 2: ROC_SERVER=1.2.3.4 ./scripts/check-server-health-via-target.sh" >&2
     echo "可选 3: ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-server-health-via-target.sh" >&2
+    if [[ "$TARGET_FILE" == "/tmp/server.txt" ]]; then
+      echo "可选 4: ./scripts/prepare-server-target.sh --server 1.2.3.4 && ./scripts/check-server-health-via-target.sh" >&2
+    fi
     exit 1
   fi
 

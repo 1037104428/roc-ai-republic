@@ -156,6 +156,9 @@ ROC_HEALTHZ_URL='http://127.0.0.1:8787/healthz' ROC_SERVER=your.server.ip.or.dom
 
 # 当 /tmp/server.txt 缺失时，显式使用 ROC_SERVER 仍可完成巡检
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --dry-run
+
+# 或先一键生成 /tmp/server.txt，再执行巡检
+./scripts/prepare-server-target.sh --server your.server.ip.or.domain && ./scripts/check-server-health-via-target.sh
 ```
 
 
