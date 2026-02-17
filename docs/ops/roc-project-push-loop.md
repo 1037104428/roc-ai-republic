@@ -59,7 +59,8 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ## 服务器探活（quota-proxy）
 
 ```bash
-SERVER=$(sed -n 's/^ip://p' /tmp/server.txt | tr -d ' \t\r\n')
+# 兼容 ip:<HOST> / host:<HOST> / server:<HOST> / 纯主机名 四种写法
+SERVER=$(sed -nE "s/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\2/ip; t; s/^[[:space:]]*([^[:space:]]+).*/\1/p" /tmp/server.txt | head -n1)
 ssh -o BatchMode=yes -o ConnectTimeout=8 root@"$SERVER" \
   'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'
 ```
