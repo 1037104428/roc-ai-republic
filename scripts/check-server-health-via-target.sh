@@ -4,6 +4,7 @@ set -euo pipefail
 PRINT_TARGET_ONLY=0
 DRY_RUN=0
 HEALTHZ_ONLY=0
+COMPOSE_ONLY=0
 SHOW_HELP=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -17,6 +18,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --healthz-only)
       HEALTHZ_ONLY=1
+      shift
+      ;;
+    --compose-only)
+      COMPOSE_ONLY=1
       shift
       ;;
     -h|--help)
@@ -36,13 +41,14 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target] [--dry-run] [--healthz-only] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target] [--dry-run] [--healthz-only|--compose-only] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
   --print-target           仅输出解析出的服务器目标，不执行 SSH
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
+  --compose-only           仅执行 docker compose ps（跳过 healthz curl）
   -h, --help               显示帮助
 
 环境变量:
@@ -109,8 +115,15 @@ fi
 echo "[INFO] Healthz: ${HEALTHZ_URL} (timeout=${HEALTHZ_TIMEOUT}s)"
 echo "[INFO] RemoteDir: ${REMOTE_DIR}"
 echo "[INFO] ComposeCmd: ${DOCKER_COMPOSE_CMD}"
+if [[ "$HEALTHZ_ONLY" == "1" && "$COMPOSE_ONLY" == "1" ]]; then
+  echo "[ERROR] --healthz-only 与 --compose-only 不能同时使用" >&2
+  exit 1
+fi
 if [[ "$HEALTHZ_ONLY" == "1" ]]; then
   echo "[INFO] Mode: healthz-only（跳过 compose ps）"
+fi
+if [[ "$COMPOSE_ONLY" == "1" ]]; then
+  echo "[INFO] Mode: compose-only（跳过 healthz curl）"
 fi
 
 if [[ "$PRINT_TARGET_ONLY" == "1" ]]; then
@@ -120,6 +133,8 @@ fi
 
 if [[ "$HEALTHZ_ONLY" == "1" ]]; then
   REMOTE_CMD="set -e; cd '${REMOTE_DIR}'; echo '---HEALTHZ---'; curl -fsS --max-time '${HEALTHZ_TIMEOUT}' '${HEALTHZ_URL}'"
+elif [[ "$COMPOSE_ONLY" == "1" ]]; then
+  REMOTE_CMD="set -e; cd '${REMOTE_DIR}'; ${DOCKER_COMPOSE_CMD} ps"
 else
   REMOTE_CMD="set -e; cd '${REMOTE_DIR}'; ${DOCKER_COMPOSE_CMD} ps; echo '---HEALTHZ---'; curl -fsS --max-time '${HEALTHZ_TIMEOUT}' '${HEALTHZ_URL}'"
 fi

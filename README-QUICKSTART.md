@@ -145,6 +145,9 @@ ROC_DOCKER_COMPOSE_CMD='docker-compose' ROC_SERVER=your.server.ip.or.domain ./sc
 # 仅做 healthz 快速探测（跳过 docker compose ps，适合服务已稳定时高频探活）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --healthz-only
 
+# 仅做 compose 状态检查（跳过 healthz curl，适合定位容器拉起/重启问题）
+ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --compose-only
+
 # 查看巡检脚本参数与环境变量说明
 ./scripts/check-server-health-via-target.sh --help
 
