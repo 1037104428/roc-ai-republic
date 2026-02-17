@@ -46,6 +46,7 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   ROC_SSH_PORT             SSH 端口（默认 22）
   ROC_SSH_CONNECT_TIMEOUT  SSH 连接超时秒数（默认 8）
   ROC_SSH_STRICT_HOST_KEY_CHECKING  SSH StrictHostKeyChecking（默认 accept-new）
+  ROC_SSH_IDENTITY_FILE    SSH 私钥文件路径（可选，例如 ~/.ssh/id_ed25519）
   ROC_REMOTE_DIR           远端目录（默认 /opt/roc/quota-proxy）
   ROC_HEALTHZ_URL          健康检查 URL（默认 http://127.0.0.1:8787/healthz）
   ROC_HEALTHZ_TIMEOUT      healthz curl 超时秒数（默认 6）
@@ -59,6 +60,7 @@ SSH_USER="${ROC_SSH_USER:-root}"
 SSH_PORT="${ROC_SSH_PORT:-22}"
 SSH_CONNECT_TIMEOUT="${ROC_SSH_CONNECT_TIMEOUT:-8}"
 SSH_STRICT_HOST_KEY_CHECKING="${ROC_SSH_STRICT_HOST_KEY_CHECKING:-accept-new}"
+SSH_IDENTITY_FILE="${ROC_SSH_IDENTITY_FILE:-}"
 HEALTHZ_URL="${ROC_HEALTHZ_URL:-http://127.0.0.1:8787/healthz}"
 HEALTHZ_TIMEOUT="${ROC_HEALTHZ_TIMEOUT:-6}"
 REMOTE_DIR="${ROC_REMOTE_DIR:-/opt/roc/quota-proxy}"
@@ -90,6 +92,9 @@ fi
 
 echo "[INFO] 检查服务器: $SERVER"
 echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s, StrictHostKeyChecking=${SSH_STRICT_HOST_KEY_CHECKING})"
+if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
+  echo "[INFO] SSH IdentityFile: ${SSH_IDENTITY_FILE}"
+fi
 echo "[INFO] Healthz: ${HEALTHZ_URL} (timeout=${HEALTHZ_TIMEOUT}s)"
 echo "[INFO] RemoteDir: ${REMOTE_DIR}"
 
@@ -100,10 +105,20 @@ fi
 
 REMOTE_CMD="set -e; cd '${REMOTE_DIR}'; docker compose ps; echo '---HEALTHZ---'; curl -fsS --max-time '${HEALTHZ_TIMEOUT}' '${HEALTHZ_URL}'"
 
+SSH_IDENTITY_ARGS=()
+if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
+  SSH_IDENTITY_ARGS+=("-i" "${SSH_IDENTITY_FILE}")
+fi
+
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "[INFO] --dry-run 已启用，仅输出将执行的 SSH 命令"
-  printf "ssh -o BatchMode=yes -o StrictHostKeyChecking=%s -o ConnectTimeout=%s -p %s %s@%s %q\n" \
-    "${SSH_STRICT_HOST_KEY_CHECKING}" "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
+  if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
+    printf "ssh -o BatchMode=yes -o StrictHostKeyChecking=%s -o ConnectTimeout=%s -p %s -i %q %s@%s %q\n" \
+      "${SSH_STRICT_HOST_KEY_CHECKING}" "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_IDENTITY_FILE}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
+  else
+    printf "ssh -o BatchMode=yes -o StrictHostKeyChecking=%s -o ConnectTimeout=%s -p %s %s@%s %q\n" \
+      "${SSH_STRICT_HOST_KEY_CHECKING}" "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
+  fi
   exit 0
 fi
 
@@ -112,4 +127,5 @@ ssh \
   -o StrictHostKeyChecking="${SSH_STRICT_HOST_KEY_CHECKING}" \
   -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" \
   -p "${SSH_PORT}" \
+  "${SSH_IDENTITY_ARGS[@]}" \
   "${SSH_USER}@${SERVER}" "${REMOTE_CMD}"

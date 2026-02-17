@@ -119,8 +119,8 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 # 或通过环境变量指定目标文件（便于脚本/CI注入）
 ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-server-health-via-target.sh
 
-# 可选：自定义 SSH 用户/端口/连接超时/StrictHostKeyChecking/远端目录/健康检查地址与 healthz 超时
-ROC_SSH_USER=ubuntu ROC_SSH_PORT=2222 ROC_SSH_CONNECT_TIMEOUT=12 ROC_SSH_STRICT_HOST_KEY_CHECKING=accept-new ROC_REMOTE_DIR=/opt/roc/quota-proxy ROC_HEALTHZ_TIMEOUT=8 \
+# 可选：自定义 SSH 用户/端口/连接超时/StrictHostKeyChecking/私钥/远端目录/健康检查地址与 healthz 超时
+ROC_SSH_USER=ubuntu ROC_SSH_PORT=2222 ROC_SSH_CONNECT_TIMEOUT=12 ROC_SSH_STRICT_HOST_KEY_CHECKING=accept-new ROC_SSH_IDENTITY_FILE=~/.ssh/id_ed25519 ROC_REMOTE_DIR=/opt/roc/quota-proxy ROC_HEALTHZ_TIMEOUT=8 \
 ROC_HEALTHZ_URL='http://127.0.0.1:8787/healthz' \
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 
