@@ -127,6 +127,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 # 巡检前 10 秒自检：先校验目标文件是否存在且可解析
 ./scripts/prepare-server-target.sh --check
 
+# 若需机器可读输出（cron/CI 记录），可用 JSON 自检
+./scripts/prepare-server-target.sh --check-json
+
 # 若不想依赖 /tmp/server.txt，可直接环境变量直连并先看将执行的 SSH 命令
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --dry-run
 

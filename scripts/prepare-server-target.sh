@@ -5,6 +5,7 @@ TARGET_FILE="${ROC_SERVER_FILE:-/tmp/server.txt}"
 SERVER="${ROC_SERVER:-}"
 PRINT_ONLY=0
 CHECK_ONLY=0
+CHECK_JSON=0
 EXAMPLE_ONLY=0
 
 usage() {
@@ -13,12 +14,14 @@ usage() {
   ./scripts/prepare-server-target.sh --server <ip-or-host> [--file /tmp/server.txt]
   ./scripts/prepare-server-target.sh --print [--file /tmp/server.txt]
   ./scripts/prepare-server-target.sh --check [--file /tmp/server.txt]
+  ./scripts/prepare-server-target.sh --check-json [--file /tmp/server.txt]
   ./scripts/prepare-server-target.sh --example
 
 说明:
   - 默认写入 /tmp/server.txt（可用 ROC_SERVER_FILE 覆盖默认路径），供 check-server-health-via-target.sh 读取
   - --print 仅打印当前解析到的目标，不写文件
   - --check 仅校验目标文件是否存在且可解析（适合部署前自检）
+  - --check-json 以 JSON 输出校验结果（便于 cron/CI 记录）
   - --example 打印 /tmp/server.txt 可接受的示例格式
 EOF
 }
@@ -49,6 +52,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --check)
       CHECK_ONLY=1
+      shift
+      ;;
+    --check-json)
+      CHECK_ONLY=1
+      CHECK_JSON=1
       shift
       ;;
     --example)
@@ -103,6 +111,8 @@ if [[ "$PRINT_ONLY" == "1" || "$CHECK_ONLY" == "1" ]]; then
 
   if [[ "$PRINT_ONLY" == "1" ]]; then
     echo "$CURRENT"
+  elif [[ "$CHECK_JSON" == "1" ]]; then
+    printf '{"ok":true,"file":"%s","target":"%s"}\n' "$TARGET_FILE" "$CURRENT"
   else
     echo "[OK] 目标文件可解析: $TARGET_FILE"
     echo "[OK] 解析目标: $CURRENT"
