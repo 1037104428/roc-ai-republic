@@ -106,7 +106,8 @@ docker compose exec quota-proxy sqlite3 /data/quota-proxy.db .dump > backup.sql
 #   your.server.ip.or.domain
 #   ip:your.server.ip.or.domain
 #   host=your.server.ip.or.domain
-echo 'your.server.ip.or.domain' > /tmp/server.txt
+./scripts/prepare-server-target.sh --server your.server.ip.or.domain
+# 或手工写入：echo 'your.server.ip.or.domain' > /tmp/server.txt
 ./scripts/check-server-health-via-target.sh
 
 # 也可通过环境变量直连（不依赖 /tmp/server.txt）
