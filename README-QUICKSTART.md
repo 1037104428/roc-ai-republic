@@ -101,8 +101,12 @@ docker compose exec quota-proxy sqlite3 /data/quota-proxy.db .dump > backup.sql
 # 验证SQLite数据库
 ./quota-proxy/verify-sqlite-integrity.sh
 
-# 远程服务器健康检查（读取 /tmp/server.txt）
+# 远程服务器健康检查（先写入服务器地址）
+echo 'your.server.ip.or.domain' > /tmp/server.txt
 ./scripts/check-server-health-via-target.sh
+
+# 也可指定自定义目标文件
+./scripts/check-server-health-via-target.sh /path/to/server.txt
 ```
 
 ## 📚 详细文档
