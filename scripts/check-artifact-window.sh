@@ -63,15 +63,16 @@ fi
 # --- server quota-proxy probe ---
 server_status="skip"
 server_host=""
+SERVER_FILE="${ROC_SERVER_FILE:-/tmp/server.txt}"
 if [[ -n "${ROC_SERVER:-}" ]]; then
   server_host="${ROC_SERVER}"
-elif [[ -f /tmp/server.txt ]]; then
+elif [[ -f "$SERVER_FILE" ]]; then
   if [[ -x ./scripts/prepare-server-target.sh ]]; then
-    server_host=$(./scripts/prepare-server-target.sh --print 2>/dev/null || true)
+    server_host=$(ROC_SERVER_FILE="$SERVER_FILE" ./scripts/prepare-server-target.sh --print 2>/dev/null || true)
   fi
 
   if [[ -z "$server_host" ]]; then
-    server_host=$(sed -nE 's/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\2/ip; t; s/^[[:space:]]*([^[:space:]]+).*/\1/p' /tmp/server.txt | head -n 1 | tr -d ' \t\r\n')
+    server_host=$(sed -nE 's/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\2/ip; t; s/^[[:space:]]*([^[:space:]]+).*/\1/p' "$SERVER_FILE" | head -n 1 | tr -d ' \t\r\n')
   fi
 fi
 
@@ -195,15 +196,15 @@ else
   echo "repo: WARN (no commit in window)"
 fi
 
-if [[ -f /tmp/server.txt ]]; then
+if [[ -f "$SERVER_FILE" ]]; then
   echo "server: probing quota-proxy (compose ps + /healthz)"
   if need_cmd ssh; then
-    ./scripts/ssh-healthz-quota-proxy.sh
+    ROC_SERVER_FILE="$SERVER_FILE" ./scripts/ssh-healthz-quota-proxy.sh
   else
     echo "server: SKIP (ssh not available)"
   fi
 else
-  echo "server: SKIP (/tmp/server.txt not found)"
+  echo "server: SKIP (${SERVER_FILE} not found)"
 fi
 
 echo

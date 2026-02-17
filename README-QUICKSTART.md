@@ -136,8 +136,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 # 仅校验目标文件存在且可解析（不改写文件）
 ./scripts/prepare-server-target.sh --check
 
-# 15 分钟落地窗口检查（支持 ROC_SERVER 或 /tmp/server.txt）
+# 15 分钟落地窗口检查（支持 ROC_SERVER 或 ROC_SERVER_FILE 指定目标文件）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-artifact-window.sh --json --strict
+ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-artifact-window.sh --json --strict
 
 # 一条命令完成“写入目标 + 远程健康检查”（适合首次排障）
 ./scripts/prepare-server-target.sh --server your.server.ip.or.domain && ./scripts/check-server-health-via-target.sh
