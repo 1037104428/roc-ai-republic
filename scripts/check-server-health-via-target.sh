@@ -3,6 +3,10 @@ set -euo pipefail
 
 TARGET_FILE="${1:-/tmp/server.txt}"
 SERVER="${ROC_SERVER:-}"
+SSH_USER="${ROC_SSH_USER:-root}"
+SSH_PORT="${ROC_SSH_PORT:-22}"
+SSH_CONNECT_TIMEOUT="${ROC_SSH_CONNECT_TIMEOUT:-8}"
+HEALTHZ_URL="${ROC_HEALTHZ_URL:-http://127.0.0.1:8787/healthz}"
 
 if [[ -z "$SERVER" ]]; then
   if [[ ! -f "$TARGET_FILE" ]]; then
@@ -20,10 +24,16 @@ if [[ -z "$SERVER" ]]; then
 fi
 
 echo "[INFO] 检查服务器: $SERVER"
-ssh -o BatchMode=yes -o ConnectTimeout=8 "root@$SERVER" '
+echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s)"
+echo "[INFO] Healthz: ${HEALTHZ_URL}"
+ssh \
+  -o BatchMode=yes \
+  -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" \
+  -p "${SSH_PORT}" \
+  "${SSH_USER}@${SERVER}" "
   set -e
   cd /opt/roc/quota-proxy
   docker compose ps
-  echo "---HEALTHZ---"
-  curl -fsS http://127.0.0.1:8787/healthz
-'
+  echo '---HEALTHZ---'
+  curl -fsS '${HEALTHZ_URL}'
+"
