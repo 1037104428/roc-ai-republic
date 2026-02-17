@@ -154,6 +154,9 @@ SERVER=$(./scripts/check-server-health-via-target.sh --print-server)
 # 仅打印 healthz curl 命令（便于复用到现有 SSH/监控平台）
 ./scripts/check-server-health-via-target.sh --print-healthz-cmd
 
+# 仅打印 compose ps 命令（便于复用到现有 SSH/监控平台）
+./scripts/check-server-health-via-target.sh --print-compose-cmd
+
 # 仅做 healthz 快速探测（跳过 docker compose ps，适合服务已稳定时高频探活）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --healthz-only
 
