@@ -59,6 +59,7 @@ if (( PRINT_LOG_SNIPPETS == 1 )); then
 验证命令模板（可直接复制到进度日志）：
 - 验证：cd $REPO_DIR && ./scripts/cron-check-quota-proxy.sh --server-file $SERVER_FILE --strict-remote >/tmp/roc-cron-check.out 2>&1 || rc=\$?; echo "exit=\${rc:-0}"; tail -n 8 /tmp/roc-cron-check.out
 - 服务器验证：if [ -f "$SERVER_FILE" ]; then SERVER=\$(sed -nE "s/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\\2/ip; t; s/^[[:space:]]*([^[:space:]]+).*/\\1/p" "$SERVER_FILE" | head -n1); ssh -o BatchMode=yes -o ConnectTimeout=8 root@"\$SERVER" 'cd /opt/roc/quota-proxy && docker compose ps && curl -fsS http://127.0.0.1:8787/healthz'; else echo '$SERVER_FILE 缺失，服务器检查未执行'; fi
+- 缺失目标文件时先引导：cd $REPO_DIR && ./scripts/check-server-health-via-target.sh --print-bootstrap-cmd-for <host>
 EOF
   exit 0
 fi
