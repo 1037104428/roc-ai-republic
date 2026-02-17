@@ -130,6 +130,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 # 打印将执行的SSH命令（不真正连接远端），便于审计/排障
 ./scripts/check-server-health-via-target.sh --dry-run
 
+# 查看巡检脚本参数与环境变量说明
+./scripts/check-server-health-via-target.sh --help
+
 # 仅校验目标文件存在且可解析（不改写文件）
 ./scripts/prepare-server-target.sh --check
 

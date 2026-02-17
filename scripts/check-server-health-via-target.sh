@@ -3,6 +3,7 @@ set -euo pipefail
 
 PRINT_TARGET_ONLY=0
 DRY_RUN=0
+SHOW_HELP=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --print-target)
@@ -11,6 +12,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run)
       DRY_RUN=1
+      shift
+      ;;
+    -h|--help)
+      SHOW_HELP=1
       shift
       ;;
     --)
@@ -22,6 +27,30 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ "$SHOW_HELP" == "1" ]]; then
+  cat <<'EOF'
+用法:
+  ./scripts/check-server-health-via-target.sh [--print-target] [--dry-run] [TARGET_FILE]
+
+参数:
+  TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
+  --print-target           仅输出解析出的服务器目标，不执行 SSH
+  --dry-run                仅打印将执行的 SSH 命令，不实际连接
+  -h, --help               显示帮助
+
+环境变量:
+  ROC_SERVER               直接指定服务器地址（优先于 TARGET_FILE）
+  ROC_SERVER_FILE          默认目标文件路径（默认 /tmp/server.txt）
+  ROC_SSH_USER             SSH 用户（默认 root）
+  ROC_SSH_PORT             SSH 端口（默认 22）
+  ROC_SSH_CONNECT_TIMEOUT  SSH 连接超时秒数（默认 8）
+  ROC_REMOTE_DIR           远端目录（默认 /opt/roc/quota-proxy）
+  ROC_HEALTHZ_URL          健康检查 URL（默认 http://127.0.0.1:8787/healthz）
+  ROC_HEALTHZ_TIMEOUT      healthz curl 超时秒数（默认 6）
+EOF
+  exit 0
+fi
 
 TARGET_FILE="${1:-${ROC_SERVER_FILE:-/tmp/server.txt}}"
 SERVER="${ROC_SERVER:-}"
