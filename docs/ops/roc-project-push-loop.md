@@ -38,6 +38,11 @@ git log -n 10 --date=iso --pretty=format:'%h %ad %s'
 # 服务器目标（root 主机 ip/域名）
 cat /tmp/server.txt
 
+# 若 /tmp/server.txt 缺失：先用可恢复的一键引导（不会改仓库）
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/check-server-health-via-target.sh --print-bootstrap-cmd-for example.com
+# 然后把输出的一行命令执行一次（会创建 /tmp/server.txt）
+
 # 约定：/tmp/server.txt 格式
 # - 建议仅一行：ip:<HOST>
 # - 允许前后空格
