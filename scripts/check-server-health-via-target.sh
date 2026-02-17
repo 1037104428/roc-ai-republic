@@ -29,6 +29,7 @@ SSH_USER="${ROC_SSH_USER:-root}"
 SSH_PORT="${ROC_SSH_PORT:-22}"
 SSH_CONNECT_TIMEOUT="${ROC_SSH_CONNECT_TIMEOUT:-8}"
 HEALTHZ_URL="${ROC_HEALTHZ_URL:-http://127.0.0.1:8787/healthz}"
+HEALTHZ_TIMEOUT="${ROC_HEALTHZ_TIMEOUT:-6}"
 
 if [[ -z "$SERVER" ]]; then
   if [[ ! -f "$TARGET_FILE" ]]; then
@@ -57,14 +58,14 @@ fi
 
 echo "[INFO] 检查服务器: $SERVER"
 echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s)"
-echo "[INFO] Healthz: ${HEALTHZ_URL}"
+echo "[INFO] Healthz: ${HEALTHZ_URL} (timeout=${HEALTHZ_TIMEOUT}s)"
 
 if [[ "$PRINT_TARGET_ONLY" == "1" ]]; then
   echo "[INFO] --print-target 已启用，仅输出解析结果，不执行 SSH 检查"
   exit 0
 fi
 
-REMOTE_CMD="set -e; cd /opt/roc/quota-proxy; docker compose ps; echo '---HEALTHZ---'; curl -fsS '${HEALTHZ_URL}'"
+REMOTE_CMD="set -e; cd /opt/roc/quota-proxy; docker compose ps; echo '---HEALTHZ---'; curl -fsS --max-time '${HEALTHZ_TIMEOUT}' '${HEALTHZ_URL}'"
 
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "[INFO] --dry-run 已启用，仅输出将执行的 SSH 命令"
