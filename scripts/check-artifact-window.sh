@@ -76,9 +76,16 @@ elif [[ -f "$SERVER_FILE" ]]; then
   fi
 fi
 
+SSH_USER="${ROC_SSH_USER:-root}"
+SSH_PORT="${ROC_SSH_PORT:-22}"
+SSH_CONNECT_TIMEOUT="${ROC_SSH_CONNECT_TIMEOUT:-8}"
+REMOTE_DIR="${ROC_REMOTE_DIR:-/opt/roc/quota-proxy}"
+HEALTHZ_URL="${ROC_HEALTHZ_URL:-http://127.0.0.1:8787/healthz}"
+HEALTHZ_TIMEOUT="${ROC_HEALTHZ_TIMEOUT:-6}"
+
 if [[ -n "$server_host" ]] && need_cmd ssh; then
-  if ssh -o BatchMode=yes -o ConnectTimeout=8 "root@${server_host}" \
-    'cd /opt/roc/quota-proxy && docker compose ps >/dev/null && curl -fsS http://127.0.0.1:8787/healthz >/dev/null' \
+  if ssh -o BatchMode=yes -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" -p "${SSH_PORT}" "${SSH_USER}@${server_host}" \
+    "cd '${REMOTE_DIR}' && docker compose ps >/dev/null && curl -fsS --max-time '${HEALTHZ_TIMEOUT}' '${HEALTHZ_URL}' >/dev/null" \
     >/dev/null 2>&1; then
     server_status="ok"
   else
