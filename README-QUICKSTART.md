@@ -148,6 +148,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh 
 # 仅做 compose 状态检查（跳过 healthz curl，适合定位容器拉起/重启问题）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --compose-only
 
+# 临时覆盖 SSH 用户/端口/超时（无需污染环境变量，适合一次性排障）
+ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --ssh-user ubuntu --ssh-port 2222 --connect-timeout 12 --healthz-timeout 8 --dry-run
+
 # 查看巡检脚本参数与环境变量说明
 ./scripts/check-server-health-via-target.sh --help
 

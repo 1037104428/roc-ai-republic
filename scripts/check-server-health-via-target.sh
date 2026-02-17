@@ -6,6 +6,10 @@ DRY_RUN=0
 HEALTHZ_ONLY=0
 COMPOSE_ONLY=0
 SHOW_HELP=0
+SSH_USER_ARG=""
+SSH_PORT_ARG=""
+SSH_CONNECT_TIMEOUT_ARG=""
+HEALTHZ_TIMEOUT_ARG=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --print-target)
@@ -24,6 +28,22 @@ while [[ $# -gt 0 ]]; do
       COMPOSE_ONLY=1
       shift
       ;;
+    --ssh-user)
+      SSH_USER_ARG="${2:-}"
+      shift 2
+      ;;
+    --ssh-port)
+      SSH_PORT_ARG="${2:-}"
+      shift 2
+      ;;
+    --connect-timeout)
+      SSH_CONNECT_TIMEOUT_ARG="${2:-}"
+      shift 2
+      ;;
+    --healthz-timeout)
+      HEALTHZ_TIMEOUT_ARG="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       SHOW_HELP=1
       shift
@@ -41,7 +61,7 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target] [--dry-run] [--healthz-only|--compose-only] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
@@ -49,6 +69,10 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
   --compose-only           仅执行 docker compose ps（跳过 healthz curl）
+  --ssh-user USER          覆盖 SSH 用户（等价 ROC_SSH_USER）
+  --ssh-port PORT          覆盖 SSH 端口（等价 ROC_SSH_PORT）
+  --connect-timeout SEC    覆盖 SSH 连接超时秒数（等价 ROC_SSH_CONNECT_TIMEOUT）
+  --healthz-timeout SEC    覆盖 healthz 超时秒数（等价 ROC_HEALTHZ_TIMEOUT）
   -h, --help               显示帮助
 
 环境变量:
@@ -78,6 +102,11 @@ HEALTHZ_URL="${ROC_HEALTHZ_URL:-http://127.0.0.1:8787/healthz}"
 HEALTHZ_TIMEOUT="${ROC_HEALTHZ_TIMEOUT:-6}"
 REMOTE_DIR="${ROC_REMOTE_DIR:-/opt/roc/quota-proxy}"
 DOCKER_COMPOSE_CMD="${ROC_DOCKER_COMPOSE_CMD:-docker compose}"
+
+if [[ -n "${SSH_USER_ARG}" ]]; then SSH_USER="${SSH_USER_ARG}"; fi
+if [[ -n "${SSH_PORT_ARG}" ]]; then SSH_PORT="${SSH_PORT_ARG}"; fi
+if [[ -n "${SSH_CONNECT_TIMEOUT_ARG}" ]]; then SSH_CONNECT_TIMEOUT="${SSH_CONNECT_TIMEOUT_ARG}"; fi
+if [[ -n "${HEALTHZ_TIMEOUT_ARG}" ]]; then HEALTHZ_TIMEOUT="${HEALTHZ_TIMEOUT_ARG}"; fi
 
 if [[ -z "$SERVER" ]]; then
   if [[ ! -f "$TARGET_FILE" ]]; then
