@@ -7,6 +7,7 @@ PRINT_REMOTE_CMD_ONLY=0
 PRINT_SSH_CMD_ONLY=0
 PRINT_HEALTHZ_CMD_ONLY=0
 PRINT_COMPOSE_CMD_ONLY=0
+PRINT_CHECK_CMD_ONLY=0
 DRY_RUN=0
 HEALTHZ_ONLY=0
 COMPOSE_ONLY=0
@@ -39,6 +40,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --print-compose-cmd)
       PRINT_COMPOSE_CMD_ONLY=1
+      shift
+      ;;
+    --print-check-cmd)
+      PRINT_CHECK_CMD_ONLY=1
       shift
       ;;
     --dry-run)
@@ -86,7 +91,7 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-compose-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-compose-cmd|--print-check-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
@@ -96,6 +101,7 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   --print-ssh-cmd          仅打印完整 SSH 命令（纯文本，便于命令替换/日志采集）
   --print-healthz-cmd      仅打印 healthz curl 命令（可直接用于现有 SSH/监控）
   --print-compose-cmd      仅打印 compose ps 命令（便于复用到现有 SSH/监控）
+  --print-check-cmd        仅打印 compose+healthz 合并命令（便于一次性巡检）
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
   --compose-only           仅执行 docker compose ps（跳过 healthz curl）
@@ -176,7 +182,7 @@ if [[ "$HEALTHZ_ONLY" == "1" && "$COMPOSE_ONLY" == "1" ]]; then
   exit 1
 fi
 
-if [[ "$PRINT_SSH_CMD_ONLY" != "1" && "$PRINT_HEALTHZ_CMD_ONLY" != "1" && "$PRINT_COMPOSE_CMD_ONLY" != "1" ]]; then
+if [[ "$PRINT_SSH_CMD_ONLY" != "1" && "$PRINT_HEALTHZ_CMD_ONLY" != "1" && "$PRINT_COMPOSE_CMD_ONLY" != "1" && "$PRINT_CHECK_CMD_ONLY" != "1" ]]; then
   echo "[INFO] 检查服务器: $SERVER"
   echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s, StrictHostKeyChecking=${SSH_STRICT_HOST_KEY_CHECKING})"
   if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
@@ -224,6 +230,11 @@ fi
 
 if [[ "$PRINT_COMPOSE_CMD_ONLY" == "1" ]]; then
   printf "%s ps\n" "${DOCKER_COMPOSE_CMD}"
+  exit 0
+fi
+
+if [[ "$PRINT_CHECK_CMD_ONLY" == "1" ]]; then
+  printf "%s ps && curl -fsS --max-time %q %q\n" "${DOCKER_COMPOSE_CMD}" "${HEALTHZ_TIMEOUT}" "${HEALTHZ_URL}"
   exit 0
 fi
 
