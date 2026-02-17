@@ -129,6 +129,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 
 # 15 分钟落地窗口检查（支持 ROC_SERVER 或 /tmp/server.txt）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-artifact-window.sh --json --strict
+
+# 一条命令完成“写入目标 + 远程健康检查”（适合首次排障）
+./scripts/prepare-server-target.sh --server your.server.ip.or.domain && ./scripts/check-server-health-via-target.sh
 ```
 
 
