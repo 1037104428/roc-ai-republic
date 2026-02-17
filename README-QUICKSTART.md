@@ -127,6 +127,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 # 仅验证目标解析（不发起SSH），适合在CI里先做自检
 ./scripts/check-server-health-via-target.sh --print-target
 
+# 打印将执行的SSH命令（不真正连接远端），便于审计/排障
+./scripts/check-server-health-via-target.sh --dry-run
+
 # 仅校验目标文件存在且可解析（不改写文件）
 ./scripts/prepare-server-target.sh --check
 

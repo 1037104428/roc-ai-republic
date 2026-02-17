@@ -2,10 +2,26 @@
 set -euo pipefail
 
 PRINT_TARGET_ONLY=0
-if [[ "${1:-}" == "--print-target" ]]; then
-  PRINT_TARGET_ONLY=1
-  shift
-fi
+DRY_RUN=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --print-target)
+      PRINT_TARGET_ONLY=1
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
 
 TARGET_FILE="${1:-${ROC_SERVER_FILE:-/tmp/server.txt}}"
 SERVER="${ROC_SERVER:-}"
@@ -48,14 +64,17 @@ if [[ "$PRINT_TARGET_ONLY" == "1" ]]; then
   exit 0
 fi
 
+REMOTE_CMD="set -e; cd /opt/roc/quota-proxy; docker compose ps; echo '---HEALTHZ---'; curl -fsS '${HEALTHZ_URL}'"
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "[INFO] --dry-run 已启用，仅输出将执行的 SSH 命令"
+  printf "ssh -o BatchMode=yes -o ConnectTimeout=%s -p %s %s@%s %q\n" \
+    "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
+  exit 0
+fi
+
 ssh \
   -o BatchMode=yes \
   -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" \
   -p "${SSH_PORT}" \
-  "${SSH_USER}@${SERVER}" "
-  set -e
-  cd /opt/roc/quota-proxy
-  docker compose ps
-  echo '---HEALTHZ---'
-  curl -fsS '${HEALTHZ_URL}'
-"
+  "${SSH_USER}@${SERVER}" "${REMOTE_CMD}"
