@@ -4,6 +4,7 @@ set -euo pipefail
 PRINT_TARGET_ONLY=0
 PRINT_SERVER_ONLY=0
 PRINT_REMOTE_CMD_ONLY=0
+PRINT_SSH_CMD_ONLY=0
 DRY_RUN=0
 HEALTHZ_ONLY=0
 COMPOSE_ONLY=0
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --print-remote-cmd)
       PRINT_REMOTE_CMD_ONLY=1
+      shift
+      ;;
+    --print-ssh-cmd)
+      PRINT_SSH_CMD_ONLY=1
       shift
       ;;
     --dry-run)
@@ -71,13 +76,14 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
   --print-target           打印带 [INFO] 前缀的服务器目标信息，不执行 SSH
   --print-server           仅输出解析出的服务器地址（纯文本，无前缀）
   --print-remote-cmd       仅打印远端执行片段（可复制到 ssh ... "<cmd>"）
+  --print-ssh-cmd          仅打印完整 SSH 命令（纯文本，便于命令替换/日志采集）
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
   --compose-only           仅执行 docker compose ps（跳过 healthz curl）
@@ -153,23 +159,26 @@ if [[ "$PRINT_SERVER_ONLY" == "1" ]]; then
   exit 0
 fi
 
-echo "[INFO] 检查服务器: $SERVER"
-echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s, StrictHostKeyChecking=${SSH_STRICT_HOST_KEY_CHECKING})"
-if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
-  echo "[INFO] SSH IdentityFile: ${SSH_IDENTITY_FILE}"
-fi
-echo "[INFO] Healthz: ${HEALTHZ_URL} (timeout=${HEALTHZ_TIMEOUT}s)"
-echo "[INFO] RemoteDir: ${REMOTE_DIR}"
-echo "[INFO] ComposeCmd: ${DOCKER_COMPOSE_CMD}"
 if [[ "$HEALTHZ_ONLY" == "1" && "$COMPOSE_ONLY" == "1" ]]; then
   echo "[ERROR] --healthz-only 与 --compose-only 不能同时使用" >&2
   exit 1
 fi
-if [[ "$HEALTHZ_ONLY" == "1" ]]; then
-  echo "[INFO] Mode: healthz-only（跳过 compose ps）"
-fi
-if [[ "$COMPOSE_ONLY" == "1" ]]; then
-  echo "[INFO] Mode: compose-only（跳过 healthz curl）"
+
+if [[ "$PRINT_SSH_CMD_ONLY" != "1" ]]; then
+  echo "[INFO] 检查服务器: $SERVER"
+  echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s, StrictHostKeyChecking=${SSH_STRICT_HOST_KEY_CHECKING})"
+  if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
+    echo "[INFO] SSH IdentityFile: ${SSH_IDENTITY_FILE}"
+  fi
+  echo "[INFO] Healthz: ${HEALTHZ_URL} (timeout=${HEALTHZ_TIMEOUT}s)"
+  echo "[INFO] RemoteDir: ${REMOTE_DIR}"
+  echo "[INFO] ComposeCmd: ${DOCKER_COMPOSE_CMD}"
+  if [[ "$HEALTHZ_ONLY" == "1" ]]; then
+    echo "[INFO] Mode: healthz-only（跳过 compose ps）"
+  fi
+  if [[ "$COMPOSE_ONLY" == "1" ]]; then
+    echo "[INFO] Mode: compose-only（跳过 healthz curl）"
+  fi
 fi
 
 if [[ "$PRINT_TARGET_ONLY" == "1" ]]; then
@@ -193,6 +202,17 @@ fi
 if [[ "$PRINT_REMOTE_CMD_ONLY" == "1" ]]; then
   echo "[INFO] --print-remote-cmd 已启用，仅输出远端命令片段"
   printf "%s\n" "${REMOTE_CMD}"
+  exit 0
+fi
+
+if [[ "$PRINT_SSH_CMD_ONLY" == "1" ]]; then
+  if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
+    printf "ssh -o BatchMode=yes -o StrictHostKeyChecking=%s -o ConnectTimeout=%s -p %s -i %q %s@%s %q\n" \
+      "${SSH_STRICT_HOST_KEY_CHECKING}" "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_IDENTITY_FILE}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
+  else
+    printf "ssh -o BatchMode=yes -o StrictHostKeyChecking=%s -o ConnectTimeout=%s -p %s %s@%s %q\n" \
+      "${SSH_STRICT_HOST_KEY_CHECKING}" "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
+  fi
   exit 0
 fi
 
