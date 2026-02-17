@@ -138,7 +138,11 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-artifact-window.sh --json --
 
 # 一条命令完成“写入目标 + 远程健康检查”（适合首次排障）
 ./scripts/prepare-server-target.sh --server your.server.ip.or.domain && ./scripts/check-server-health-via-target.sh
+
+# 当 /tmp/server.txt 缺失时，显式使用 ROC_SERVER 仍可完成巡检
+ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --dry-run
 ```
+
 
 
 ## 📚 详细文档
