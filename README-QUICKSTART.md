@@ -159,6 +159,9 @@ ROC_SERVER=your.server.ip.or.domain bash -lc "$(./scripts/check-server-health-vi
 # 仅打印 healthz curl 命令（便于复用到现有 SSH/监控平台）
 ./scripts/check-server-health-via-target.sh --print-healthz-cmd
 
+# 仅打印 healthz URL（便于 Prometheus/UptimeRobot 等监控直接复用地址）
+./scripts/check-server-health-via-target.sh --print-healthz-url
+
 # 仅打印 compose ps 命令（便于复用到现有 SSH/监控平台）
 ./scripts/check-server-health-via-target.sh --print-compose-cmd
 

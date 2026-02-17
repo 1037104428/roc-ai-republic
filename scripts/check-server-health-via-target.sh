@@ -6,6 +6,7 @@ PRINT_SERVER_ONLY=0
 PRINT_REMOTE_CMD_ONLY=0
 PRINT_SSH_CMD_ONLY=0
 PRINT_HEALTHZ_CMD_ONLY=0
+PRINT_HEALTHZ_URL_ONLY=0
 PRINT_COMPOSE_CMD_ONLY=0
 PRINT_CHECK_CMD_ONLY=0
 DRY_RUN=0
@@ -37,6 +38,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --print-healthz-cmd)
       PRINT_HEALTHZ_CMD_ONLY=1
+      shift
+      ;;
+    --print-healthz-url)
+      PRINT_HEALTHZ_URL_ONLY=1
       shift
       ;;
     --print-compose-cmd)
@@ -96,7 +101,7 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-compose-cmd|--print-check-cmd] [--set-server HOST] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd|--print-ssh-cmd|--print-healthz-cmd|--print-healthz-url|--print-compose-cmd|--print-check-cmd] [--set-server HOST] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
@@ -105,6 +110,7 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   --print-remote-cmd       仅打印远端执行片段（可复制到 ssh ... "<cmd>"）
   --print-ssh-cmd          仅打印完整 SSH 命令（纯文本，便于命令替换/日志采集）
   --print-healthz-cmd      仅打印 healthz curl 命令（可直接用于现有 SSH/监控）
+  --print-healthz-url      仅打印 healthz URL（便于监控配置复用同一地址）
   --print-compose-cmd      仅打印 compose ps 命令（便于复用到现有 SSH/监控）
   --print-check-cmd        仅打印 compose+healthz 合并命令（便于一次性巡检）
   --set-server HOST        将 HOST 写入 TARGET_FILE（默认 /tmp/server.txt）后退出
@@ -195,7 +201,7 @@ if [[ "$HEALTHZ_ONLY" == "1" && "$COMPOSE_ONLY" == "1" ]]; then
   exit 1
 fi
 
-if [[ "$PRINT_SSH_CMD_ONLY" != "1" && "$PRINT_HEALTHZ_CMD_ONLY" != "1" && "$PRINT_COMPOSE_CMD_ONLY" != "1" && "$PRINT_CHECK_CMD_ONLY" != "1" ]]; then
+if [[ "$PRINT_SSH_CMD_ONLY" != "1" && "$PRINT_HEALTHZ_CMD_ONLY" != "1" && "$PRINT_HEALTHZ_URL_ONLY" != "1" && "$PRINT_COMPOSE_CMD_ONLY" != "1" && "$PRINT_CHECK_CMD_ONLY" != "1" ]]; then
   echo "[INFO] 检查服务器: $SERVER"
   echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s, StrictHostKeyChecking=${SSH_STRICT_HOST_KEY_CHECKING})"
   if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
@@ -238,6 +244,11 @@ fi
 
 if [[ "$PRINT_HEALTHZ_CMD_ONLY" == "1" ]]; then
   printf "curl -fsS --max-time %q %q\n" "${HEALTHZ_TIMEOUT}" "${HEALTHZ_URL}"
+  exit 0
+fi
+
+if [[ "$PRINT_HEALTHZ_URL_ONLY" == "1" ]]; then
+  printf "%s\n" "${HEALTHZ_URL}"
   exit 0
 fi
 
