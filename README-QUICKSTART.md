@@ -199,6 +199,9 @@ ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh 
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-artifact-window.sh --json --strict
 ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-artifact-window.sh --json --strict
 
+# cron 友好的一体化巡检（时间戳 + git log + server compose/healthz + 进度日志 tail + 15 分钟窗口判定）
+./scripts/cron-check-quota-proxy.sh
+
 # 可选：窗口检查也支持同一套 SSH/目录/healthz 参数（便于非 root/非 22 端口）
 ROC_SSH_USER=ubuntu ROC_SSH_PORT=2222 ROC_SSH_CONNECT_TIMEOUT=12 ROC_REMOTE_DIR=/srv/roc/quota-proxy ROC_HEALTHZ_TIMEOUT=8 \
 ROC_HEALTHZ_URL='http://127.0.0.1:8787/healthz' ROC_SERVER=your.server.ip.or.domain \
