@@ -17,9 +17,18 @@ if [[ -z "$SERVER" ]]; then
     exit 1
   fi
 
-  SERVER="$(tr -d '[:space:]' < "$TARGET_FILE")"
+  SERVER="$(sed -nE '
+    s/\r$//;
+    s/#.*$//;
+    /^[[:space:]]*$/d;
+    s/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\2/ip; p;
+    t done;
+    s/^[[:space:]]*([^[:space:]]+).*/\1/p;
+    :done
+  ' "$TARGET_FILE" | head -n1)"
   if [[ -z "$SERVER" ]]; then
-    echo "[ERROR] 目标文件为空: $TARGET_FILE" >&2
+    echo "[ERROR] 目标文件不可解析: $TARGET_FILE" >&2
+    echo "支持格式示例: '1.2.3.4' 或 'ip:1.2.3.4' 或 'host=example.com'" >&2
     exit 1
   fi
 fi
