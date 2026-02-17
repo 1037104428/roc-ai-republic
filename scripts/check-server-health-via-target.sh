@@ -48,6 +48,7 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   ROC_SSH_STRICT_HOST_KEY_CHECKING  SSH StrictHostKeyChecking（默认 accept-new）
   ROC_SSH_IDENTITY_FILE    SSH 私钥文件路径（可选，例如 ~/.ssh/id_ed25519）
   ROC_REMOTE_DIR           远端目录（默认 /opt/roc/quota-proxy）
+  ROC_DOCKER_COMPOSE_CMD   远端 compose 命令（默认 'docker compose'）
   ROC_HEALTHZ_URL          健康检查 URL（默认 http://127.0.0.1:8787/healthz）
   ROC_HEALTHZ_TIMEOUT      healthz curl 超时秒数（默认 6）
 EOF
@@ -64,6 +65,7 @@ SSH_IDENTITY_FILE="${ROC_SSH_IDENTITY_FILE:-}"
 HEALTHZ_URL="${ROC_HEALTHZ_URL:-http://127.0.0.1:8787/healthz}"
 HEALTHZ_TIMEOUT="${ROC_HEALTHZ_TIMEOUT:-6}"
 REMOTE_DIR="${ROC_REMOTE_DIR:-/opt/roc/quota-proxy}"
+DOCKER_COMPOSE_CMD="${ROC_DOCKER_COMPOSE_CMD:-docker compose}"
 
 if [[ -z "$SERVER" ]]; then
   if [[ ! -f "$TARGET_FILE" ]]; then
@@ -97,13 +99,14 @@ if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
 fi
 echo "[INFO] Healthz: ${HEALTHZ_URL} (timeout=${HEALTHZ_TIMEOUT}s)"
 echo "[INFO] RemoteDir: ${REMOTE_DIR}"
+echo "[INFO] ComposeCmd: ${DOCKER_COMPOSE_CMD}"
 
 if [[ "$PRINT_TARGET_ONLY" == "1" ]]; then
   echo "[INFO] --print-target 已启用，仅输出解析结果，不执行 SSH 检查"
   exit 0
 fi
 
-REMOTE_CMD="set -e; cd '${REMOTE_DIR}'; docker compose ps; echo '---HEALTHZ---'; curl -fsS --max-time '${HEALTHZ_TIMEOUT}' '${HEALTHZ_URL}'"
+REMOTE_CMD="set -e; cd '${REMOTE_DIR}'; ${DOCKER_COMPOSE_CMD} ps; echo '---HEALTHZ---'; curl -fsS --max-time '${HEALTHZ_TIMEOUT}' '${HEALTHZ_URL}'"
 
 SSH_IDENTITY_ARGS=()
 if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
