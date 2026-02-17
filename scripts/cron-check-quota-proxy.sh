@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_PATH_DEFAULT="/home/kai/.openclaw/workspace/roc-ai-republic"
+REPO_PATH_FALLBACK="/home/kai/.openclaw/workspace"
 SERVER_FILE="/tmp/server.txt"
 REMOTE_DIR="/opt/roc/quota-proxy"
 HEALTHZ_URL="http://127.0.0.1:8787/healthz"
@@ -14,7 +15,7 @@ usage() {
 用法: cron-check-quota-proxy.sh [选项]
 
 选项:
-  --repo PATH         指定仓库路径（默认 /home/kai/.openclaw/workspace/roc-ai-republic）
+  --repo PATH         指定仓库路径（默认 /home/kai/.openclaw/workspace/roc-ai-republic；不存在时回退 /home/kai/.openclaw/workspace）
   --server-file PATH  指定 server.txt 路径（默认 /tmp/server.txt）
   --server HOST       直接指定远端主机，优先级高于 server-file
   --remote-dir PATH   远端 quota-proxy 目录（默认 /opt/roc/quota-proxy）
@@ -44,11 +45,14 @@ done
 
 TS="$(TZ=Asia/Shanghai date '+%F %T %Z')"
 
+if [[ ! -d "$REPO_PATH/.git" && -d "$REPO_PATH_FALLBACK/.git" ]]; then
+  REPO_PATH="$REPO_PATH_FALLBACK"
+fi
+
 if [[ "$JSON_ONLY" -eq 0 ]]; then
   echo "[$TS] cron-check-quota-proxy"
 fi
 
-# 1) git log
 GIT_OK=0
 GIT_LOG=""
 if [[ -d "$REPO_PATH/.git" ]]; then
@@ -58,7 +62,6 @@ else
   GIT_LOG="repo not found: $REPO_PATH"
 fi
 
-# 2) remote checks
 REMOTE_OK=0
 REMOTE_MSG=""
 SERVER="${SERVER_OVERRIDE}"

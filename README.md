@@ -66,6 +66,9 @@
 
 # 测试 quota-proxy 部署
 ./scripts/deploy-quota-proxy.sh
+
+# 定时巡检（git log + 远端 compose/healthz + 进度日志）
+./scripts/cron-check-quota-proxy.sh
 ```
 
 ### 论坛部署测试
