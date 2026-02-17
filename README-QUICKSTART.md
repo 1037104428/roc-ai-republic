@@ -208,6 +208,9 @@ ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-artifact-window.sh --json --
 # 覆盖 server 目标文件路径（交接时常见），避免依赖默认 /tmp/server.txt
 ./scripts/cron-check-quota-proxy.sh --server-file /path/to/server.txt
 
+# 慢网络/跨境链路可调高 SSH 连接超时（默认 8 秒）
+./scripts/cron-check-quota-proxy.sh --ssh-timeout 15
+
 # 可配合退出码做告警：0=窗口内有落地，2=窗口 MISS
 ./scripts/cron-check-quota-proxy.sh >/tmp/roc-cron-check.out 2>&1 || rc=$?; echo "exit=${rc:-0}"; grep -E 'artifact_window=' /tmp/roc-cron-check.out
 
