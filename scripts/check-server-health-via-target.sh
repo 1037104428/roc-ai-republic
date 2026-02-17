@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PRINT_TARGET_ONLY=0
+PRINT_SERVER_ONLY=0
 PRINT_REMOTE_CMD_ONLY=0
 DRY_RUN=0
 HEALTHZ_ONLY=0
@@ -15,6 +16,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --print-target)
       PRINT_TARGET_ONLY=1
+      shift
+      ;;
+    --print-server)
+      PRINT_SERVER_ONLY=1
       shift
       ;;
     --print-remote-cmd)
@@ -66,11 +71,12 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target] [--print-remote-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target|--print-server] [--print-remote-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
-  --print-target           仅输出解析出的服务器目标，不执行 SSH
+  --print-target           打印带 [INFO] 前缀的服务器目标信息，不执行 SSH
+  --print-server           仅输出解析出的服务器地址（纯文本，无前缀）
   --print-remote-cmd       仅打印远端执行片段（可复制到 ssh ... "<cmd>"）
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
@@ -140,6 +146,11 @@ if [[ -z "$SERVER" ]]; then
     echo "支持格式示例: '1.2.3.4' 或 'ip:1.2.3.4' 或 'host=example.com'" >&2
     exit 1
   fi
+fi
+
+if [[ "$PRINT_SERVER_ONLY" == "1" ]]; then
+  printf "%s\n" "$SERVER"
+  exit 0
 fi
 
 echo "[INFO] 检查服务器: $SERVER"

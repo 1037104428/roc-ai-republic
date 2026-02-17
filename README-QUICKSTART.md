@@ -139,6 +139,9 @@ ROC_DOCKER_COMPOSE_CMD='docker-compose' ROC_SERVER=your.server.ip.or.domain ./sc
 # 仅验证目标解析（不发起SSH），适合在CI里先做自检
 ./scripts/check-server-health-via-target.sh --print-target
 
+# 仅输出纯服务器地址（无 [INFO] 前缀），适合 shell 变量拼接
+SERVER=$(./scripts/check-server-health-via-target.sh --print-server)
+
 # 打印将执行的SSH命令（不真正连接远端），便于审计/排障
 ./scripts/check-server-health-via-target.sh --dry-run
 
