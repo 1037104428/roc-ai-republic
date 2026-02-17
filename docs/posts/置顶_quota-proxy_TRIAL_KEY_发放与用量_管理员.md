@@ -166,6 +166,14 @@ curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)&key=sk-xxx" \
   - `req_count`：当天累计请求次数
   - `updated_at`：最后一次写入/更新的毫秒时间戳
 
+常用运维视图（按请求数降序）：
+```bash
+export ADMIN_TOKEN='***'
+curl -fsS "http://127.0.0.1:8787/admin/usage?day=$(date +%F)" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+| jq -r '.items | sort_by(-.req_count)[] | "\(.key)\t\(.req_count)\t\(.updated_at)"'
+```
+
 > 计数口径：每次请求进入 `/v1/chat/completions` 时会先 `incrUsage()`；因此**上游失败/超时也会计入当日次数**（更符合“试用配额=请求机会”）。
 
 ---
