@@ -5,6 +5,7 @@ TARGET_FILE="/tmp/server.txt"
 SERVER="${ROC_SERVER:-}"
 PRINT_ONLY=0
 CHECK_ONLY=0
+EXAMPLE_ONLY=0
 
 usage() {
   cat <<'EOF'
@@ -12,11 +13,23 @@ usage() {
   ./scripts/prepare-server-target.sh --server <ip-or-host> [--file /tmp/server.txt]
   ./scripts/prepare-server-target.sh --print [--file /tmp/server.txt]
   ./scripts/prepare-server-target.sh --check [--file /tmp/server.txt]
+  ./scripts/prepare-server-target.sh --example
 
 说明:
   - 默认写入 /tmp/server.txt，供 check-server-health-via-target.sh 读取
   - --print 仅打印当前解析到的目标，不写文件
   - --check 仅校验目标文件是否存在且可解析（适合部署前自检）
+  - --example 打印 /tmp/server.txt 可接受的示例格式
+EOF
+}
+
+print_examples() {
+  cat <<'EOF'
+# /tmp/server.txt 可接受示例（任一即可）
+your.server.ip.or.domain
+ip:your.server.ip.or.domain
+host=your.server.ip.or.domain
+server:your.server.ip.or.domain
 EOF
 }
 
@@ -38,6 +51,10 @@ while [[ $# -gt 0 ]]; do
       CHECK_ONLY=1
       shift
       ;;
+    --example)
+      EXAMPLE_ONLY=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -53,6 +70,11 @@ done
 if [[ "$PRINT_ONLY" == "1" && "$CHECK_ONLY" == "1" ]]; then
   echo "[ERROR] --print 与 --check 不能同时使用" >&2
   exit 1
+fi
+
+if [[ "$EXAMPLE_ONLY" == "1" ]]; then
+  print_examples
+  exit 0
 fi
 
 extract_target() {
