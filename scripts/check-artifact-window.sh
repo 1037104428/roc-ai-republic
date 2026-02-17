@@ -63,18 +63,25 @@ fi
 # --- server quota-proxy probe ---
 server_status="skip"
 server_host=""
-if [[ -f /tmp/server.txt ]]; then
-  server_host=$(sed -n 's/^ip://p' /tmp/server.txt | head -n 1 | tr -d ' \t\r\n')
-  if [[ -n "$server_host" ]] && need_cmd ssh; then
-    if ssh -o BatchMode=yes -o ConnectTimeout=8 "root@${server_host}" \
-      'cd /opt/roc/quota-proxy && docker compose ps >/dev/null && curl -fsS http://127.0.0.1:8787/healthz >/dev/null' \
-      >/dev/null 2>&1; then
-      server_status="ok"
-    else
-      server_status="fail"
-    fi
+if [[ -n "${ROC_SERVER:-}" ]]; then
+  server_host="${ROC_SERVER}"
+elif [[ -f /tmp/server.txt ]]; then
+  if [[ -x ./scripts/prepare-server-target.sh ]]; then
+    server_host=$(./scripts/prepare-server-target.sh --print 2>/dev/null || true)
+  fi
+
+  if [[ -z "$server_host" ]]; then
+    server_host=$(sed -nE 's/^[[:space:]]*(ip|host|server)[[:space:]]*[:=][[:space:]]*([^[:space:]]+).*/\2/ip; t; s/^[[:space:]]*([^[:space:]]+).*/\1/p' /tmp/server.txt | head -n 1 | tr -d ' \t\r\n')
+  fi
+fi
+
+if [[ -n "$server_host" ]] && need_cmd ssh; then
+  if ssh -o BatchMode=yes -o ConnectTimeout=8 "root@${server_host}" \
+    'cd /opt/roc/quota-proxy && docker compose ps >/dev/null && curl -fsS http://127.0.0.1:8787/healthz >/dev/null' \
+    >/dev/null 2>&1; then
+    server_status="ok"
   else
-    server_status="skip"
+    server_status="fail"
   fi
 fi
 
