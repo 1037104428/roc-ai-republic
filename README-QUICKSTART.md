@@ -124,6 +124,12 @@ ROC_SSH_USER=ubuntu ROC_SSH_PORT=2222 ROC_SSH_CONNECT_TIMEOUT=12 ROC_SSH_STRICT_
 ROC_HEALTHZ_URL='http://127.0.0.1:8787/healthz' \
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
 
+# 巡检前 10 秒自检：先校验目标文件是否存在且可解析
+./scripts/prepare-server-target.sh --check
+
+# 若不想依赖 /tmp/server.txt，可直接环境变量直连并先看将执行的 SSH 命令
+ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --dry-run
+
 # 如果远端仍是旧版 docker-compose，可显式切换 compose 命令
 ROC_DOCKER_COMPOSE_CMD='docker-compose' ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --dry-run
 
@@ -191,4 +197,4 @@ docker stats quota-proxy-quota-proxy-1
 ```
 
 ---
-*最后更新: 2026-02-17*
+*最后更新: 2026-02-18*
