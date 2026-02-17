@@ -74,6 +74,15 @@
 ./scripts/deploy-forum.sh
 ```
 
+### 值班巡检（quota-proxy）
+```bash
+# 一次性输出：git 最近提交 + 远端 compose/healthz 状态
+./scripts/cron-check-quota-proxy.sh --server your.server.ip.or.domain
+
+# 仅输出 JSON（适合 cron/告警采集）
+./scripts/cron-check-quota-proxy.sh --json-only
+```
+
 ## 🤝 参与贡献
 
 ### 开发流程
