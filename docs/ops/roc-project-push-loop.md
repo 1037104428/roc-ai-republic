@@ -25,6 +25,17 @@ cd /home/kai/.openclaw/workspace/roc-ai-republic
 ./scripts/check-artifact-window.sh --minutes 15
 ```
 
+### cron 严格模式（避免“远端失败被误判为窗口 MISS”）
+
+```bash
+cd /home/kai/.openclaw/workspace/roc-ai-republic
+./scripts/cron-check-quota-proxy.sh --strict-remote --window-minutes 15
+# exit code:
+#   0 = 15 分钟窗口内有落地，且远端检查通过
+#   2 = 仅窗口 MISS
+#   3 = 远端检查失败（/tmp/server.txt 缺失、SSH 失败或 healthz 失败）
+```
+
 ### 手动检查
 
 ```bash
