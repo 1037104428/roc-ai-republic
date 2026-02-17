@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PRINT_TARGET_ONLY=0
+if [[ "${1:-}" == "--print-target" ]]; then
+  PRINT_TARGET_ONLY=1
+  shift
+fi
+
 TARGET_FILE="${1:-${ROC_SERVER_FILE:-/tmp/server.txt}}"
 SERVER="${ROC_SERVER:-}"
 SSH_USER="${ROC_SSH_USER:-root}"
@@ -36,6 +42,12 @@ fi
 echo "[INFO] 检查服务器: $SERVER"
 echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s)"
 echo "[INFO] Healthz: ${HEALTHZ_URL}"
+
+if [[ "$PRINT_TARGET_ONLY" == "1" ]]; then
+  echo "[INFO] --print-target 已启用，仅输出解析结果，不执行 SSH 检查"
+  exit 0
+fi
+
 ssh \
   -o BatchMode=yes \
   -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" \

@@ -122,7 +122,11 @@ ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-server-health-via-target.sh
 ROC_SSH_USER=ubuntu ROC_SSH_PORT=2222 ROC_SSH_CONNECT_TIMEOUT=12 \
 ROC_HEALTHZ_URL='http://127.0.0.1:8787/healthz' \
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh
+
+# 仅验证目标解析（不发起SSH），适合在CI里先做自检
+./scripts/check-server-health-via-target.sh --print-target
 ```
+
 
 ## 📚 详细文档
 - [安装指南](docs/install-cn-quick-reference.md) - 完整安装步骤
