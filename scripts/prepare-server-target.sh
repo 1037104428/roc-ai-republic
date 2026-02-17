@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET_FILE="/tmp/server.txt"
+TARGET_FILE="${ROC_SERVER_FILE:-/tmp/server.txt}"
 SERVER="${ROC_SERVER:-}"
 PRINT_ONLY=0
 CHECK_ONLY=0
@@ -16,7 +16,7 @@ usage() {
   ./scripts/prepare-server-target.sh --example
 
 说明:
-  - 默认写入 /tmp/server.txt，供 check-server-health-via-target.sh 读取
+  - 默认写入 /tmp/server.txt（可用 ROC_SERVER_FILE 覆盖默认路径），供 check-server-health-via-target.sh 读取
   - --print 仅打印当前解析到的目标，不写文件
   - --check 仅校验目标文件是否存在且可解析（适合部署前自检）
   - --example 打印 /tmp/server.txt 可接受的示例格式

@@ -154,6 +154,9 @@ ROC_HEALTHZ_URL='http://127.0.0.1:8787/healthz' ROC_SERVER=your.server.ip.or.dom
 # 一条命令完成“写入目标 + 远程健康检查”（适合首次排障）
 ./scripts/prepare-server-target.sh --server your.server.ip.or.domain && ./scripts/check-server-health-via-target.sh
 
+# prepare-server-target 默认写 /tmp/server.txt；可用 ROC_SERVER_FILE 覆盖默认路径
+ROC_SERVER_FILE=/tmp/roc-server.txt ./scripts/prepare-server-target.sh --server your.server.ip.or.domain
+
 # 当 /tmp/server.txt 缺失时，显式使用 ROC_SERVER 仍可完成巡检
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --dry-run
 
