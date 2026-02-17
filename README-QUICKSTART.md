@@ -142,6 +142,9 @@ ROC_DOCKER_COMPOSE_CMD='docker-compose' ROC_SERVER=your.server.ip.or.domain ./sc
 # 打印将执行的SSH命令（不真正连接远端），便于审计/排障
 ./scripts/check-server-health-via-target.sh --dry-run
 
+# 仅打印远端命令片段（复制到现有 ssh 命令里复用）
+./scripts/check-server-health-via-target.sh --print-remote-cmd
+
 # 仅做 healthz 快速探测（跳过 docker compose ps，适合服务已稳定时高频探活）
 ROC_SERVER=your.server.ip.or.domain ./scripts/check-server-health-via-target.sh --healthz-only
 

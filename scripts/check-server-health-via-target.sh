@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PRINT_TARGET_ONLY=0
+PRINT_REMOTE_CMD_ONLY=0
 DRY_RUN=0
 HEALTHZ_ONLY=0
 COMPOSE_ONLY=0
@@ -14,6 +15,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --print-target)
       PRINT_TARGET_ONLY=1
+      shift
+      ;;
+    --print-remote-cmd)
+      PRINT_REMOTE_CMD_ONLY=1
       shift
       ;;
     --dry-run)
@@ -61,11 +66,12 @@ done
 if [[ "$SHOW_HELP" == "1" ]]; then
   cat <<'EOF'
 用法:
-  ./scripts/check-server-health-via-target.sh [--print-target] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
+  ./scripts/check-server-health-via-target.sh [--print-target] [--print-remote-cmd] [--dry-run] [--healthz-only|--compose-only] [--ssh-user USER] [--ssh-port PORT] [--connect-timeout SEC] [--healthz-timeout SEC] [TARGET_FILE]
 
 参数:
   TARGET_FILE              可选，服务器目标文件路径（默认 /tmp/server.txt）
   --print-target           仅输出解析出的服务器目标，不执行 SSH
+  --print-remote-cmd       仅打印远端执行片段（可复制到 ssh ... "<cmd>"）
   --dry-run                仅打印将执行的 SSH 命令，不实际连接
   --healthz-only           仅执行 healthz curl（跳过 docker compose ps）
   --compose-only           仅执行 docker compose ps（跳过 healthz curl）
@@ -171,6 +177,12 @@ fi
 SSH_IDENTITY_ARGS=()
 if [[ -n "${SSH_IDENTITY_FILE}" ]]; then
   SSH_IDENTITY_ARGS+=("-i" "${SSH_IDENTITY_FILE}")
+fi
+
+if [[ "$PRINT_REMOTE_CMD_ONLY" == "1" ]]; then
+  echo "[INFO] --print-remote-cmd 已启用，仅输出远端命令片段"
+  printf "%s\n" "${REMOTE_CMD}"
+  exit 0
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
