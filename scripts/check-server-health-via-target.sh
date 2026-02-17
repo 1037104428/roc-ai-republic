@@ -45,6 +45,7 @@ if [[ "$SHOW_HELP" == "1" ]]; then
   ROC_SSH_USER             SSH 用户（默认 root）
   ROC_SSH_PORT             SSH 端口（默认 22）
   ROC_SSH_CONNECT_TIMEOUT  SSH 连接超时秒数（默认 8）
+  ROC_SSH_STRICT_HOST_KEY_CHECKING  SSH StrictHostKeyChecking（默认 accept-new）
   ROC_REMOTE_DIR           远端目录（默认 /opt/roc/quota-proxy）
   ROC_HEALTHZ_URL          健康检查 URL（默认 http://127.0.0.1:8787/healthz）
   ROC_HEALTHZ_TIMEOUT      healthz curl 超时秒数（默认 6）
@@ -57,6 +58,7 @@ SERVER="${ROC_SERVER:-}"
 SSH_USER="${ROC_SSH_USER:-root}"
 SSH_PORT="${ROC_SSH_PORT:-22}"
 SSH_CONNECT_TIMEOUT="${ROC_SSH_CONNECT_TIMEOUT:-8}"
+SSH_STRICT_HOST_KEY_CHECKING="${ROC_SSH_STRICT_HOST_KEY_CHECKING:-accept-new}"
 HEALTHZ_URL="${ROC_HEALTHZ_URL:-http://127.0.0.1:8787/healthz}"
 HEALTHZ_TIMEOUT="${ROC_HEALTHZ_TIMEOUT:-6}"
 REMOTE_DIR="${ROC_REMOTE_DIR:-/opt/roc/quota-proxy}"
@@ -87,7 +89,7 @@ if [[ -z "$SERVER" ]]; then
 fi
 
 echo "[INFO] 检查服务器: $SERVER"
-echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s)"
+echo "[INFO] SSH: ${SSH_USER}@${SERVER}:${SSH_PORT} (ConnectTimeout=${SSH_CONNECT_TIMEOUT}s, StrictHostKeyChecking=${SSH_STRICT_HOST_KEY_CHECKING})"
 echo "[INFO] Healthz: ${HEALTHZ_URL} (timeout=${HEALTHZ_TIMEOUT}s)"
 echo "[INFO] RemoteDir: ${REMOTE_DIR}"
 
@@ -100,13 +102,14 @@ REMOTE_CMD="set -e; cd '${REMOTE_DIR}'; docker compose ps; echo '---HEALTHZ---';
 
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "[INFO] --dry-run 已启用，仅输出将执行的 SSH 命令"
-  printf "ssh -o BatchMode=yes -o ConnectTimeout=%s -p %s %s@%s %q\n" \
-    "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
+  printf "ssh -o BatchMode=yes -o StrictHostKeyChecking=%s -o ConnectTimeout=%s -p %s %s@%s %q\n" \
+    "${SSH_STRICT_HOST_KEY_CHECKING}" "${SSH_CONNECT_TIMEOUT}" "${SSH_PORT}" "${SSH_USER}" "${SERVER}" "${REMOTE_CMD}"
   exit 0
 fi
 
 ssh \
   -o BatchMode=yes \
+  -o StrictHostKeyChecking="${SSH_STRICT_HOST_KEY_CHECKING}" \
   -o ConnectTimeout="${SSH_CONNECT_TIMEOUT}" \
   -p "${SSH_PORT}" \
   "${SSH_USER}@${SERVER}" "${REMOTE_CMD}"
