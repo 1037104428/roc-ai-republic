@@ -6,6 +6,41 @@ REPO_DIR="${REPO_DIR:-/home/kai/.openclaw/workspace/roc-ai-republic}"
 SERVER_FILE="${SERVER_FILE:-/tmp/server.txt}"
 PROGRESS_LOG="${PROGRESS_LOG:-/home/kai/桌面/阿爪-摘要/weekly/2026-06_中华AI共和国_进度.md}"
 WINDOW_MINUTES="${WINDOW_MINUTES:-15}"
+SHOW_HELP=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --window-minutes)
+      WINDOW_MINUTES="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      SHOW_HELP=1
+      shift
+      ;;
+    *)
+      echo "[ERROR] unknown arg: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$SHOW_HELP" == "1" ]]; then
+  cat <<'EOF'
+用法:
+  ./scripts/cron-check-quota-proxy.sh [--window-minutes N]
+
+参数:
+  --window-minutes N  覆盖落地窗口分钟数（默认 15，可由 WINDOW_MINUTES 环境变量设置）
+  -h, --help          显示帮助
+EOF
+  exit 0
+fi
+
+if ! [[ "$WINDOW_MINUTES" =~ ^[0-9]+$ ]] || [[ "$WINDOW_MINUTES" -le 0 ]]; then
+  echo "[ERROR] WINDOW_MINUTES 必须是正整数，当前: $WINDOW_MINUTES" >&2
+  exit 1
+fi
 
 now_epoch=$(TZ="$TZ_REGION" date +%s)
 now_str=$(TZ="$TZ_REGION" date '+%F %T %Z')

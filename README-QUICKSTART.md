@@ -202,8 +202,14 @@ ROC_SERVER_FILE=/path/to/server.txt ./scripts/check-artifact-window.sh --json --
 # cron 友好的一体化巡检（时间戳 + git log + server compose/healthz + 进度日志 tail + 15 分钟窗口判定）
 ./scripts/cron-check-quota-proxy.sh
 
-# 可配合退出码做告警：0=15 分钟内有落地，2=15 分钟窗口 MISS
+# 可通过参数临时调整窗口（例如值班时改为 20 分钟），不改环境变量
+./scripts/cron-check-quota-proxy.sh --window-minutes 20
+
+# 可配合退出码做告警：0=窗口内有落地，2=窗口 MISS
 ./scripts/cron-check-quota-proxy.sh >/tmp/roc-cron-check.out 2>&1 || rc=$?; echo "exit=${rc:-0}"; grep -E 'artifact_window=' /tmp/roc-cron-check.out
+
+# 查看脚本参数帮助
+./scripts/cron-check-quota-proxy.sh --help
 
 # 可选：窗口检查也支持同一套 SSH/目录/healthz 参数（便于非 root/非 22 端口）
 ROC_SSH_USER=ubuntu ROC_SSH_PORT=2222 ROC_SSH_CONNECT_TIMEOUT=12 ROC_REMOTE_DIR=/srv/roc/quota-proxy ROC_HEALTHZ_TIMEOUT=8 \
